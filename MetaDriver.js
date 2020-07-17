@@ -28,10 +28,10 @@ function createDevices () {
   return new Promise(function (resolve, reject) {
     settings.drivers.forEach(driver => {
       console.log(driver.name);
-      const controller = new metacontrol(driver, driver.sliders.length);
+      const controller = new metacontrol(driver);
       const theDevice = neeoapi.buildDevice("JAC MetaDriver " + driver.name) 
         .setType("AVRECEIVER") 
-        .setDriverVersion(8)
+        .setDriverVersion(driver.version)
         .setManufacturer(driver.manufacturer)
         .addTextLabel(
           { name: 'Status', label: '' }, controller.getStatus);
@@ -52,6 +52,15 @@ function createDevices () {
             {
               setter: theHelper.set, getter: theHelper.get
             })
+          }
+        }
+        for (var prop in driver.directories) { // Dynamic creation of all directories
+          if (Object.prototype.hasOwnProperty.call(driver.directories, prop)) {
+            let theHelper = controller.addDirectoryHelper(driver.directories[prop].command, driver.directories[prop].actioncommand,driver.directories[prop].jpathstatus, prop, driver.directories[prop].imageurl, driver.directories[prop].imageurlpost, driver.directories[prop].jpathimage);
+            theDevice.addDirectory({
+              name: prop, 
+              label: (driver.directories[prop].label == '') ? (prop) : (driver.directories[prop].label),
+            }, theHelper.browse)
           }
         }
         theDevice.addButtonHandler((name, deviceId) => controller.onButtonPressed(name, deviceId))
@@ -117,10 +126,7 @@ function runNeeo () {
     console.log('Trying to start the Driver')
     neeoapi.startServer(neeoSettings)
       .then(() => {
-        console.log('test')
           fs.writeFile('./config.js', JSON.stringify(config), err => {
-            console.log('test2')
-       
             if (err) {
                 console.log('Error writing file', err);
             } else {
