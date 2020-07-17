@@ -7,4 +7,18 @@ Just type
 then type 
 ```node MetaDriver.js```
 
-This driver is on early alpha for advanced user only. Installation and configuration will simplified and explained later.
+This driver is in Beta.
+
+This read me is in alpha. 
+TO install:
+npm install jsonpath.
+
+And then you can directly run with 
+node MetaDriver.js
+
+And please refere to this in order to produce your own jpath:
+https://www.npmjs.com/package/jsonpath
+
+
+You need to edit the settings.js
+Adding your own interactions.
