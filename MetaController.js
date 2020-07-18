@@ -4,10 +4,10 @@ const http = require('http.min');
 const jpath = require('jsonpath');
 const neeoapi = require('neeo-sdk');
 const wol = require('wake_on_lan');
+const { exec } = require("child_process");
 const { cachedDataVersionTag } = require('v8'); // check if needed for discovery of neeo brain and suppress otherwise.
-const settings = require(__dirname + '/settings');
 
-//STRATEGY DESIGN PATTERN FOR THE COMMAND TO BE USED (http-get, post, websocket, ...) New processor to be added here.
+//STRATEGY DESIGN PATTERN FOR THE COMMAND TO BE USED (http-get, post, websocket, ...) New processor to be added here. This strategy mix both transport and data format (json, soap, ...)
 class ProcessingManager {
   constructor() {
     this._processor = null;
@@ -25,35 +25,69 @@ class ProcessingManager {
       .catch((err) => reject (err))
     })
   }
+  query(data, query) {
+    return this._processor.query(data, query)
+  }
 }
 class httpgetProcessor {
   process (command) {
     return new Promise(function (resolve, reject) {
       http(command) 
       .then(function(result) { 
-        resolve(result)
+        resolve(result.data)
       })
       .catch((err) => {reject (err)})
     })
+  }
+  query (data, query) {
+    try {
+      return jpath.query(JSON.parse(data), query);
+    }
+    catch {
+      console.log('error in JSONPATH ' + query + ' processing of :' + data)
+    }
+  }
+}
+class cliProcessor {
+  process (command) {
+    return new Promise(function (resolve, reject) {
+        exec(command, (stdout, stderr) => {
+          if (stdout) {
+            resolve(stdout);
+          }
+          else {
+            resolve(stderr);
+          }
+        })
+    })
+  }
+  query (data, query) {
+    try {
+      return data.search(query);
+    }
+    catch {
+      console.log('error in string.search regex :' + query + ' processing of :' + data)
+    }
   }
 }
 
 const processingManager = new ProcessingManager();
 const myHttpgetProcessor = new httpgetProcessor();
+const myCliProcessor = new cliProcessor();
 //END OF STRATEGY
 
-function directoryHelper (commandtype, command, actioncommand, jpathname, directoryname, jpathlabel, preurl, posturl, jpathimage, controller) {
+function directoryHelper (commandtype, command, actioncommand, queryname, directoryname, querylabel, preurl, posturl, queryimage, controller) {
   
-  console.log(jpathname);
+  console.log(queryname);
  
   this.command = command;
   this.commandtype = commandtype;
   this.controller = controller;
   this.actioncommand = actioncommand;
   this.directoryname = directoryname;
-  this.jpathname = jpathname;
-  this.jpathlabel = jpathlabel;
-  this.jpathimage = jpathimage;
+  this.queryname = queryname;
+  this.querylabel = querylabel;
+  this.queryimage = queryimage;
   var self = this;
   
   this.browse = {
@@ -61,9 +95,9 @@ function directoryHelper (commandtype, command, actioncommand, jpathname, direct
       action: (deviceId, params) => this.handleAction(deviceId, params),
   };  
 
-  this.listFillHelper = function(dataset, list, jpathquery) {
-    if (jpathquery != '' && jpathquery != undefined) {
-      list = jpath.query(JSON.parse(dataset), jpathquery);
+  this.listFillHelper = function(dataset, list, query) {
+    if (query != '' && query != undefined) {
+      list = controller.queryProcessor(dataset, query, self.commandtype);
       return list; 
     }
     else {return null}
@@ -78,10 +112,10 @@ function directoryHelper (commandtype, command, actioncommand, jpathname, direct
     return new Promise(function (resolve, reject) {
       self.controller.commandProcessor(self.command, self.commandtype)
       .then(function(result) { 
-        nameList = self.listFillHelper(result.data, nameList, self.jpathname);
-        imageList = self.listFillHelper(result.data, imageList, self.jpathimage);
-        labelList = self.listFillHelper(result.data, labelList, self.jpathlabel);
-        console.log(result.data);
+        nameList = self.listFillHelper(result, nameList, self.queryname);
+        imageList = self.listFillHelper(result, imageList, self.queryimage);
+        labelList = self.listFillHelper(result, labelList, self.querylabel);
+        console.log(result);
         console.log(nameList);
         neeoList = neeoapi.buildBrowseList({
           title: self.directoryname,
@@ -126,11 +160,12 @@ function directoryHelper (commandtype, command, actioncommand, jpathname, direct
 
 }
 
-function sliderHelper (min,max,commandtype, command, statuscommand, jpathstatus, slidername, controller) {
+function sliderHelper (min,max,commandtype, command, statuscommand, querystatus, slidername, controller) {
   this.min = min;
   this.max = max;
   this.command = command;
   this.statuscommand = statuscommand;
+  this.querystatus = querystatus;
   this.slidername = slidername;
   this.commandtype = commandtype
   var self = this;
@@ -146,7 +181,9 @@ function sliderHelper (min,max,commandtype, command, statuscommand, jpathstatus,
   this.get = function () { 
      return new Promise(function (resolve, reject) {
       controller.commandProcessor(self.statuscommand, self.commandtype)
-      .then(function(result) { resolve(jpath.query(JSON.parse(result.data), jpathstatus)[0])})
+      .then(function (result) { 
+        resolve(controller.queryProcessor(result, self.querystatus, self.commandtype)[0])
+      })
       .catch(function(err) {reject(err)})
     })
   }
@@ -158,7 +195,7 @@ function sliderHelper (min,max,commandtype, command, statuscommand, jpathstatus,
         .catch( (err) => {console.log(err)})  
       controller.sendComponentUpdate({uniqueDeviceId: deviceId, component: 'Status',value: self.toDeviceValue(newValue)})
         .catch( (err) => {console.log(err)})
-      console.log(result.data)
+      console.log(result)
     })
     .catch(function(err) { 
       console.log(err)
@@ -174,14 +211,14 @@ module.exports = function controller(driver) {
   this.buttonsWithMultipleCommands = []; //Memorize for each button with multiple command associated, the last command used. (useful for example for toggle buttons)
   var self = this;
    
-  this.addSliderHelper = function(min,max,commandtype, command, statuscommand, jpathstatus, slidername) {//function called by the MetaDriver to store 
-    const newSliderH = new sliderHelper(min,max,commandtype, command, statuscommand, jpathstatus, slidername, self)
+  this.addSliderHelper = function(min,max,commandtype, command, statuscommand, querystatus, slidername) {//function called by the MetaDriver to store 
+    const newSliderH = new sliderHelper(min,max,commandtype, command, statuscommand, querystatus, slidername, self)
     self.sliderH.push(newSliderH);
     return newSliderH;
   }
 
-  this.addDirectoryHelper = function(commandtype, command, actioncommand, jpathname, directoryname, jpathlabel, preurl, posturl, jpathimage) {//function called by the MetaDriver to store the features of the list 
-    const newDirectoryH = new directoryHelper(commandtype, command, actioncommand, jpathname, directoryname, jpathlabel, preurl, posturl, jpathimage, self)
+  this.addDirectoryHelper = function(commandtype, command, actioncommand, queryname, directoryname, querylabel, preurl, posturl, queryimage) {//function called by the MetaDriver to store the features of the list 
+    const newDirectoryH = new directoryHelper(commandtype, command, actioncommand, queryname, directoryname, querylabel, preurl, posturl, queryimage, self)
     self.directoryH.push(newDirectoryH);
     return newDirectoryH;
   }
@@ -197,24 +234,41 @@ module.exports = function controller(driver) {
 
   this.commandProcessor = function (command, commandtype) { // process any command according to the target protocole
     return new Promise(function (resolve, reject) {
-       if (commandtype = 'http-get') {processingManager.processor = myHttpgetProcessor;
-        processingManager.process(command)
-        .then(
-          (result) => {resolve(result)})
-        .catch((err) => {reject (err)})
+      if (commandtype == 'http-get') {
+        processingManager.processor = myHttpgetProcessor;
+      }
+      else if (commandtype == 'cli') {
+        processingManager.processor = myCliProcessor;
       }
       else {reject('commandtype not defined.')}
+      processingManager.process(command)
+        .then((result) => {
+          resolve(result)
+        })
+        .catch((err) => {reject (err)})
     })    
   }
 
-  this.commandButtonProcessor = function (name, deviceId, command, jpathresult, expectedresult, commandtype) {
+  this.queryProcessor = function (data, query, commandtype) { // process any command according to the target protocole
+      if (commandtype == 'http-get') {
+        processingManager.processor = myHttpgetProcessor;
+          
+      }
+      else if (commandtype == 'cli') {
+        processingManager.processor = myCliProcessor;
+      }
+      return processingManager.query(data, query);
+  }
+
+  this.commandButtonProcessor = function (name, deviceId, command, queryresult, expectedresult, commandtype) {
     return new Promise(function (resolve, reject) {
       self.commandProcessor(command, commandtype)
       .then((result)=> {
-        if (jpathresult != "") {
-          console.log(result.data);
-          console.log(jpathresult);
-          result = jpath.query(JSON.parse(result.data), jpathresult)[0];
+        if (queryresult != "") {
+          console.log(result);
+          console.log('Query :' + queryresult);
+          result = self.queryProcessor(result, queryresult, commandtype)[0];
+          //result = jpath.query(JSON.parse(result.data), queryresult)[0];
           console.log(result);
         }
         if (result == expectedresult) {
@@ -222,7 +276,7 @@ module.exports = function controller(driver) {
         }
         else {
           console.log(result);
-          reject('Device return a different code than expected.');
+          reject('Device returned a different code than expected.');
         }
       })
       .catch((err) => { 
@@ -235,36 +289,38 @@ module.exports = function controller(driver) {
     console.log('[CONTROLLER]' + name + ' button pressed for device ' + deviceId);
     let theButton = self.buttons[name];
     if (theButton != undefined) {
-      if (theButton.type in {'http-get':"", 'http-post':"", 'websocket':"", 'MQTT':""}) {
+      if (theButton.type in {'http-get':"", 'http-post':"", 'websocket':"", 'MQTT':"", 'cli':""}) {
         if (theButton.command != undefined){ // In case the button has only one command defined
-          self.commandButtonProcessor(name, deviceId, theButton.command, theButton.jpathresult, theButton.expectedresult, theButton.type)
+          self.commandButtonProcessor(name, deviceId, theButton.command, theButton.queryresult, theButton.expectedresult, theButton.type)
           .then((successmessage)=>{
             self.sendComponentUpdate({uniqueDeviceId: deviceId, component: 'Status',value: successmessage})
             .catch( (err) => {console.log(err)})
           })
           .catch((err) => { 
-            if (theButton.fallbackButton) {
+            console.log('Button Value:' + theButton)
+            if (theButton.fallbackbutton != '') {
+              self.onButtonPressed(theButton.fallbackbutton,deviceId);
               self.sendComponentUpdate({uniqueDeviceId: deviceId, component: 'Status',value: 'Trying Alternate methode.'})
               .catch( (err) => {console.log(err)})
-              console.log('fallback!')
+              
             }
             else {
-              self.sendComponentUpdate({uniqueDeviceId: deviceId, component: 'Status',value: err})
+              console.log("Error : " + err)
+              self.sendComponentUpdate({uniqueDeviceId: deviceId, component: 'Status',value: 'Couldn\'t execute the function'})
               .catch( (err) => {console.log(err)})
-              console.log('No fallback possible!')
             }
           })
         }
         if (theButton.commands != undefined) { // in case the button has multiple commands defined
           console.log('multiple commands')
           let currentButton = self.buttonsWithMultipleCommands.find((button) => { return (button.name == name)});//getting back the last command used through the dynamic structure
-          console.log(currentButton)
+          console.log("Current button: " + currentButton)
           if (currentButton == undefined) { // if no last command found, use the first command.
             currentButton = {'name':name,'index':0};
               self.buttonsWithMultipleCommands.push(currentButton)
           }
-          console.log(theButton.commands[currentButton.index])
-          self.commandButtonProcessor(name, deviceId, theButton.commands[currentButton.index], theButton.jpathresult, theButton.expectedresult, theButton.type)
+          console.log('Command: ' + theButton.commands[currentButton.index])
+          self.commandButtonProcessor(name, deviceId, theButton.commands[currentButton.index], theButton.queryresult, theButton.expectedresult, theButton.type)
           .then(() => {
             currentButton.index = (currentButton.index<theButton.commands.length-1) ? currentButton.index+1 : 0; //go to next command
           })
@@ -275,9 +331,8 @@ module.exports = function controller(driver) {
          let SH = self.sliderH.find((sliderhelper) => { return (sliderhelper.slidername == theButton.slidername)}); // get the right slider with get and set capacity
          SH.get()
           .then((result) => {
-            console.log (result);
             result = Number(result) + Number(theButton.step);
-            console.log (result);
+            console.log ('Slider: ' + result);
             SH.set(deviceId, SH.toSliderValue(result));
           })
           .catch((err) => {

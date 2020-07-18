@@ -43,7 +43,7 @@ function createDevices () {
         }
         for (var prop in driver.sliders) { // Dynamic creation of all sliders
            if (Object.prototype.hasOwnProperty.call(driver.sliders, prop)) {
-            const theHelper = controller.addSliderHelper(driver.sliders[prop].min,driver.sliders[prop].max,driver.sliders[prop].type, driver.sliders[prop].command, driver.sliders[prop].statuscommand,driver.sliders[prop].jpathstatus, prop);
+            const theHelper = controller.addSliderHelper(driver.sliders[prop].min,driver.sliders[prop].max,driver.sliders[prop].type, driver.sliders[prop].command, driver.sliders[prop].statuscommand,driver.sliders[prop].querystatus, prop);
             theDevice.addSlider({
               name: prop, 
               label: (driver.sliders[prop].label == '') ? (prop) : (driver.sliders[prop].label),
@@ -56,7 +56,7 @@ function createDevices () {
         }
         for (var prop in driver.directories) { // Dynamic creation of all directories
           if (Object.prototype.hasOwnProperty.call(driver.directories, prop)) {
-            const theHelper = controller.addDirectoryHelper(driver.directories[prop].type, driver.directories[prop].command, driver.directories[prop].actioncommand,driver.directories[prop].jpathname, prop, driver.directories[prop].jpathlabel, driver.directories[prop].imageurl, driver.directories[prop].imageurlpost, driver.directories[prop].jpathimage);
+            const theHelper = controller.addDirectoryHelper(driver.directories[prop].type, driver.directories[prop].command, driver.directories[prop].actioncommand,driver.directories[prop].queryname, prop, driver.directories[prop].querylabel, driver.directories[prop].imageurl, driver.directories[prop].imageurlpost, driver.directories[prop].queryimage);
             theDevice.addDirectory({
               name: prop, 
               label: (driver.directories[prop].label == '') ? (prop) : (driver.directories[prop].label),
