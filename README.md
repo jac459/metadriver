@@ -24,8 +24,8 @@ You need to edit the settings.js
 Adding your own interactions.
 
 ## Features
-
 - Control any device with rest api.
+- Control any device with cli calls.
 - Create sliders 
 - Create lists (directories)
 - link buttons with sliders
