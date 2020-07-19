@@ -27,9 +27,10 @@ Adding your own interactions.
 - Control any device with rest api.
 - Control any device with cli calls.
 - Create sliders 
-- Create lists (directories)
+- Create lists (directories) 
 - link buttons with sliders
 - Chained commands (one button have different behaviour each time pressed, example, mute toggle will mute on or off when pressed)
+- Added Variable Management for complexe integrations => a button or a choice in a list, can write in a variable, this variable can be reused by other components.
 
 ## To do
 
