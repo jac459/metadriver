@@ -25,9 +25,20 @@ var settings =
         "VOLUME": {"label":"", "min" : 0, "max" : 161, "unit" : "db", "type":"http-get", "command":"http://192.168.1.24/YamahaExtendedControl/v2/main/setVolume?volume=", "statuscommand":"http://192.168.1.24/YamahaExtendedControl/v2/main/getStatus", "querystatus":"$.volume"},
       },
       "directories":{
-        "INPUT": {"label":"", "queryname":"", "type":"http-get", "command":"http://192.168.1.24/YamahaExtendedControl/v2/system/getFeatures", "actioncommand":"http://192.168.1.24/YamahaExtendedControl/v1/main/setInput?input=", "queryname":"$.system.input_list[*].id", "imageurl":"https://raw.githubusercontent.com/jac459/metadriver/master/AVReceiver/Input/ThemeStandard/input_", "imageurlpost":".jpg", "queryimage":""},
-        "DSP": {"label":"", "queryname":"", "type":"http-get", "command":"http://192.168.1.24/YamahaExtendedControl/v1/main/getSoundProgramList", "actioncommand":"http://192.168.1.24/YamahaExtendedControl/v1/main/setSoundProgram?program=", "queryname":"$.sound_program_list[*]", "imageurl":"https://raw.githubusercontent.com/jac459/metadriver/master/AVReceiver/DSP/ThemeStandard/", "imageurlpost":"_sce.jpg", "queryimage":""},
-      },
+        "INPUT": {"label":"", "feeders": {
+            "Inputs":{"label":"", "querylabel":"", "type":"http-get", "command":"http://192.168.1.24/YamahaExtendedControl/v2/system/getFeatures", "actioncommand":"http://192.168.1.24/YamahaExtendedControl/v1/main/setInput?input=", "queryname":"$.system.input_list[*].id", "imageurl":"https://raw.githubusercontent.com/jac459/metadriver/master/AVReceiver/Input/ThemeStandard/input_", "imageurlpost":".jpg", "queryimage":""},
+          }
+        },
+        "DSP": {"label":"", "feeders": {
+          "DSP": {"label":"", "querylabel":"", "type":"http-get", "command":"http://192.168.1.24/YamahaExtendedControl/v1/main/getSoundProgramList", "actioncommand":"http://192.168.1.24/YamahaExtendedControl/v1/main/setSoundProgram?program=", "queryname":"$.sound_program_list[*]", "imageurl":"https://raw.githubusercontent.com/jac459/metadriver/master/AVReceiver/DSP/ThemeStandard/", "imageurlpost":"_sce.jpg", "queryimage":""},
+        }
+      }
+    }
+
+//      "directories":{
+//        "INPUT": {"label":"", "querylabel":"", "type":"http-get", "command":"http://192.168.1.24/YamahaExtendedControl/v2/system/getFeatures", "actioncommand":"http://192.168.1.24/YamahaExtendedControl/v1/main/setInput?input=", "queryname":"$.system.input_list[*].id", "imageurl":"https://raw.githubusercontent.com/jac459/metadriver/master/AVReceiver/Input/ThemeStandard/input_", "imageurlpost":".jpg", "queryimage":""},
+//        "DSP": {"label":"", "querylabel":"", "type":"http-get", "command":"http://192.168.1.24/YamahaExtendedControl/v1/main/getSoundProgramList", "actioncommand":"http://192.168.1.24/YamahaExtendedControl/v1/main/setSoundProgram?program=", "queryname":"$.sound_program_list[*]", "imageurl":"https://raw.githubusercontent.com/jac459/metadriver/master/AVReceiver/DSP/ThemeStandard/", "imageurlpost":"_sce.jpg", "queryimage":""},
+//      },
     },
     {"name":"MiTV", 
       "manufacturer":"Xiaomi",
@@ -41,7 +52,7 @@ var settings =
         "CURSOR UP": {"label":"", "type":"http-get", "command":"http://192.168.1.33:6095/controller?action=keyevent&keycode=up", "queryresult":"$.msg", "expectedresult":"success", "fallbackbutton":""},
         "CURSOR DOWN": {"label":"", "type":"http-get", "command":"http://192.168.1.33:6095/controller?action=keyevent&keycode=down", "queryresult":"$.msg", "expectedresult":"success", "fallbackbutton":""},
         "CURSOR ENTER": {"label":"", "type":"http-get", "command":"http://192.168.1.33:6095/controller?action=keyevent&keycode=enter", "queryresult":"$.msg", "expectedresult":"success", "fallbackbutton":""},
-        "POWER ON": {"label":"", "type":"http-get", "command":"http://192.168.1.33:6095/controller?action=keyevent&keycode=power", "queryresult":"$.msg", "expectedresult":"success", "fallbackbutton":"POWER ON-IR"},
+        "POWER ON": {"label":"", "type":"http-get", "command":"http://192.168.1.33:6095/controller?action=getinstalledapp&count=999&changeIcon=1", "queryresult":"$.msg", "expectedresult":"success", "fallbackbutton":"POWER ON-IR"},
         "POWER ON-IR": {"label":"", "type":"http-get", "command":"http://192.168.1.26:3000/v1/projects/home/rooms/6394342251295670272/devices/6689940872680701952/macros/6689940872756199425/trigger", "queryresult":"$.estimatedDuration", "expectedresult":"2000", "fallbackbutton":""},
         "POWER OFF": {"label":"", "type":"http-get", "command":"http://192.168.1.33:6095/controller?action=keyevent&keycode=power", "queryresult":"$.msg", "expectedresult":"success", "fallbackbutton":""},
         "VOLUME UP": {"label":"", "type":"http-get", "command":"http://192.168.1.33:6095/controller?action=keyevent&keycode=volumeup", "queryresult":"$.msg", "expectedresult":"success", "fallbackbutton":""},
@@ -54,28 +65,50 @@ var settings =
         "INPUT HDMI 3": {"label":"", "type":"http-get", "command":"http://192.168.1.33:6095/controller?action=changesource&source=HDMI3", "queryresult":"$.msg", "expectedresult":"success", "fallbackbutton":""},
       },
       "directories":{
-        "Applications": {"label":"", "queryname":"$.data.AppInfo[*].PackageName", "type":"http-get", "command":"http://192.168.1.33:6095/controller?action=getinstalledapp&count=999&changeIcon=1", "actioncommand":"http://192.168.1.33:6095/controller?action=startapp&type=packagename&packagename=", "queryname":"$.data.AppInfo[*].AppName", "imageurl":"", "imageurlpost":"", "queryimage":"$.data.AppInfo[*].IconURL"},
-      },
+        "Applications": {"label":"", "feeders": {
+            "Applications":{"label":"", "queryname":"$.data.AppInfo[*].PackageName", "type":"http-get", "command":"http://192.168.1.33:6095/controller?action=getinstalledapp&count=999&changeIcon=1", "actioncommand":"http://192.168.1.33:6095/controller?action=startapp&type=packagename&packagename=", "queryname":"$.data.AppInfo[*].AppName", "imageurl":"", "imageurlpost":"", "queryimage":"$.data.AppInfo[*].IconURL"},
+            }
+        }
+      }
     },
-    {"name":"Brain Navigator", 
+/*    {"name":"Brain Navigator", 
     "manufacturer":"JAC",
-    "version":1,
+    "version":4,
       "directories":{
         "recipes": {"label":"The recipes in my brain", "queryname":"$.*..devices.*.roomName", "type":"http-get", "command":"http://192.168.1.26:3000/v1/projects/home/rooms/", "actioncommand":"", "queryname":"$.*..devices.*.name", "imageurl":"", "imageurlpost":"", "queryimage":""},
       },
     },
     {"name":"cli demonstrator", 
       "manufacturer":"JAC",
-      "version":2,
+      "version":7,
+      "variables":{
+        "CurrentPath":"",
+      },
       "buttons":{
-        "CURSOR OK": {"label":"", "type":"cli", "command":"pwd", "queryresult":"", "expectedresult":"/home/pi/Neeo/JAC/drivers/MetaDriver", "fallbackbutton":""},
+        "CURSOR OK": {"label":"", "type":"cli", "command":"cd @=>CurrentPath<=@ ; pwd", "queryresult":"\n", "expectedresult":"", "fallbackbutton":"", "variable2assign":"CurrentPath"},
+        "CURSOR LEFT": {"label":"", "type":"cli", "command":"cd @=>CurrentPath<=@/.. ; pwd", "queryresult":"\n", "expectedresult":"", "fallbackbutton":"", "variable2assign":"CurrentPath"},
+      },
+//      "directories":{
+//        "Files": {"label":"FileSystem", "queryname":"", "type":"cli", "command":"cd @=>CurrentPath<=@ ; find \"$(pwd)\" -maxdepth 1", "actioncommand":"", "queryname":"\n", "imageurl":"", "imageurlpost":"", "queryimage":"", "variable2assign":"CurrentPath"},
+//      },
+    },
+*/    {"name":"Volumio2", 
+      "manufacturer":"Volumio",
+      "version":1,
+      "variables":{
+      },
+      "buttons":{
+        "CURSOR OK": {"label":"", "type":"cli", "command":"cd @=>CurrentPath<=@ ; pwd", "queryresult":"\n", "expectedresult":"", "fallbackbutton":"", "variable2assign":"CurrentPath"},
       },
       "directories":{
-        "recipes": {"label":"The recipes in my brain", "queryname":"$.*..devices.*.roomName", "type":"http-get", "command":"http://192.168.1.26:3000/v1/projects/home/rooms/", "actioncommand":"", "queryname":"$.*..devices.*.name", "imageurl":"", "imageurlpost":"", "queryimage":""},
-      },
+        "Collection": {"label":"My Artists", "feeders": {
+            "Artists":{"label":"", "querylabel":"", "type":"http-get", "command":"http://volumio.local/api/v1/browse?uri=artists://", "actioncommand":"", "queryname":"$.navigation.lists[0].items[*].title", "imageurl":"http://volumio.local", "imageurlpost":"", "queryimage":"$.navigation.lists[0].items[*].albumart", "variable2assign":"", "nextdatafeeder":"albums"},
+            "Albums":{"label":"", "querylabel":"", "type":"http-get", "command":"http://volumio.local/api/v1/browse?uri=artists://", "actioncommand":"", "queryname":"$.navigation.lists[0].items[*].title", "imageurl":"http://volumio.local", "imageurlpost":"", "queryimage":"$.navigation.lists[0].items[*].albumart", "variable2assign":"", "nextdatafeeder":"albums"},
+          }
+        }
+      }
     }
-
-  ]          
+  ]
 }
   
 module.exports = settings;

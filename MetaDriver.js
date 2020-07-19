@@ -41,6 +41,12 @@ function createDevices () {
             theDevice.addButton({name: prop, label: (driver.buttons[prop].label == '') ? (prop) : (driver.buttons[prop].label)})
           }
         }
+        for (var prop in driver.variables) { // Initialisation of the variables
+          if (Object.prototype.hasOwnProperty.call(driver.variables, prop)) {
+             controller.addVariable(prop, driver.variables[prop])
+          }
+        }
+
         for (var prop in driver.sliders) { // Dynamic creation of all sliders
            if (Object.prototype.hasOwnProperty.call(driver.sliders, prop)) {
             const theHelper = controller.addSliderHelper(driver.sliders[prop].min,driver.sliders[prop].max,driver.sliders[prop].type, driver.sliders[prop].command, driver.sliders[prop].statuscommand,driver.sliders[prop].querystatus, prop);
@@ -54,16 +60,42 @@ function createDevices () {
             })
           }
         }
-        for (var prop in driver.directories) { // Dynamic creation of all directories
+        for (var prop in driver.directories) { // Dynamic creation of directories
           if (Object.prototype.hasOwnProperty.call(driver.directories, prop)) {
-            const theHelper = controller.addDirectoryHelper(driver.directories[prop].type, driver.directories[prop].command, driver.directories[prop].actioncommand,driver.directories[prop].queryname, prop, driver.directories[prop].querylabel, driver.directories[prop].imageurl, driver.directories[prop].imageurlpost, driver.directories[prop].queryimage);
+            const theHelper = controller.addDirectoryHelper();
+            for (var feed in driver.directories[prop].feeders) {
+              let feedConfig = {"name":feed, 
+                                "label":driver.directories[prop].feeders[feed].label, 
+                                "querylabel":driver.directories[prop].feeders[feed].querylabel, 
+                                "type":driver.directories[prop].feeders[feed].type, 
+                                "command":driver.directories[prop].feeders[feed].command, 
+                                "actioncommand":driver.directories[prop].feeders[feed].actioncommand, 
+                                "queryname":driver.directories[prop].feeders[feed].queryname, 
+                                "imageurl":driver.directories[prop].feeders[feed].imageurl, 
+                                "imageurlpost":driver.directories[prop].feeders[feed].imageurlpost, 
+                                "queryimage":driver.directories[prop].feeders[feed].queryimage, 
+                                "variable2assign":driver.directories[prop].feeders[feed].variable2assign, 
+                                "nextdatafeeder":driver.directories[prop].feeders[feed].nexdatafeeder};
+              console.log(feedConfig)                        
+              theHelper.addFeederHelper(feedConfig);
+            }
+            theDevice.addDirectory({
+              name: prop, 
+              label: (driver.directories[prop].label == '') ? (prop) : (driver.directories[prop].label),
+            }, theHelper.browse)
+
+          }
+        }
+/*        for (var prop in driver.linkeddirectories) { // Dynamic creation of navigation directories
+          if (Object.prototype.hasOwnProperty.call(driver.linkeddirectories, prop)) {
+            const theHelper = controller.addDirectoryHelper(driver.directories[prop].type, driver.directories[prop].command, driver.directories[prop].actioncommand,driver.directories[prop].queryname, prop, driver.directories[prop].querylabel, driver.directories[prop].imageurl, driver.directories[prop].imageurlpost, driver.directories[prop].queryimage, driver.directories[prop].variable2assign);
             theDevice.addDirectory({
               name: prop, 
               label: (driver.directories[prop].label == '') ? (prop) : (driver.directories[prop].label),
             }, theHelper.browse)
           }
         }
-        theDevice.addButtonHandler((name, deviceId) => controller.onButtonPressed(name, deviceId))
+*/        theDevice.addButtonHandler((name, deviceId) => controller.onButtonPressed(name, deviceId))
         theDevice.registerSubscriptionFunction(controller.registerStateUpdateCallback);
   
       console.log("Device " + driver.name + " has been created.")
