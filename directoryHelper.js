@@ -19,24 +19,19 @@ class directoryHelper {
     this.evalNext = function (evalnext, result) {
       if (evalnext) { //case we want to go to another feeder
         evalnext.forEach(evalN => {
-          console.log('test value : ' + evalN.test);
           if (evalN.test == '' || evalN.test == true) {evalN.test = true}; //in case of no test, go to the do function
           let finalNextTest = self.controller.assignVariables(evalN.test);// prepare the test to assign variable and be evaluated.
-          console.log('finalnext :' + finalNextTest)
           finalNextTest = self.controller.assignResult(finalNextTest, result);
-          console.log('test value final : ' + finalNextTest);
           if (finalNextTest) {
             if (evalN.then && evalN.then != '')
             {
-              console.log(evalN.then);
-              console.log(self.feederH.findIndex((feed) => {return (feed.name == evalN.then)}));
-              return self.feederH.findIndex((feed) => {return (feed.name == evalN.then)});
+              self.currentFeederIndex = self.feederH.findIndex((feed) => {return (feed.name == evalN.then)});
             }
           }
           else { 
             if (evalN.or && evalN.or != '')
             {
-              return self.feederH.findIndex((feed) => {return (feed.name == evalN.or)});
+              self.currentFeederIndex = self.feederH.findIndex((feed) => {return (feed.name == evalN.or)});
             }
           }
          })
@@ -45,8 +40,13 @@ class directoryHelper {
 
     this.fetchList = function (deviceId, params) {
       return new Promise(function (resolve, reject) {
+
       if (params.browseIdentifier != '') {
-        self.currentFeederIndex = self.evalNext(self.feederH[self.currentFeederIndex].evalnext, params.browseIdentifier);
+        self.controller.evalWrite(self.feederH[self.currentFeederIndex].evalwrite, params.browseIdentifier, deviceId)
+        self.evalNext(self.feederH[self.currentFeederIndex].evalnext, params.browseIdentifier);//assign the good value to know the feeder
+      }
+      else if (params.history.length>0) {
+          self.currentFeederIndex = params.history.length;
       }
       else {self.currentFeederIndex = 0}
       self.fetchCurrentList(deviceId, self.feederH[self.currentFeederIndex], params)
@@ -70,28 +70,26 @@ class directoryHelper {
       let labelList = [];
       let actionList = [];
       return new Promise(function (resolve, reject) {
-        console.log('PreProcessed command : '+ config.command)
         let processedCommand = self.controller.assignResult(config.command, params.browseIdentifier);
-        console.log('Fetch Command: ' + processedCommand);
+        processedCommand = self.controller.assignVariables(processedCommand);
         self.controller.commandProcessor(processedCommand, config.type)
           .then((result) => {
-            //console.log(config.queryresult)
-            //console.log(config.type)
             resultList = self.controller.queryProcessor(result, config.queryresult, config.type);
             //console.log('Query result: ' + resultList);
             rName = self.controller.assignVariables(config.itemname); //ensure that the item name chain has the variable interpreted (except $Result)
             rImage = self.controller.assignVariables(config.itemimage); 
             rLabel = self.controller.assignVariables(config.itemlabel); 
-            //console.log(config.itemaction ? config.itemaction : config.itembrowse)
             rAction = self.controller.assignVariables(config.itemaction ? config.itemaction : config.itembrowse); //check if this list will generate a browse or an action
-            //console.log(resultList)
+            //console.log('Prepare to iterate through results : ')
             resultList.forEach(oneItemResult => { //As in this case, $Result is a table, transform $Result to get every part of the table as one $Result
+              //console.log(oneItemResult)
               nameList.push(self.controller.assignResult(rName, oneItemResult));//push the result of the itemname expression with result item to the namelist
               imageList.push(self.controller.assignResult(rImage, oneItemResult));
               labelList.push(self.controller.assignResult(rLabel, oneItemResult));
               actionList.push(self.controller.assignResult(rAction, oneItemResult));
               
             });
+            //console.log(nameList)
             //console.log('NameList : ' + nameList);
             neeoList = neeoapi.buildBrowseList({
               title: config.directoryname,

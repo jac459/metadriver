@@ -48,10 +48,11 @@ class httpgetProcessor {
   query (data, query) {
     if (query) {
       try {
-        return jpath.query(JSON.parse(data), query);
+        let temp = JSON.parse(data);
+        return jpath.query(temp, query);
       }
-      catch {
-        console.log('error in JSONPATH ' + query + ' processing of :' + data)
+      catch (err) {
+        console.log('error ' + err + ' in JSONPATH ' + query + ' processing of :' + data)
       }
     }
     else {return data}
@@ -75,8 +76,8 @@ class httppostProcessor {
     try {
       return jpath.query(JSON.parse(data), query);
     }
-    catch {
-      console.log('error in JSONPATH ' + query + ' processing of :' + data)
+    catch (err) {
+      console.log('error ' + err + ' in JSONPATH ' + query + ' processing of :' + data)
     }
   }
 }
@@ -165,13 +166,11 @@ module.exports = function controller(driver) {
     //console.log('AssignResult on :' + inputChain)
  //   console.log((givenResult))
     if (!(typeof(givenResult) in {"string":"", "number":"", "boolean":""}) ) {//in case the response is a json object, convert to string, escape quotes
-      givenResult = JSON.stringify(givenResult).replace(/"/g, '\\"');
-     }
+      givenResult = JSON.stringify(givenResult).replace(/"/g, '\\"').replace(/'/g, "\\'")//.replace(/(?=[()])/g, '\\');//.replace(/\(/g,"\(").replace(/\\)/g,"\\)");
+      givenResult = givenResult.replace(/\\\\/g, '\\\\\\') // Absolutely necessary to properly escape the escaped character. Or super tricky bug.
+    }
     if (typeof(inputChain) == 'string') {inputChain = inputChain.replace(RESULT, givenResult);}
-    console.log(inputChain);
-    console.log(eval(inputChain))
-  
-  
+   
     return eval(inputChain);
     //return inputChain.replace(RESULT, givenResult);
   }
@@ -180,12 +179,12 @@ module.exports = function controller(driver) {
     let preparedResult = inputChain;
     if (typeof(inputChain) == 'string')
     {
-      console.log(self.deviceVariables)
       self.deviceVariables.forEach(variable => {
         let token = variablePattern.pre + variable.name + variablePattern.post;
         preparedResult = preparedResult.replace(token, variable.value);
       })
     }
+    console.log('Chain Assigned : ' + preparedResult)
     return preparedResult;
   }
 
@@ -269,8 +268,11 @@ module.exports = function controller(driver) {
 */
   
   this.evalWrite = function (evalwrite, result, deviceId) {
+    console.log('EVALWRITE!!!!!!!!!!!!!')
+    console.log(evalwrite)
     if (evalwrite) { //case we want to write inside a variable
       evalwrite.forEach(evalW => {
+        console.log(evalW);
         //process the value
         let finalValue = self.assignVariables(evalW.value);
         finalValue = self.assignResult(finalValue, result);

@@ -84,6 +84,7 @@ function createDevices () {
                                 "itembrowse":driver.directories[prop].feeders[feed].itembrowse, 
                                 "itemimage":driver.directories[prop].feeders[feed].itemimage, 
                                 "evalnext":driver.directories[prop].feeders[feed].evalnext,
+                                "evalwrite":driver.directories[prop].feeders[feed].evalwrite,
                                 "actioncommand":driver.directories[prop].feeders[feed].actioncommand, 
                               };
               console.log(feedConfig)                        

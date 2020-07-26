@@ -110,9 +110,11 @@ var settings =
  
  */ {"name":"Brain Navigator", 
     "manufacturer":"JAC",
-    "version":9,
+    "version":10,
     variables:{
       MyStatus:"",
+      RoomKey:"",
+      DeviceKey:"",
     },
     labels:{
       "CurrentStatus" : {label:"status", listen:"MyStatus"},
@@ -124,8 +126,9 @@ var settings =
      },
     directories:{
       "recipes": {label:"", feeders: {
-            "Rooms":{label:"Rooms list", type:"http-get", command:"http://192.168.1.26:3000/v1/projects/home/rooms/", queryresult:"$.*[name,key]", itemname:"JSON.parse(\"$Result\").name", itemlabel:"\"Recipe name\"", itembrowse:"JSON.parse(\"$Result\").key", itemimage:"\"\"", evalnext:[{test:"\"$Result\".length>0", then:"Devices", or:"Rooms"}]},
-            "Devices":{label:"Devices list", type:"http-get", command:"http://192.168.1.26:3000/v1/projects/home/rooms/", queryresult:"$.*[name,key]", itemname:"\"$Result\"", itemlabel:"\"Recipe name\"", itembrowse:"\"$Result\"", itemimage:"\"\"", evalnext:[{test:true, then:"CURSOR RIGHT", or:"CURSOR ENTER"}]},
+            "Rooms":{label:"Rooms list", type:"http-get", command:"\"http://192.168.1.130:3000/v1/projects/home/rooms/\"", queryresult:"$.*", itemname:"JSON.parse(\"$Result\").name", itemlabel:"\"Recipe name\"", itembrowse:"JSON.parse(\"$Result\").key", itemimage:"\"https://raw.githubusercontent.com/jac459/metadriver/master/AVReceiver/rooms.jpg\"", evalnext:[{test:true, then:"Devices", or:"Rooms"}], evalwrite:[{variable:"RoomKey",value:"\"$Result\""}]},
+            "Devices":{label:"Devices list", type:"http-get", command:"\"http://192.168.1.130:3000/v1/projects/home/rooms/$RoomKey/devices\"", queryresult:"$.*", itemname:"JSON.parse(\"$Result\").name", itemlabel:"\"Recipe name\"", itembrowse:"JSON.parse(\"$Result\").key", itemimage:"\"https://raw.githubusercontent.com/jac459/metadriver/master/AVReceiver/devices.jpg\"", evalnext:[{test:true, then:"Macros", or:"Devices"}], evalwrite:[{variable:"DeviceKey",value:"\"$Result\""}]},
+            "Macros":{label:"Macros list", type:"http-get", command:"\"http://192.168.1.130:3000/v1/projects/home/rooms/$RoomKey/devices/$DeviceKey/macros\"", queryresult:"$.*", itemname:"JSON.parse(\"$Result\").name", itemlabel:"\"Recipe name\"", itemaction:"\"http://192.168.1.130:3000/v1/projects/home/rooms/$RoomKey/devices/$DeviceKey/macros/\" + JSON.parse(\"$Result\").key + \"/trigger\"", itemimage:"\"https://raw.githubusercontent.com/jac459/metadriver/master/AVReceiver/Neeo_logo.jpg\""},
           },
         },
       },
