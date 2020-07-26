@@ -33,23 +33,32 @@ function createDevices () {
         .setType("AVRECEIVER") 
         .setDriverVersion(driver.version)
         .setManufacturer(driver.manufacturer)
-        .addTextLabel(
-          { name: 'Status', label: '' }, controller.getStatus);
       
-        for (var prop in driver.buttons) { // Dynamic creation of all buttons
-          if (Object.prototype.hasOwnProperty.call(driver.buttons, prop)) {
-            theDevice.addButton({name: prop, label: (driver.buttons[prop].label == '') ? (prop) : (driver.buttons[prop].label)})
-          }
-        }
         for (var prop in driver.variables) { // Initialisation of the variables
           if (Object.prototype.hasOwnProperty.call(driver.variables, prop)) {
              controller.addVariable(prop, driver.variables[prop])
           }
         }
+        
+        for (var prop in driver.labels) { // Dynamic creation of all labels
+          if (Object.prototype.hasOwnProperty.call(driver.labels, prop)) {
+            console.log(prop)
+            const theHelper = controller.addLabelHelper(prop, driver.labels[prop].listen)
+            theDevice.addTextLabel({name: prop, label: (driver.labels[prop].label == '') ? (prop) : (driver.labels[prop].label)},
+            theHelper.get);
+          }
+        }
+
+        for (var prop in driver.buttons) { // Dynamic creation of all buttons
+          if (Object.prototype.hasOwnProperty.call(driver.buttons, prop)) {
+            theDevice.addButton({name: prop, label: (driver.buttons[prop].label == '') ? (prop) : (driver.buttons[prop].label)})
+          }
+        }
+        
 
         for (var prop in driver.sliders) { // Dynamic creation of all sliders
            if (Object.prototype.hasOwnProperty.call(driver.sliders, prop)) {
-            const theHelper = controller.addSliderHelper(driver.sliders[prop].min,driver.sliders[prop].max,driver.sliders[prop].type, driver.sliders[prop].command, driver.sliders[prop].statuscommand,driver.sliders[prop].querystatus, prop);
+            const theHelper = controller.addSliderHelper(driver.sliders[prop].min,driver.sliders[prop].max,driver.sliders[prop].type, driver.sliders[prop].command, driver.sliders[prop].statuscommand,driver.sliders[prop].queryresult, prop);
             theDevice.addSlider({
               name: prop, 
               label: (driver.sliders[prop].label == '') ? (prop) : (driver.sliders[prop].label),
@@ -66,16 +75,17 @@ function createDevices () {
             for (var feed in driver.directories[prop].feeders) {
               let feedConfig = {"name":feed, 
                                 "label":driver.directories[prop].feeders[feed].label, 
-                                "querylabel":driver.directories[prop].feeders[feed].querylabel, 
                                 "type":driver.directories[prop].feeders[feed].type, 
                                 "command":driver.directories[prop].feeders[feed].command, 
+                                "queryresult":driver.directories[prop].feeders[feed].queryresult, 
+                                "itemname":driver.directories[prop].feeders[feed].itemname,
+                                "itemlabel":driver.directories[prop].feeders[feed].itemlabel, 
+                                "itemaction":driver.directories[prop].feeders[feed].itemaction, 
+                                "itembrowse":driver.directories[prop].feeders[feed].itembrowse, 
+                                "itemimage":driver.directories[prop].feeders[feed].itemimage, 
+                                "evalnext":driver.directories[prop].feeders[feed].evalnext,
                                 "actioncommand":driver.directories[prop].feeders[feed].actioncommand, 
-                                "queryname":driver.directories[prop].feeders[feed].queryname, 
-                                "imageurl":driver.directories[prop].feeders[feed].imageurl, 
-                                "imageurlpost":driver.directories[prop].feeders[feed].imageurlpost, 
-                                "queryimage":driver.directories[prop].feeders[feed].queryimage, 
-                                "variable2assign":driver.directories[prop].feeders[feed].variable2assign, 
-                                "nextdatafeeder":driver.directories[prop].feeders[feed].nexdatafeeder};
+                              };
               console.log(feedConfig)                        
               theHelper.addFeederHelper(feedConfig);
             }
@@ -105,8 +115,6 @@ function createDevices () {
   })
   
 }
-
-  
 
 
 //DISCOVERING BRAIN
@@ -147,11 +155,11 @@ function setupNeeo() {
 
 function runNeeo () {
   return new Promise(function (resolve, reject) {
-      if (!config.brainport) {config.brainport = 4000}
+      if (!config.brainport) {config.brainport = 4005}
       const neeoSettings = {
       brain: config.brainip.toString(),
       port: config.brainport.toString(),
-      name: "Meta Driver",
+      name: "Meta Driver 1.0",
       devices: driverTable
     };
     console.log(neeoSettings)
@@ -184,6 +192,7 @@ function runNeeo () {
 
 
 //MAIN
+
 createDevices()
   .then (() => {
     getConfig().then(() => {

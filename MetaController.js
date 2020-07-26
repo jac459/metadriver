@@ -2,16 +2,16 @@
 'use strict';
 
 const { sliderHelper } = require("./sliderHelper");
-
 const { directoryHelper } = require("./directoryHelper");
 
 const http = require('http.min');
 const jpath = require('jsonpath');
 const wol = require('wake_on_lan');
-const variablePattern = {'pre':'@=>','post':'<=@'}
+const variablePattern = {'pre':'$','post':''};
+const RESULT = variablePattern.pre + 'Result' + variablePattern.post;
 const { exec } = require("child_process");
 const { cachedDataVersionTag } = require('v8'); // check if needed for discovery of neeo brain and suppress otherwise.
-
+const { labelHelper } = require("./labelHelper");
 
 //STRATEGY DESIGN PATTERN FOR THE COMMAND TO BE USED (http-get, post, websocket, ...) New processor to be added here. This strategy mix both transport and data format (json, soap, ...)
 class ProcessingManager {
@@ -46,6 +46,47 @@ class httpgetProcessor {
     })
   }
   query (data, query) {
+    if (query) {
+      try {
+        return jpath.query(JSON.parse(data), query);
+      }
+      catch {
+        console.log('error in JSONPATH ' + query + ' processing of :' + data)
+      }
+    }
+    else {return data}
+  }
+}
+class httppostProcessor {
+  process (command) {
+    return new Promise(function (resolve, reject) {
+      console.log(command);
+      if (command.post){
+        http.post(command.post, command.message) 
+        .then(function(result) { 
+          resolve(result.data)
+        })
+        .catch((err) => {reject (err)})
+      }
+      else {reject('no post command provided or improper format')}
+    })
+  }
+  query (data, query) {
+    try {
+      return jpath.query(JSON.parse(data), query);
+    }
+    catch {
+      console.log('error in JSONPATH ' + query + ' processing of :' + data)
+    }
+  }
+}
+class staticProcessor {
+  process (command) {
+    return new Promise(function (resolve, reject) {
+      resolve(command);
+    })
+  }
+  query (data, query) {
     try {
       return jpath.query(JSON.parse(data), query);
     }
@@ -77,14 +118,23 @@ class cliProcessor {
     }
   }
 }
+
+
 const processingManager = new ProcessingManager();
 const myHttpgetProcessor = new httpgetProcessor();
+const myHttppostProcessor = new httppostProcessor();
 const myCliProcessor = new cliProcessor();
+const myStaticProcessor = new staticProcessor();
+
+
+
+
 
 module.exports = function controller(driver) {
   this.buttons = driver.buttons; //structure keeping all buttons of the driver
   this.sendComponentUpdate;
   this.deviceVariables = []; //container for all device variables.
+  this.labelH = []; //slider helper to store all the getter and setter of the dynamically created sliders.
   this.sliderH = []; //slider helper to store all the getter and setter of the dynamically created sliders.
   this.directoryH = []; //directory helper to store all the browse getter and setter of the dynamically created simple directories.
   this.linkedDirectoryH = []; //directory helper to store all the browse getter and setter of the dynamically created linked directories.
@@ -92,16 +142,57 @@ module.exports = function controller(driver) {
   var self = this;
    
   this.addVariable = function(name, value) {
-    self.deviceVariables.push({'name':name, 'value':value});
+    self.deviceVariables.push({'name':name, 'value':value, 'listeners': []});
+  }
+
+  this.addListenerVariable = function(theVariable, theFunction) {
+    const listenerList = self.deviceVariables.find(elt => {return elt.name == theVariable}).listeners;
+    listenerList.push(theFunction);
+    return listenerList[listenerList.length-1];
+  }
+
+  this.assignValueToVariable = function(theVariable, theValue, deviceId) {//deviceId necessary as push to components.
+    let foundVar = self.deviceVariables.find(elt => {return elt.name == theVariable});
+    foundVar.value = theValue;
+    foundVar.listeners.forEach(element => {
+      element(foundVar.value, deviceId);
+    });
+
+  }
+
+  this.assignResult = function(inputChain, givenResult)
+  {
+    //console.log('AssignResult on :' + inputChain)
+ //   console.log((givenResult))
+    if (!(typeof(givenResult) in {"string":"", "number":"", "boolean":""}) ) {//in case the response is a json object, convert to string, escape quotes
+      givenResult = JSON.stringify(givenResult).replace(/"/g, '\\"');
+     }
+    if (typeof(inputChain) == 'string') {inputChain = inputChain.replace(RESULT, givenResult);}
+    console.log(inputChain);
+    console.log(eval(inputChain))
+  
+  
+    return eval(inputChain);
+    //return inputChain.replace(RESULT, givenResult);
   }
 
   this.assignVariables = function(inputChain) {
-    let result = inputChain;
-    self.deviceVariables.forEach(variable => {
-      let token = variablePattern.pre + variable.name + variablePattern.post;
-      result = result.replace(token, variable.value);
-    })
-    return result;
+    let preparedResult = inputChain;
+    if (typeof(inputChain) == 'string')
+    {
+      console.log(self.deviceVariables)
+      self.deviceVariables.forEach(variable => {
+        let token = variablePattern.pre + variable.name + variablePattern.post;
+        preparedResult = preparedResult.replace(token, variable.value);
+      })
+    }
+    return preparedResult;
+  }
+
+  this.addLabelHelper = function(labelName, listened) {//function called by the MetaDriver to store 
+    const newLabelH = new labelHelper(labelName, listened, self)
+    self.labelH.push(newLabelH);
+    return newLabelH;
   }
 
   this.addSliderHelper = function(min,max,commandtype, command, statuscommand, querystatus, slidername) {//function called by the MetaDriver to store 
@@ -120,20 +211,21 @@ module.exports = function controller(driver) {
     self.sendComponentUpdate = updateFunction;
   };
   
-  this.getStatus = function() {
-    return '';
-  }
-
   this.commandProcessor = function(command, commandtype) { // process any command according to the target protocole
     return new Promise(function (resolve, reject) {
       if (commandtype == 'http-get') {
         processingManager.processor = myHttpgetProcessor;
+      } 
+      else if (commandtype == 'http-post') {
+        processingManager.processor = myHttppostProcessor;
+      }
+      else if (commandtype == 'static') {
+        processingManager.processor = myStaticProcessor;
       }
       else if (commandtype == 'cli') {
         processingManager.processor = myCliProcessor;
       }
-      else {reject('commandtype not defined.')}
-
+      else {reject('The commandtype is not defined.' + commandtype + ' command : ' + command)}
       command = self.assignVariables(command);
 
       processingManager.process(command)
@@ -148,16 +240,22 @@ module.exports = function controller(driver) {
       if (commandtype == 'http-get') {
         processingManager.processor = myHttpgetProcessor;
       }
+      else if (commandtype == 'http-post') {
+        processingManager.processor = myHttppostProcessor;
+      }
+      else if (commandtype == 'static') {
+        processingManager.processor = myStaticProcessor;
+      }
       else if (commandtype == 'cli') {
         processingManager.processor = myCliProcessor;
       }
       else {reject('commandtype not defined.')}
-
+      //console.log('Query Processor : ' + query)
       query = self.assignVariables(query);
-
+      //console.log('Query Processor : ' + query)
       return processingManager.query(data, query);
   }
-
+/*
   this.displayStatus = function (deviceId, message) {
 
     self.sendComponentUpdate({uniqueDeviceId: deviceId, component: 'Status',value: message})
@@ -168,89 +266,89 @@ module.exports = function controller(driver) {
     }, 3000);
 
   }
+*/
+  
+  this.evalWrite = function (evalwrite, result, deviceId) {
+    if (evalwrite) { //case we want to write inside a variable
+      evalwrite.forEach(evalW => {
+        //process the value
+        let finalValue = self.assignVariables(evalW.value);
+        finalValue = self.assignResult(finalValue, result);
+        self.assignValueToVariable(evalW.variable, finalValue, deviceId);       
+      });
+    }
+  }
 
-
-  this.commandButtonProcessor = function (name, deviceId, command, queryresult, expectedresult, commandtype) {
-    return new Promise(function (resolve, reject) {
-      self.commandProcessor(command, commandtype)
-      .then((result)=> {
-        if (queryresult != "") {// Case we want to parse the result
-          console.log(result);
-          console.log('Query :' + queryresult);
-          result = self.queryProcessor(result, queryresult, commandtype)[0];
-          console.log(result);
+  this.evalDo = function (evaldo, result, deviceId) {
+    if (evaldo) { //case we want to trigger a button
+      evaldo.forEach(evalD => {
+        console.log('test value : ' + evalD.test);
+        if (evalD.test == '' || evalD.test == true) {evalD.test = true}; //in case of no test, go to the do function
+        let finalDoTest = self.assignVariables(evalD.test);// prepare the test to assign variable and be evaluated.
+        console.log('finaldo :' + finalDoTest)
+        finalDoTest = self.assignResult(finalDoTest, result);
+        console.log('test value final : ' + finalDoTest);
+        if (finalDoTest) {
+          if (evalD.then && evalD.then != '')
+          {
+           self.onButtonPressed(evalD.then, deviceId);
+          }
         }
-        resolve(result);
-      })
-      .catch((err) => { 
-          reject(err.code)
-      })
+        else { 
+          if (evalD.or && evalD.or != '')
+          {
+            self.onButtonPressed(evalD.or, deviceId)
+          }
+        }
+       })
+    }
+  }
+
+  this.commandButtonProcessor = function (name, deviceId, commandtype, command, queryresult, evaldo, evalwrite) {
+    return new Promise(function (resolve, reject) {
+      try {
+        console.log(command+commandtype)
+        self.commandProcessor(command, commandtype)
+        .then((result) => {
+          console.log(result)
+          if (queryresult != "") {// Case we want to parse the result
+            console.log('Query :' + queryresult);
+            result = self.queryProcessor(result, queryresult, commandtype)[0];
+            console.log(result);
+          }
+           
+          self.evalWrite(evalwrite, result, deviceId);
+          
+          self.evalDo(evaldo, result, deviceId);
+    
+          resolve(result);
+        })
+        .catch((result) => { //if the command doesn't work.
+          result = 'Command failed:' + result;
+          self.evalWrite(evalwrite, result, deviceId);
+          self.evalDo(evaldo, result, deviceId);
+          resolve('Error during the post command processing' + result)
+        }) 
+      }
+      catch {reject('Error while processing the command.')}
     })
   }
   
   this.onButtonPressed = function(name, deviceId) {
     console.log('[CONTROLLER]' + name + ' button pressed for device ' + deviceId);
     let theButton = self.buttons[name];
+    console.log(theButton)
     if (theButton != undefined) {
-      if (theButton.type in {'http-get':"", 'http-post':"", 'websocket':"", 'MQTT':"", 'cli':""}) {
+      if (theButton.type in {'http-get':"", 'http-post':"", "static":"", 'websocket':"", 'MQTT':"", 'cli':""}) {
         if (theButton.command != undefined){ // In case the button has only one command defined
-          self.commandButtonProcessor(name, deviceId, theButton.command, theButton.queryresult, theButton.expectedresult, theButton.type)
+          self.commandButtonProcessor(name, deviceId, theButton.type, theButton.command, theButton.queryresult, theButton.evaldo, theButton.evalwrite)
           .then((result)=>{
-            
-            if (theButton.variable2assign != undefined && theButton.variable2assign != '') { //Assign Variables if needed
-              let varIndex = self.deviceVariables.findIndex( (variableIt) => {return (variableIt.name == theButton.variable2assign)}); 
-              console.log('result')
-              if (varIndex >= 0) {self.deviceVariables[varIndex].value = result}; 
-              console.log(self.deviceVariables[varIndex])
-            }
-
-            if (theButton.expectedresult != undefined && theButton.expectedresult != '') {// case we want to check the result to see if ok.
-              if (theButton.expectedresult == result) {
-                self.displayStatus(deviceId, name + ' Command Success')
-              }
-              else {//FALLBACK LOGIC IF THE FIRST COMMAND DOESN'T RETURN the right value
-                if (theButton.fallbackbutton != '') {
-                  self.onButtonPressed(theButton.fallbackbutton,deviceId);
-                  self.displayStatus(deviceId, 'Trying Alternate methode.')
-                }
-                else {
-                  console.log("Error : " + err)
-                  self.displayStatus(deviceId, 'Function didn\'t return the expected code.')
-                }
-              }
-            }
-            else { //case we just want to display the result.
-              self.sendComponentUpdate({uniqueDeviceId: deviceId, component: 'Status',value: result})
-              .catch( (err) => {console.log(err)})
-            }
+            console.log('Processed: '+result)
           })
-          .catch((err) => { //FALLBACK LOGIC IF THE FIRST COMMAND DOESN'T WORK
-            if (theButton.fallbackbutton != '') {
-              self.onButtonPressed(theButton.fallbackbutton,deviceId);
-              self.displayStatus(deviceId, 'Trying Alternate methode.')
-            }
-            else {
-              console.log("Error : " + err)
-              self.displayStatus(deviceId, 'Couldn\'t execute the function')
-             }
-          })
+          .catch((err) => { 
+              console.log("Error when processing the command : " + err)
+           })
         }
-        if (theButton.commands != undefined) { // in case the button has multiple commands defined
-          console.log('multiple commands')
-          let currentButton = self.buttonsWithMultipleCommands.find((button) => { return (button.name == name)});//getting back the last command used through the dynamic structure
-          console.log("Current button: " + currentButton)
-          if (currentButton == undefined) { // if no last command found, use the first command.
-            currentButton = {'name':name,'index':0};
-              self.buttonsWithMultipleCommands.push(currentButton)
-          }
-          console.log('Command: ' + theButton.commands[currentButton.index])
-          self.commandButtonProcessor(name, deviceId, theButton.commands[currentButton.index], theButton.queryresult, theButton.expectedresult, theButton.type)
-          .then(() => {
-            currentButton.index = (currentButton.index<theButton.commands.length-1) ? currentButton.index+1 : 0; //go to next command
-            self.displayStatus(deviceId, currentButton.name + ' - ' + currentButton.index)
-          })
-          .catch(function(err){ console.log(err);})
-         }
       }
       else if (theButton.type == 'slidercontrol') {
          let SH = self.sliderH.find((sliderhelper) => { return (sliderhelper.slidername == theButton.slidername)}); // get the right slider with get and set capacity
@@ -270,7 +368,7 @@ module.exports = function controller(driver) {
           if (error) {
             console.log(error)
           } else {
-            console.log('Succes')
+            console.log('Success')
             // done sending packets
           }
         });
