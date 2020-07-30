@@ -61,7 +61,7 @@ var settings =
       "CURSOR RIGHT": {label:"", type:"http-get", command:"http://192.168.1.33:6095/controller?action=keyevent&keycode=right", queryresult:"$.msg", evalwrite:[{variable:"MyStatus",value:"(\"$Result\"==\"success\")?\"Right pressed\":\"Command Failed\""}]},
       "CURSOR UP": {label:"", type:"http-get", command:"http://192.168.1.33:6095/controller?action=keyevent&keycode=up", queryresult:"$.msg", evalwrite:[{variable:"MyStatus",value:"(\"$Result\"==\"success\")?\"Up pressed\":\"Command Failed\""}]},
       "CURSOR DOWN": {label:"", type:"http-get", command:"http://192.168.1.33:6095/controller?action=keyevent&keycode=down", queryresult:"$.msg", evalwrite:[{variable:"MyStatus",value:"(\"$Result\"==\"success\")?\"Down pressed\":\"Command Failed\""}]},
-      "CURSOR CURSOR": {label:"", type:"http-get", command:"http://192.168.1.33:6095/controller?action=keyevent&keycode=enter", queryresult:"$.msg", evalwrite:[{variable:"MyStatus",value:"(\"$Result\"==\"success\")?\"Ok pressed\":\"Command Failed\""}]},
+      "CURSOR OK": {label:"", type:"http-get", command:"http://192.168.1.33:6095/controller?action=keyevent&keycode=enter", queryresult:"$.msg", evalwrite:[{variable:"MyStatus",value:"(\"$Result\"==\"success\")?\"Ok pressed\":\"Command Failed\""}]},
       "INPUT HDMI 1": {label:"", type:"http-get", command:"http://192.168.1.33:6095/controller?action=changesource&source=HDMI1", queryresult:"$.msg", evalwrite:[{variable:"MyStatus",value:"(\"$Result\"==\"success\")?\"HDMI 1 Source\":\"Command Failed\""}]},
       "INPUT HDMI 2": {label:"", type:"http-get", command:"http://192.168.1.33:6095/controller?action=changesource&source=HDMI2", queryresult:"$.msg", evalwrite:[{variable:"MyStatus",value:"(\"$Result\"==\"success\")?\"HDMI 2 Source\":\"Command Failed\""}]},
       "INPUT HDMI 3": {label:"", type:"http-get", command:"http://192.168.1.33:6095/controller?action=changesource&source=HDMI3", queryresult:"$.msg", evalwrite:[{variable:"MyStatus",value:"(\"$Result\"==\"success\")?\"HDMI 3 Source\":\"Command Failed\""}]},
@@ -110,30 +110,39 @@ var settings =
  
  */ {"name":"Brain Navigator", 
     "manufacturer":"JAC",
-    "version":10,
+    "version":20,
     variables:{
       MyStatus:"",
       RoomKey:"",
       DeviceKey:"",
+      MyPicture:"https://scontent.fsin5-1.fna.fbcdn.net/v/t1.0-9/s960x960/83258087_10156692837451196_8122948557457063936_o.jpg?_nc_cat=109&_nc_sid=8024bb&_nc_ohc=pW8b6Dvy070AX9XJIND&_nc_ht=scontent.fsin5-1.fna&_nc_tp=7&oh=d5f9ac574e9e31977f23791c1848e501&oe=5F4490D2"
+    },
+    images:{
+      "MyCover" : {label:"", size : "small", listen:"MyPicture"},
+      "MyCover2" : {label:"", size : "large", listen:"MyPicture"}
     },
     labels:{
       "CurrentStatus" : {label:"status", listen:"MyStatus"},
     },
     buttons:{
-      "CURSOR LEFT": {label:"", type:"static", command:"{\"\":\"Left\"}", queryresult:"$.*", evalwrite:[{variable:"MyStatus",value:"\"$Result\""}], evaldo:[{test:true, then:"CURSOR RIGHT", or:"CURSOR ENTER"}]},
-      "CURSOR RIGHT": {label:"", type:"static", command:"{\"\":\"Right\"}", queryresult:"$.*", evalwrite:[{variable:"MyStatus",value:"\"$Result\""}]},
-      "CURSOR ENTER": {label:"", type:"static", command:"{\"\":\"Enter\"}", queryresult:"$.*", evalwrite:[{variable:"MyStatus",value:"\"$Result\""}]},
+      "CURSOR LEFT": {label:"", type:"static", command:"{name:\"\"}", queryresult:"", evalwrite:[{variable:"MyPicture",value:"(true)?\"https://scontent.fsin5-1.fna.fbcdn.net/v/t1.0-9/s960x960/83258087_10156692837451196_8122948557457063936_o.jpg?_nc_cat=109&_nc_sid=8024bb&_nc_ohc=pW8b6Dvy070AX9XJIND&_nc_ht=scontent.fsin5-1.fna&_nc_tp=7&oh=d5f9ac574e9e31977f23791c1848e501&oe=5F4490D2\":\"Command Failed\""}]},
+      "CURSOR ENTER": {label:"", type:"static", command:"{name:\"\"}", queryresult:"", evalwrite:[{variable:"MyPicture",value:"(true)?\"https://upload.wikimedia.org/wikipedia/commons/5/58/The_Chemical_Brothers_performing_in_Barcelona%2C_Spain_%282007%29.jpg\":\"Command Failed\""}]},
+      "CURSOR RIGHT": {label:"", type:"static", command:"{name:\"\"}", queryresult:"", evalwrite:[{variable:"MyPicture",value:"(true)?\"https://dancingastronaut.com/wp-content/uploads/2015/05/chemical-brothers.jpg\":\"Command Failed\""}]},
+      
      },
     directories:{
       "recipes": {label:"", feeders: {
-            "Rooms":{label:"Rooms list", type:"http-get", command:"\"http://192.168.1.130:3000/v1/projects/home/rooms/\"", queryresult:"$.*", itemname:"JSON.parse(\"$Result\").name", itemlabel:"\"Recipe name\"", itembrowse:"JSON.parse(\"$Result\").key", itemimage:"\"https://raw.githubusercontent.com/jac459/metadriver/master/AVReceiver/rooms.jpg\"", evalnext:[{test:true, then:"Devices", or:"Rooms"}], evalwrite:[{variable:"RoomKey",value:"\"$Result\""}]},
-            "Devices":{label:"Devices list", type:"http-get", command:"\"http://192.168.1.130:3000/v1/projects/home/rooms/$RoomKey/devices\"", queryresult:"$.*", itemname:"JSON.parse(\"$Result\").name", itemlabel:"\"Recipe name\"", itembrowse:"JSON.parse(\"$Result\").key", itemimage:"\"https://raw.githubusercontent.com/jac459/metadriver/master/AVReceiver/devices.jpg\"", evalnext:[{test:true, then:"Macros", or:"Devices"}], evalwrite:[{variable:"DeviceKey",value:"\"$Result\""}]},
-            "Macros":{label:"Macros list", type:"http-get", command:"\"http://192.168.1.130:3000/v1/projects/home/rooms/$RoomKey/devices/$DeviceKey/macros\"", queryresult:"$.*", itemname:"JSON.parse(\"$Result\").name", itemlabel:"\"Recipe name\"", itemaction:"\"http://192.168.1.130:3000/v1/projects/home/rooms/$RoomKey/devices/$DeviceKey/macros/\" + JSON.parse(\"$Result\").key + \"/trigger\"", itemimage:"\"https://raw.githubusercontent.com/jac459/metadriver/master/AVReceiver/Neeo_logo.jpg\""},
+            "Rooms":{label:"Rooms list", commandset: [{type:"http-get", command:"\"http://192.168.1.151:3000/v1/projects/home/rooms/\"", queryresult:"$.*", itemname:"JSON.parse(\"$Result\").name", itemtype: "listitem", itemlabel:"\"Recipe name\"", itembrowse:"JSON.parse(\"$Result\").key", itemimage:"\"https://raw.githubusercontent.com/jac459/metadriver/master/AVReceiver/rooms.jpg\"", evalnext:[{test:true, then:"Devices", or:"Rooms"}], evalwrite:[{variable:"RoomKey",value:"\"$Result\""}]},
+                                                      {type:"http-get", command:"\"http://192.168.1.151:3000/v1/projects/home/rooms/\"", queryresult:"$.*", itemname:"JSON.parse(\"$Result\").name", itemtype: "tile", itemlabel:"\"Recipe name\"", itembrowse:"JSON.parse(\"$Result\").key", itemimage:"\"https://raw.githubusercontent.com/jac459/metadriver/master/AVReceiver/rooms.jpg\"", evalnext:[{test:true, then:"Devices", or:"Rooms"}], evalwrite:[{variable:"RoomKey",value:"\"$Result\""}]},  
+                                                     ]},
+            //"Rooms":{label:"Rooms list", type:"http-get", command:"\"http://192.168.1.151:3000/v1/projects/home/rooms/\"", queryresult:"$.*", itemname:"JSON.parse(\"$Result\").name", itemlabel:"\"Recipe name\"", itembrowse:"JSON.parse(\"$Result\").key", itemimage:"\"https://raw.githubusercontent.com/jac459/metadriver/master/AVReceiver/rooms.jpg\"", evalnext:[{test:true, then:"Devices", or:"Rooms"}], evalwrite:[{variable:"RoomKey",value:"\"$Result\""}]},
+            //"Devices":{label:"Devices list", type:"http-get", command:"\"http://192.168.1.151:3000/v1/projects/home/rooms/$RoomKey/devices\"", queryresult:"$.*", itemname:"JSON.parse(\"$Result\").name", itemlabel:"\"Recipe name\"", itembrowse:"JSON.parse(\"$Result\").key", itemimage:"\"https://raw.githubusercontent.com/jac459/metadriver/master/AVReceiver/devices.jpg\"", evalnext:[{test:true, then:"Macros", or:"Devices"}], evalwrite:[{variable:"DeviceKey",value:"\"$Result\""}]},
+            //"Macros":{label:"Macros list", type:"http-get", command:"\"http://192.168.1.151:3000/v1/projects/home/rooms/$RoomKey/devices/$DeviceKey/macros\"", queryresult:"$.*", itemname:"JSON.parse(\"$Result\").name", itemlabel:"\"Recipe name\"", itemaction:"\"http://192.168.1.130:3000/v1/projects/home/rooms/$RoomKey/devices/$DeviceKey/macros/\" + JSON.parse(\"$Result\").key + \"/trigger\"", itemimage:"\"https://raw.githubusercontent.com/jac459/metadriver/master/AVReceiver/Neeo_logo.jpg\""},
           },
         },
       },
     },
-    {"name":"Volumio 2", 
+ /*   {"name":"Volumio 2", 
     "manufacturer":"Volumio",
     "version":1,
     variables:{

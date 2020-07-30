@@ -42,7 +42,7 @@ class directoryHelper {
       return new Promise(function (resolve, reject) {
 
       if (params.browseIdentifier != '') {
-        self.controller.evalWrite(self.feederH[self.currentFeederIndex].evalwrite, params.browseIdentifier, deviceId)
+//@//        self.controller.evalWrite(self.feederH[self.currentFeederIndex].evalwrite, params.browseIdentifier, deviceId)
         self.evalNext(self.feederH[self.currentFeederIndex].evalnext, params.browseIdentifier);//assign the good value to know the feeder
       }
       else if (params.history.length>0) {
@@ -55,72 +55,117 @@ class directoryHelper {
       });
     };
 
-    this.fetchCurrentList = function (deviceId, config, params) {
+    this.fetchCurrentList = function (deviceId, allconfigs, params) {
       console.log("params: " + JSON.stringify(params));
       console.log("browseIdentifier: " + params.browseIdentifier);
       console.log("actionIdentifier: " + params.actionIdentifier);
-      let neeoList;
-      let resultList;
-      let rName;
-      let rImage;
-      let rLabel;
-      let rAction;
-      let nameList =  [];
-      let imageList = [];
-      let labelList = [];
-      let actionList = [];
+      console.log(allconfigs);
+      console.log(allconfigs.name);
+      let cacheList = [];
       return new Promise(function (resolve, reject) {
-        let processedCommand = self.controller.assignResult(config.command, params.browseIdentifier);
-        processedCommand = self.controller.assignVariables(processedCommand);
-        self.controller.commandProcessor(processedCommand, config.type)
-          .then((result) => {
-            resultList = self.controller.queryProcessor(result, config.queryresult, config.type);
-            //console.log('Query result: ' + resultList);
-            rName = self.controller.assignVariables(config.itemname); //ensure that the item name chain has the variable interpreted (except $Result)
-            rImage = self.controller.assignVariables(config.itemimage); 
-            rLabel = self.controller.assignVariables(config.itemlabel); 
-            rAction = self.controller.assignVariables(config.itemaction ? config.itemaction : config.itembrowse); //check if this list will generate a browse or an action
-            //console.log('Prepare to iterate through results : ')
-            resultList.forEach(oneItemResult => { //As in this case, $Result is a table, transform $Result to get every part of the table as one $Result
-              //console.log(oneItemResult)
-              nameList.push(self.controller.assignResult(rName, oneItemResult));//push the result of the itemname expression with result item to the namelist
-              imageList.push(self.controller.assignResult(rImage, oneItemResult));
-              labelList.push(self.controller.assignResult(rLabel, oneItemResult));
-              actionList.push(self.controller.assignResult(rAction, oneItemResult));
-              
-            });
-            //console.log(nameList)
-            //console.log('NameList : ' + nameList);
+        
+        self.fillTheList(cacheList, allconfigs, params, 0, 0).then((cacheList) => {
+            console.log(cacheList);
+            //Feed the neeo list
+            let neeoList;
             neeoList = neeoapi.buildBrowseList({
-              title: config.directoryname,
-              totalMatchingItems: nameList.length,
-              limit: nameList.length,
-              offset: 0,
+              title: allconfigs.name,
+              totalMatchingItems: cacheList.length,
+              limit: 64,
+              offset: (params.offset || 0),
+              browseIdentifier: 'browseEverything'
             });
-          })
-          .then(function () {
             var i;
-            for (i = 0; i < nameList.length; i++) {
-              let iTitle = nameList[i];
-              let iLabel = labelList ? labelList[i] : config.directoryname;
-              let iImage = imageList ? imageList[i] : ''; 
-              let iAction = actionList[i];
-              neeoList.addListItem({
-                title: iTitle,
-                label: iLabel,
-                thumbnailUri: iImage,
-                actionIdentifier: config.itemaction ? iAction : undefined,
-                browseIdentifier: config.itemaction ? undefined : iAction,
-                uiAction: config.itemaction ? '' : 'reload',
-              });
+            for (i = (params.offset || 0); (i < ((params.offset || 0) + 64) && (i < cacheList.length)); i++) {
+              if (cacheList[i].itemtype == 'listitem') {
+                neeoList.addListItem({
+                  title: cacheList[i].name,
+                  label: cacheList[i].label,
+                  thumbnailUri: cacheList[i].image,
+                  actionIdentifier: cacheList[i].action,
+                  browseIdentifier: cacheList[i].browse,
+                  uiAction: cacheList[i].action || 'reload',
+                });
+              }
+              if (cacheList[i].itemtype == 'tile') {
+                let tiles = [];
+                tiles.push({
+                    thumbnailUri: cacheList[i].image,
+                    actionIdentifier: cacheList[i].action,
+                    uiAction: cacheList[i].action || 'reload',
+                })
+                if ((i+1 < cacheList.length) && (cacheList[i+1].itemtype == 'tile')) {
+                  //test if the next item is also a tile to put on the right, if it is not the end of the list
+                  i++
+                  tiles.push({
+                    thumbnailUri: cacheList[i].image,
+                    actionIdentifier: cacheList[i].action,
+                    uiAction: cacheList[i].action || 'reload',
+                  });
+                }
+                neeoList.addListTiles(tiles);
+              }
             }
             resolve(neeoList);
           })
-          .catch(function (err) {
-            console.log("Fetching error: " + err);
-          });
-      });
-    };
+        
+      })
+    }
+
+    this.fillTheList = function (cacheList, allconfigs, params, indentCommand) {
+        let resultList;
+        let rAction;
+        let rBrowse;
+        let rName;
+        let rItemType;
+        let rImage;
+        let rLabel;
+        console.log('fill')
+        return new Promise(function (resolve, reject) {
+          if (indentCommand < allconfigs.commandset.length) {
+            console.log('ici')
+            let commandSet = allconfigs.commandset[indentCommand];
+            console.log(commandSet)
+            let processedCommand = self.controller.assignResult(commandSet.command, params.browseIdentifier);
+            console.log(processedCommand)
+            processedCommand = self.controller.assignVariables(processedCommand);
+            console.log(processedCommand)
+            console.log('ici')
+            self.controller.commandProcessor(processedCommand, commandSet.type)
+              .then((result) => {
+                console.log('ici')
+                resultList = self.controller.queryProcessor(result, commandSet.queryresult, commandSet.type);
+                rName = self.controller.assignVariables(commandSet.itemname); //ensure that the item name chain has the variable interpreted (except $Result)
+                rImage = self.controller.assignVariables(commandSet.itemimage); 
+                rItemType = self.controller.assignVariables(commandSet.itemtype); 
+                rLabel = self.controller.assignVariables(commandSet.itemlabel); 
+                rAction = self.controller.assignVariables(commandSet.itemaction); 
+                rBrowse = self.controller.assignVariables(commandSet.itembrowse); 
+                resultList.forEach(oneItemResult => { //As in this case, $Result is a table, transform $Result to get every part of the table as one $Result
+                  cacheList.push({
+                    'name' : self.controller.assignResult(rName, oneItemResult),
+                    'image' : self.controller.assignResult(rImage, oneItemResult),
+                    'itemtype' : rItemType,
+                    'label' : self.controller.assignResult(rLabel, oneItemResult),
+                    'action' : self.controller.assignResult(rAction, oneItemResult),
+                    'browse' : self.controller.assignResult(rBrowse, oneItemResult)
+                    
+                  });//push the result of the itemname expression with result item to the namelist
+                });
+                console.log('ici')
+                resolve(self.fillTheList(cacheList, allconfigs, params, indentCommand + 1));
+              })
+              .catch(function (err) {
+                console.log("Fetching error: " + err);
+              });
+          }
+          else {
+            resolve(cacheList);
+          }
+        })
+    }
+    
+  
 
     this.handleAction = function (deviceId, params) {
       return new Promise(function (resolve, reject) {

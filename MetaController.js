@@ -1,9 +1,13 @@
 
 'use strict';
 
+const { imageHelper } = require("./imageHelper");
+const { labelHelper } = require("./labelHelper");
 const { sliderHelper } = require("./sliderHelper");
 const { directoryHelper } = require("./directoryHelper");
 
+const xpath = require('xpath')
+const xmldom = require('xmldom').DOMParser
 const http = require('http.min');
 const jpath = require('jsonpath');
 const wol = require('wake_on_lan');
@@ -11,7 +15,6 @@ const variablePattern = {'pre':'$','post':''};
 const RESULT = variablePattern.pre + 'Result' + variablePattern.post;
 const { exec } = require("child_process");
 const { cachedDataVersionTag } = require('v8'); // check if needed for discovery of neeo brain and suppress otherwise.
-const { labelHelper } = require("./labelHelper");
 
 //STRATEGY DESIGN PATTERN FOR THE COMMAND TO BE USED (http-get, post, websocket, ...) New processor to be added here. This strategy mix both transport and data format (json, soap, ...)
 class ProcessingManager {
@@ -53,6 +56,30 @@ class httpgetProcessor {
       }
       catch (err) {
         console.log('error ' + err + ' in JSONPATH ' + query + ' processing of :' + data)
+      }
+    }
+    else {return data}
+  }
+}
+class httpgetSoapProcessor {
+  process (command) {
+    return new Promise(function (resolve, reject) {
+      http(command) 
+      .then(function(result) { 
+        resolve(result.data)
+      })
+      .catch((err) => {reject (err)})
+    })
+  }
+  query (data, query) {
+    if (query) {
+      try {
+        var doc = new xmldom().parseFromString(data)
+        var nodes = xpath.select(query, doc)
+        return nodes;
+      }
+      catch (err) {
+        console.log('error ' + err + ' in XPATH ' + query + ' processing of :' + data)
       }
     }
     else {return data}
@@ -123,18 +150,16 @@ class cliProcessor {
 
 const processingManager = new ProcessingManager();
 const myHttpgetProcessor = new httpgetProcessor();
+const myHttpgetSoapProcessor = new httpgetSoapProcessor();
 const myHttppostProcessor = new httppostProcessor();
 const myCliProcessor = new cliProcessor();
 const myStaticProcessor = new staticProcessor();
-
-
-
-
 
 module.exports = function controller(driver) {
   this.buttons = driver.buttons; //structure keeping all buttons of the driver
   this.sendComponentUpdate;
   this.deviceVariables = []; //container for all device variables.
+  this.imageH = []; //image helper to store all the getter of the dynamically created images.
   this.labelH = []; //slider helper to store all the getter and setter of the dynamically created sliders.
   this.sliderH = []; //slider helper to store all the getter and setter of the dynamically created sliders.
   this.directoryH = []; //directory helper to store all the browse getter and setter of the dynamically created simple directories.
@@ -165,14 +190,12 @@ module.exports = function controller(driver) {
   {
     //console.log('AssignResult on :' + inputChain)
  //   console.log((givenResult))
-    if (!(typeof(givenResult) in {"string":"", "number":"", "boolean":""}) ) {//in case the response is a json object, convert to string, escape quotes
+    if (givenResult && !(typeof(givenResult) in {"string":"", "number":"", "boolean":""}) ) {//in case the response is a json object, convert to string, escape quotes
       givenResult = JSON.stringify(givenResult).replace(/"/g, '\\"').replace(/'/g, "\\'")//.replace(/(?=[()])/g, '\\');//.replace(/\(/g,"\(").replace(/\\)/g,"\\)");
       givenResult = givenResult.replace(/\\\\/g, '\\\\\\') // Absolutely necessary to properly escape the escaped character. Or super tricky bug.
     }
     if (typeof(inputChain) == 'string') {inputChain = inputChain.replace(RESULT, givenResult);}
-   
     return eval(inputChain);
-    //return inputChain.replace(RESULT, givenResult);
   }
 
   this.assignVariables = function(inputChain) {
@@ -188,6 +211,12 @@ module.exports = function controller(driver) {
     return preparedResult;
   }
 
+  this.addImageHelper = function(imageName, listened) {//function called by the MetaDriver to store 
+    const newImageH = new imageHelper(imageName, listened, self)
+    self.imageH.push(newImageH);
+    return newImageH;
+  }
+  
   this.addLabelHelper = function(labelName, listened) {//function called by the MetaDriver to store 
     const newLabelH = new labelHelper(labelName, listened, self)
     self.labelH.push(newLabelH);
@@ -215,6 +244,9 @@ module.exports = function controller(driver) {
       if (commandtype == 'http-get') {
         processingManager.processor = myHttpgetProcessor;
       } 
+      if (commandtype == 'http-get-soap') {
+        processingManager.processor = myHttpgetSoapProcessor;
+      } 
       else if (commandtype == 'http-post') {
         processingManager.processor = myHttppostProcessor;
       }
@@ -239,6 +271,9 @@ module.exports = function controller(driver) {
       if (commandtype == 'http-get') {
         processingManager.processor = myHttpgetProcessor;
       }
+      if (commandtype == 'http-get-soap') {
+        processingManager.processor = myHttpgetSoapProcessor;
+      } 
       else if (commandtype == 'http-post') {
         processingManager.processor = myHttppostProcessor;
       }
@@ -269,14 +304,13 @@ module.exports = function controller(driver) {
   
   this.evalWrite = function (evalwrite, result, deviceId) {
     console.log('EVALWRITE!!!!!!!!!!!!!')
-    console.log(evalwrite)
     if (evalwrite) { //case we want to write inside a variable
       evalwrite.forEach(evalW => {
         console.log(evalW);
         //process the value
         let finalValue = self.assignVariables(evalW.value);
         finalValue = self.assignResult(finalValue, result);
-        self.assignValueToVariable(evalW.variable, finalValue, deviceId);       
+        self.assignValueToVariable(evalW.variable, finalValue, deviceId); 
       });
     }
   }
@@ -318,17 +352,14 @@ module.exports = function controller(driver) {
             result = self.queryProcessor(result, queryresult, commandtype)[0];
             console.log(result);
           }
-           
-          self.evalWrite(evalwrite, result, deviceId);
-          
-          self.evalDo(evaldo, result, deviceId);
-    
+          if (evalwrite) {self.evalWrite(evalwrite, result, deviceId);}
+          if (evaldo) {self.evalDo(evaldo, result, deviceId);}
           resolve(result);
         })
         .catch((result) => { //if the command doesn't work.
           result = 'Command failed:' + result;
-          self.evalWrite(evalwrite, result, deviceId);
-          self.evalDo(evaldo, result, deviceId);
+          if (evalwrite) {self.evalWrite(evalwrite, result, deviceId);}
+          if (evaldo) {self.evalDo(evaldo, result, deviceId);}
           resolve('Error during the post command processing' + result)
         }) 
       }
