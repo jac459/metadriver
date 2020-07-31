@@ -1,7 +1,7 @@
 var settings = 
 {"drivers":
   [
-    {
+ /*   {
       name:"Yamaha Network Receiver", 
       manufacturer:"Yamaha",
       version:5,
@@ -108,9 +108,33 @@ var settings =
       }
     },
  
- */ {"name":"Brain Navigator", 
-    "manufacturer":"JAC",
-    "version":20,
+ */ 
+{
+  name:"Plex Remote", 
+  manufacturer:"Plex",
+  version:3,
+  variables:{
+    Token:"Ea6Q4hnybqknyhwXEnS4",
+    PlexIP:"192.168.1.138",
+    MyStatus:"Ready",
+  },
+  labels:{
+    "CurrentStatus" : {label:"status", listen:"MyStatus"},
+  },  
+  buttons:{
+  },
+  directories:{
+    Library: {label:"", feeders: {
+          "Pictures":{label:"Gallery", commandset: [{type:"http-get-soap", command:"http://192.168.1.138:32400/library/sections?X-Plex-Token=$Token", queryresult:"/MediaContainer/Directory", itemname:"DYNAMIK new xmldom().parseFromString(\"$Result\").getAttribute(\"title\")", itemtype: "listitem", itemlabel:"Recipe name", itembrowse:"DYNAMIK new xmldom().parseFromString(\"$Result\").getAttribute(\"title\")", itemimage:"https://raw.githubusercontent.com/jac459/metadriver/master/AVReceiver/rooms.jpg", evalnext:[{test:true, then:"Devices", or:"Rooms"}], evalwrite:[{variable:"RoomKey",value:""}]},
+                                                   ]},
+                                 }
+              }
+  }
+
+},
+{name:"Brain Navigator", 
+    manufacturer:"JAC",
+    version:20,
     variables:{
       MyStatus:"",
       RoomKey:"",
@@ -125,19 +149,21 @@ var settings =
       "CurrentStatus" : {label:"status", listen:"MyStatus"},
     },
     buttons:{
-      "CURSOR LEFT": {label:"", type:"static", command:"{name:\"\"}", queryresult:"", evalwrite:[{variable:"MyPicture",value:"(true)?\"https://scontent.fsin5-1.fna.fbcdn.net/v/t1.0-9/s960x960/83258087_10156692837451196_8122948557457063936_o.jpg?_nc_cat=109&_nc_sid=8024bb&_nc_ohc=pW8b6Dvy070AX9XJIND&_nc_ht=scontent.fsin5-1.fna&_nc_tp=7&oh=d5f9ac574e9e31977f23791c1848e501&oe=5F4490D2\":\"Command Failed\""}]},
-      "CURSOR ENTER": {label:"", type:"static", command:"{name:\"\"}", queryresult:"", evalwrite:[{variable:"MyPicture",value:"(true)?\"https://upload.wikimedia.org/wikipedia/commons/5/58/The_Chemical_Brothers_performing_in_Barcelona%2C_Spain_%282007%29.jpg\":\"Command Failed\""}]},
-      "CURSOR RIGHT": {label:"", type:"static", command:"{name:\"\"}", queryresult:"", evalwrite:[{variable:"MyPicture",value:"(true)?\"https://dancingastronaut.com/wp-content/uploads/2015/05/chemical-brothers.jpg\":\"Command Failed\""}]},
+      "CURSOR LEFT": {label:"", type:"static", command:"{name:\"\"}", queryresult:"", evalwrite:[{variable:"MyPicture",value:"DYNAMIK (true)?\"https://scontent.fsin5-1.fna.fbcdn.net/v/t1.0-9/s960x960/83258087_10156692837451196_8122948557457063936_o.jpg?_nc_cat=109&_nc_sid=8024bb&_nc_ohc=pW8b6Dvy070AX9XJIND&_nc_ht=scontent.fsin5-1.fna&_nc_tp=7&oh=d5f9ac574e9e31977f23791c1848e501&oe=5F4490D2\":\"Command Failed\""}]},
+      "CURSOR ENTER": {label:"", type:"static", command:"{name:\"\"}", queryresult:"", evalwrite:[{variable:"MyPicture",value:"DYNAMIK (true)?\"https://upload.wikimedia.org/wikipedia/commons/5/58/The_Chemical_Brothers_performing_in_Barcelona%2C_Spain_%282007%29.jpg\":\"Command Failed\""}]},
+      "CURSOR RIGHT": {label:"", type:"static", command:"{name:\"\"}", queryresult:"", evalwrite:[{variable:"MyPicture",value:"DYNAMIK (true)?\"https://dancingastronaut.com/wp-content/uploads/2015/05/chemical-brothers.jpg\":\"Command Failed\""}]},
       
      },
     directories:{
       "recipes": {label:"", feeders: {
-            "Rooms":{label:"Rooms list", commandset: [{type:"http-get", command:"\"http://192.168.1.151:3000/v1/projects/home/rooms/\"", queryresult:"$.*", itemname:"JSON.parse(\"$Result\").name", itemtype: "listitem", itemlabel:"\"Recipe name\"", itembrowse:"JSON.parse(\"$Result\").key", itemimage:"\"https://raw.githubusercontent.com/jac459/metadriver/master/AVReceiver/rooms.jpg\"", evalnext:[{test:true, then:"Devices", or:"Rooms"}], evalwrite:[{variable:"RoomKey",value:"\"$Result\""}]},
-                                                      {type:"http-get", command:"\"http://192.168.1.151:3000/v1/projects/home/rooms/\"", queryresult:"$.*", itemname:"JSON.parse(\"$Result\").name", itemtype: "tile", itemlabel:"\"Recipe name\"", itembrowse:"JSON.parse(\"$Result\").key", itemimage:"\"https://raw.githubusercontent.com/jac459/metadriver/master/AVReceiver/rooms.jpg\"", evalnext:[{test:true, then:"Devices", or:"Rooms"}], evalwrite:[{variable:"RoomKey",value:"\"$Result\""}]},  
+            "Rooms":{label:"Rooms list", commandset: [{type:"http-get", command:"http://192.168.1.151:3000/v1/projects/home/rooms/", queryresult:"$.*", itemname:"DYNAMIK JSON.parse(\"$Result\").name", itemtype: "listitem", itemlabel:"Recipe name", itembrowse:"DYNAMIK JSON.parse(\"$Result\").key", itemimage:"https://raw.githubusercontent.com/jac459/metadriver/master/AVReceiver/rooms.jpg", evalnext:[{test:true, then:"Devices", or:"Rooms"}], evalwrite:[{variable:"RoomKey",value:"$Result"}]},
+                                                      {type:"http-get", command:"http://192.168.1.151:3000/v1/projects/home/rooms/", queryresult:"$.*", itemname:"DYNAMIK JSON.parse(\"$Result\").name", itemtype: "tile", itemlabel:"Recipe name", itembrowse:"DYNAMIK JSON.parse(\"$Result\").key", itemimage:"https://raw.githubusercontent.com/jac459/metadriver/master/AVReceiver/rooms.jpg", evalnext:[{test:true, then:"Devices", or:"Rooms"}], evalwrite:[{variable:"RoomKey",value:"$Result"}]},  
                                                      ]},
             //"Rooms":{label:"Rooms list", type:"http-get", command:"\"http://192.168.1.151:3000/v1/projects/home/rooms/\"", queryresult:"$.*", itemname:"JSON.parse(\"$Result\").name", itemlabel:"\"Recipe name\"", itembrowse:"JSON.parse(\"$Result\").key", itemimage:"\"https://raw.githubusercontent.com/jac459/metadriver/master/AVReceiver/rooms.jpg\"", evalnext:[{test:true, then:"Devices", or:"Rooms"}], evalwrite:[{variable:"RoomKey",value:"\"$Result\""}]},
-            //"Devices":{label:"Devices list", type:"http-get", command:"\"http://192.168.1.151:3000/v1/projects/home/rooms/$RoomKey/devices\"", queryresult:"$.*", itemname:"JSON.parse(\"$Result\").name", itemlabel:"\"Recipe name\"", itembrowse:"JSON.parse(\"$Result\").key", itemimage:"\"https://raw.githubusercontent.com/jac459/metadriver/master/AVReceiver/devices.jpg\"", evalnext:[{test:true, then:"Macros", or:"Devices"}], evalwrite:[{variable:"DeviceKey",value:"\"$Result\""}]},
-            //"Macros":{label:"Macros list", type:"http-get", command:"\"http://192.168.1.151:3000/v1/projects/home/rooms/$RoomKey/devices/$DeviceKey/macros\"", queryresult:"$.*", itemname:"JSON.parse(\"$Result\").name", itemlabel:"\"Recipe name\"", itemaction:"\"http://192.168.1.130:3000/v1/projects/home/rooms/$RoomKey/devices/$DeviceKey/macros/\" + JSON.parse(\"$Result\").key + \"/trigger\"", itemimage:"\"https://raw.githubusercontent.com/jac459/metadriver/master/AVReceiver/Neeo_logo.jpg\""},
+            "Devices":{label:"Devices list", commandset: [{type:"http-get", command:"http://192.168.1.151:3000/v1/projects/home/rooms/$RoomKey/devices", queryresult:"$.*", itemname:"DYNAMIK JSON.parse(\"$Result\").name", itemlabel:"Recipe name", itembrowse:"DYNAMIK JSON.parse(\"$Result\").key", itemimage:"https://raw.githubusercontent.com/jac459/metadriver/master/AVReceiver/devices.jpg", evalnext:[{test:true, then:"Macros", or:"Devices"}], evalwrite:[{variable:"DeviceKey",value:"$Result"}]},
+                                                      ]},
+            "Macros":{label:"Macros list", commandset: [{type:"http-get", command:"http://192.168.1.151:3000/v1/projects/home/rooms/$RoomKey/devices/$DeviceKey/macros", queryresult:"$.*", itemname:"DYNAMIK JSON.parse(\"$Result\").name", itemlabel:"Recipe name", itemaction:"DYNAMIK \"http://192.168.1.130:3000/v1/projects/home/rooms/$RoomKey/devices/$DeviceKey/macros/\" + JSON.parse(\"$Result\").key + \"/trigger\"", itemimage:"https://raw.githubusercontent.com/jac459/metadriver/master/AVReceiver/Neeo_logo.jpg"},
+                                                      ]},
           },
         },
       },

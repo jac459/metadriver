@@ -74,8 +74,13 @@ class httpgetSoapProcessor {
   query (data, query) {
     if (query) {
       try {
-        var doc = new xmldom().parseFromString(data)
-        var nodes = xpath.select(query, doc)
+        console.log('ccccavacacacacaca')
+        var doc = new xmldom().parseFromString(data);
+        console.log(doc)
+        var nodes = xpath.select(query, doc);
+        console.log('COUCOUCOUCOUCOUCU' + nodes[0].getAttribute('title') + nodes[0].localName)
+        console.log("Node: " + nodes[0].toString())
+        console.log('NODES : ' + nodes)
         return nodes;
       }
       catch (err) {
@@ -177,7 +182,7 @@ module.exports = function controller(driver) {
     return listenerList[listenerList.length-1];
   }
 
-  this.assignValueToVariable = function(theVariable, theValue, deviceId) {//deviceId necessary as push to components.
+  this.writeVariable = function(theVariable, theValue, deviceId) {//deviceId necessary as push to components.
     let foundVar = self.deviceVariables.find(elt => {return elt.name == theVariable});
     foundVar.value = theValue;
     foundVar.listeners.forEach(element => {
@@ -194,12 +199,20 @@ module.exports = function controller(driver) {
       givenResult = JSON.stringify(givenResult).replace(/"/g, '\\"').replace(/'/g, "\\'")//.replace(/(?=[()])/g, '\\');//.replace(/\(/g,"\(").replace(/\\)/g,"\\)");
       givenResult = givenResult.replace(/\\\\/g, '\\\\\\') // Absolutely necessary to properly escape the escaped character. Or super tricky bug.
     }
-    if (typeof(inputChain) == 'string') {inputChain = inputChain.replace(RESULT, givenResult);}
-    return eval(inputChain);
+    if (typeof(inputChain) == 'string') {
+      inputChain = inputChain.replace(RESULT, givenResult);
+      if (inputChain.startsWith('DYNAMIK ')) {
+        return eval(inputChain.split('DYNAMIK ')[1]);
+      }
+    }
+    return inputChain;
   }
 
-  this.assignVariables = function(inputChain) {
+  this.readVariables = function(inputChain) {
     let preparedResult = inputChain;
+    console.log('here read variables')
+    console.log(typeof(inputChain))
+    console.log(inputChain)
     if (typeof(inputChain) == 'string')
     {
       self.deviceVariables.forEach(variable => {
@@ -207,7 +220,7 @@ module.exports = function controller(driver) {
         preparedResult = preparedResult.replace(token, variable.value);
       })
     }
-    console.log('Chain Assigned : ' + preparedResult)
+    //console.log('Chain Assigned : ' + preparedResult)
     return preparedResult;
   }
 
@@ -244,7 +257,7 @@ module.exports = function controller(driver) {
       if (commandtype == 'http-get') {
         processingManager.processor = myHttpgetProcessor;
       } 
-      if (commandtype == 'http-get-soap') {
+      else if (commandtype == 'http-get-soap') {
         processingManager.processor = myHttpgetSoapProcessor;
       } 
       else if (commandtype == 'http-post') {
@@ -257,7 +270,7 @@ module.exports = function controller(driver) {
         processingManager.processor = myCliProcessor;
       }
       else {reject('The commandtype is not defined.' + commandtype + ' command : ' + command)}
-      command = self.assignVariables(command);
+      command = self.readVariables(command);
 
       processingManager.process(command)
         .then((result) => {
@@ -271,7 +284,7 @@ module.exports = function controller(driver) {
       if (commandtype == 'http-get') {
         processingManager.processor = myHttpgetProcessor;
       }
-      if (commandtype == 'http-get-soap') {
+      else if (commandtype == 'http-get-soap') {
         processingManager.processor = myHttpgetSoapProcessor;
       } 
       else if (commandtype == 'http-post') {
@@ -285,7 +298,7 @@ module.exports = function controller(driver) {
       }
       else {reject('commandtype not defined.')}
       //console.log('Query Processor : ' + query)
-      query = self.assignVariables(query);
+      query = self.readVariables(query);
       //console.log('Query Processor : ' + query)
       return processingManager.query(data, query);
   }
@@ -303,14 +316,12 @@ module.exports = function controller(driver) {
 */
   
   this.evalWrite = function (evalwrite, result, deviceId) {
-    console.log('EVALWRITE!!!!!!!!!!!!!')
     if (evalwrite) { //case we want to write inside a variable
       evalwrite.forEach(evalW => {
-        console.log(evalW);
         //process the value
-        let finalValue = self.assignVariables(evalW.value);
+        let finalValue = self.readVariables(evalW.value);
         finalValue = self.assignResult(finalValue, result);
-        self.assignValueToVariable(evalW.variable, finalValue, deviceId); 
+        self.writeVariable(evalW.variable, finalValue, deviceId); 
       });
     }
   }
@@ -320,7 +331,7 @@ module.exports = function controller(driver) {
       evaldo.forEach(evalD => {
         console.log('test value : ' + evalD.test);
         if (evalD.test == '' || evalD.test == true) {evalD.test = true}; //in case of no test, go to the do function
-        let finalDoTest = self.assignVariables(evalD.test);// prepare the test to assign variable and be evaluated.
+        let finalDoTest = self.readVariables(evalD.test);// prepare the test to assign variable and be evaluated.
         console.log('finaldo :' + finalDoTest)
         finalDoTest = self.assignResult(finalDoTest, result);
         console.log('test value final : ' + finalDoTest);

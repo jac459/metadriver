@@ -26,9 +26,6 @@ Adding your own interactions.
 ## Features
 - Control any device with rest api.
 - Control any device with cli calls.
-- json and XML support
-- images
-- directories with navigation and multifeeder
 - Create sliders 
 - Create lists (directories) 
 - link buttons with sliders
@@ -37,4 +34,5 @@ Adding your own interactions.
 
 ## To do
 
+- Wake On Lan command
 - other protocoles (Websockets, TCP, MQTT, ...)
