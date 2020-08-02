@@ -160,7 +160,6 @@ class directoryHelper {
         let rItemType;
         let rImage;
         let rLabel;
-        //console.log('fill')
         return new Promise(function (resolve, reject) {
           if (indentCommand < allconfigs.commandset.length) {
             let commandSet = allconfigs.commandset[indentCommand];
@@ -169,8 +168,6 @@ class directoryHelper {
             console.log('Final processed Command:' + processedCommand)
             self.controller.commandProcessor(processedCommand, commandSet.type)
               .then((result) => {
-//                self.currentCommandResult.push(result);
-                //resultList = self.controller.queryProcessor(result, commandSet.queryresult, commandSet.type);
                 rName = self.controller.readVariables(commandSet.itemname); //ensure that the item name chain has the variable interpreted (except $Result)
                 rImage = self.controller.readVariables(commandSet.itemimage); 
                 rItemType = self.controller.readVariables(commandSet.itemtype); 
@@ -217,51 +214,21 @@ class directoryHelper {
       return new Promise(function (resolve, reject) {
         //here, the action identifier is the result.       
         let PastQueryValue = params.actionIdentifier.split("$PastQueryValue=")[1];
-        console.log('PastQueryValue' + JSON.stringify(PastQueryValue))
         params.actionIdentifier = params.actionIdentifier.split("$PastQueryValue=")[0];
         let commandSetIndex = params.actionIdentifier.split("$CommandSet=")[1];
         params.actionIdentifier = params.actionIdentifier.split("$CommandSet=")[0];
-        self.controller.evalWrite(self.feederH[self.currentFeederIndex].commandset[commandSetIndex].evalwrite, PastQueryValue, deviceId, params.actionIdentifier);
-        console.log(params.actionIdentifier);
-
+        self.controller.evalWrite(self.feederH[self.currentFeederIndex].commandset[commandSetIndex].evalwrite, PastQueryValue, deviceId);
+      
         //finding the feeder which is actually an action feeder
         let ActionIndex = self.feederH.findIndex((feed) => {return (feed.name == params.actionIdentifier)});
-        console.log('1')
         let commandSet = self.feederH[ActionIndex].commandset[0]
-        console.log('1')
         let processedCommand = self.feederH[ActionIndex].commandset[0].command;
         processedCommand = self.controller.readVariables(self.feederH[ActionIndex].commandset[0].command);
-        //processedCommand.message = self.controller.readVariables(self.feederH[ActionIndex].commandset[0].command.message);
-        console.log(processedCommand)
-        
-        //TEMPORAIRE HACK DE LA MORT QUI TUE
-        //processedCommand.message = processedCommand.message.replace(/\\/g, "")
-        console.log(processedCommand)
-        console.log('1')
-
-        console.log('Final processed Command:' + commandSet.type)
         self.controller.commandProcessor(processedCommand, commandSet.type)
           .then((result) => {
             console.log(result)
-          })
-        if (self.feederH[self.currentFeederIndex].commandset[commandSetIndex].evalwrite)
-        {
-          self.controller.evalWrite(self.feederH[self.currentFeederIndex].commandset[commandSetIndex].evalwrite, PastQueryValue, deviceId, params.actionI);
-        }
-        if (params.actionIdentifier && (params.actionIdentifier != '')) {
-            self.controller.commandProcessor(params.actionIdentifier, config.type)
-              .then(function (result) { resolve(result) })
-              .catch(function (err) { reject(err); });
-        }
-        if (evalwrite) {self.evalWrite(evalwrite, result, deviceId);}
-        if (evaldo) {self.evalDo(evaldo, result, deviceId);}
-
-
-
-        self.controller.evalWrite(self.feederH[self.currentFeederIndex].commandset[commandSetIndex].evalwrite, PastQueryValue, deviceId, params.browseIdentifier);
-
-
-
+        })
+    
       });
     };
   }

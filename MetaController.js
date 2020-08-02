@@ -14,7 +14,7 @@ const jpath = require('jsonpath');
 const wol = require('wake_on_lan');
 const variablePattern = {'pre':'$','post':''};
 const RESULT = variablePattern.pre + 'Result' + variablePattern.post;
-const NAVIGATIONID = variablePattern.pre + 'NavigationIdentifier' + variablePattern.post;
+//const NAVIGATIONID = variablePattern.pre + 'NavigationIdentifier' + variablePattern.post;
 const { exec } = require("child_process");
 const { cachedDataVersionTag } = require('v8'); // check if needed for discovery of neeo brain and suppress otherwise.
 const { resolve } = require("path");
@@ -128,14 +128,13 @@ class httpgetSoapProcessor {
 class httppostProcessor {
   process (command) {
     return new Promise(function (resolve, reject) {
-      console.log(command);
+      if (typeof(command) == 'string') {command = JSON.parse(command)}
       if (command.post){
-        http.post(command.post, command.message   
-           ) 
+        http.post(command.post, JSON.parse(command.message)) 
         .then(function(result) { 
           resolve(result.data)
         })
-        .catch((err) => {reject (err)})
+        .catch((err) => {console.log(err);reject (err)})
       }
       else {reject('no post command provided or improper format')}
     })
@@ -263,7 +262,6 @@ module.exports = function controller(driver) {
   this.writeVariable = function(theVariable, theValue, deviceId) {//deviceId necessary as push to components.
     
     let foundVar = self.deviceVariables.find(elt => {return elt.name == theVariable});
-    console.log(foundVar)
     foundVar.value = theValue; //Write value here
     foundVar.listeners.forEach(element => { //invoke all listeners
       element(foundVar.value, deviceId);
@@ -272,22 +270,16 @@ module.exports = function controller(driver) {
 
   this.assignTo = function(Pattern, inputChain, givenResult) //Assign a value to the input chain. PAttern found is replaced by given value
   {
-/*    if (givenResult && !(typeof(givenResult) in {"string":"", "number":"", "boolean":""}) ) {//in case the response is a json object, convert to string
-      givenResult = JSON.stringify(givenResult);
-      givenResult = givenResult.replace(/"/g, '\\"').replace(/'/g, "\\'")// escape quotes
-      givenResult = givenResult.replace(/\\\\/g, '\\\\\\') // Absolutely necessary to properly escape the escaped character. Or super tricky bug.
-    }
-*/  if (givenResult && !(typeof(givenResult) in {"string":"", "number":"", "boolean":""}) ) {//in case the response is a json object, convert to string
+    if (givenResult && !(typeof(givenResult) in {"string":"", "number":"", "boolean":""}) ) {//in case the response is a json object, convert to string
       givenResult = JSON.stringify(givenResult);
     }
     if (givenResult && (typeof(givenResult) == 'string' )) {
       givenResult = givenResult.replace(/\\/g, '\\\\') // Absolutely necessary to properly escape the escaped character. Or super tricky bug.
       givenResult = givenResult.replace(/"/g, '\\"') // Absolutely necessary to properly escape the escaped character. Or super tricky bug.
-//      givenResult = givenResult.replace(/"/g, '\\"').replace(/'/g, "\\'")// escape quotes
-//      givenResult = givenResult.replace(/\\\\/g, '\\\\\\') // Absolutely necessary to properly escape the escaped character. Or super tricky bug.
     }
     if (typeof(inputChain) == 'string') {
       inputChain = inputChain.replace(Pattern, givenResult);
+      console.log(inputChain)
       if (inputChain.startsWith('DYNAMIK ')) {
         return eval(inputChain.split('DYNAMIK ')[1]);
       }
@@ -297,15 +289,15 @@ module.exports = function controller(driver) {
 
   this.readVariables = function(inputChain) { //replace in the input chain, all the variables found.
     let preparedResult = inputChain;
-    if (typeof(inputChain) == 'string')
-    {
+    if (typeof(preparedResult) == 'object') {
+      preparedResult = JSON.stringify(preparedResult);
+    }
+    if (typeof(preparedResult) == 'string')
       self.deviceVariables.forEach(variable => {
         let token = variablePattern.pre + variable.name + variablePattern.post;
-//        console.log('name :' + token)
-//        console.log('name ; ' +variable.name+ 'value :' + variable.value)
         preparedResult = preparedResult.replace(token, variable.value);
-      })
-    }
+    })
+    
      return preparedResult;
   }
 
@@ -329,7 +321,6 @@ module.exports = function controller(driver) {
       }
       else {reject('The commandtype is not defined.' + commandtype + ' command : ' + command)}
       command = self.readVariables(command);
-      console.log('command run : ' + command)
       processingManager.process(command)
         .then((result) => {
           resolve(result)
@@ -380,17 +371,14 @@ module.exports = function controller(driver) {
   }
 */
   
-  this.evalWrite = function (evalwrite, result, deviceId, NavigationIdentifierValue) {//
+  this.evalWrite = function (evalwrite, result, deviceId) {//
     if (evalwrite) { //case we want to write inside a variable
       console.log('number of variable to write : ' + evalwrite.length)
       evalwrite.forEach(evalW => {
         //process the value
         let finalValue = self.readVariables(evalW.value);
         finalValue = self.assignTo(RESULT, finalValue, result);
-        if (NavigationIdentifierValue)
-        {
-          finalValue = self.assignTo(NAVIGATIONID, finalValue, NavigationIdentifierValue);
-        }
+       
         console.log('assigning to ' + evalW.variable + ' result before writing variables ; ' + finalValue)
         self.writeVariable(evalW.variable, finalValue, deviceId); 
       });
@@ -434,10 +422,11 @@ module.exports = function controller(driver) {
         self.commandProcessor(command, commandtype)
         .then((result) => {
           console.log(result)
-          self.queryProcessor(result, queryresult, commandtype)[0].then((result) => {
-                      if (evalwrite) {self.evalWrite(evalwrite, result, deviceId);}
-          if (evaldo) {self.evalDo(evaldo, result, deviceId);}
-          resolve(result);
+          self.queryProcessor(result, queryresult, commandtype).then((result) => {
+            result = result[0];
+            if (evalwrite) {self.evalWrite(evalwrite, result, deviceId);}
+            if (evaldo) {self.evalDo(evaldo, result, deviceId);}
+            resolve(result);
           })
         })
         .catch((result) => { //if the command doesn't work.
@@ -469,8 +458,10 @@ module.exports = function controller(driver) {
       }
       else if (theButton.type == 'slidercontrol') {
          let SH = self.sliderH.find((sliderhelper) => { return (sliderhelper.slidername == theButton.slidername)}); // get the right slider with get and set capacity
+         console.log(SH)
          SH.get()
           .then((result) => {
+            console.log(result)
             result = Number(result) + Number(theButton.step);
             console.log ('Slider: ' + result);
             SH.set(deviceId, SH.toSliderValue(result));

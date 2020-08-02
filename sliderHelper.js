@@ -28,7 +28,7 @@ class sliderHelper {
         .then(function (result) {
           controller.sendComponentUpdate({ uniqueDeviceId: deviceId, component: slidername, value: newValue })
             .catch((err) => { console.log(err); });
-          controller.displayStatus(deviceId, self.toDeviceValue(newValue));
+//          controller.displayStatus(deviceId, self.toDeviceValue(newValue));
           console.log(result);
         })
         .catch(function (err) {
