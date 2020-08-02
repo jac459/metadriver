@@ -6,15 +6,18 @@ const { labelHelper } = require("./labelHelper");
 const { sliderHelper } = require("./sliderHelper");
 const { directoryHelper } = require("./directoryHelper");
 
-const xpath = require('xpath')
-const xmldom = require('xmldom').DOMParser
+const xpath = require('xpath');
+const xmldom = require('xmldom').DOMParser;
+const parserXMLString = require('xml2js').Parser({explicitArray:false, mergeAttrs : true});
 const http = require('http.min');
 const jpath = require('jsonpath');
 const wol = require('wake_on_lan');
 const variablePattern = {'pre':'$','post':''};
 const RESULT = variablePattern.pre + 'Result' + variablePattern.post;
+const NAVIGATIONID = variablePattern.pre + 'NavigationIdentifier' + variablePattern.post;
 const { exec } = require("child_process");
 const { cachedDataVersionTag } = require('v8'); // check if needed for discovery of neeo brain and suppress otherwise.
+const { resolve } = require("path");
 
 //STRATEGY DESIGN PATTERN FOR THE COMMAND TO BE USED (http-get, post, websocket, ...) New processor to be added here. This strategy mix both transport and data format (json, soap, ...)
 class ProcessingManager {
@@ -49,18 +52,43 @@ class httpgetProcessor {
     })
   }
   query (data, query) {
-    if (query) {
-      try {
-        let temp = JSON.parse(data);
-        return jpath.query(temp, query);
+    return new Promise(function (resolve, reject) {
+      if (query) {
+        try {
+          let temp = JSON.parse(data);
+          resolve(jpath.query(temp, query));
+        }
+        catch (err) {
+          console.log('error ' + err + ' in JSONPATH ' + query + ' processing of :' + data)
+        }
       }
-      catch (err) {
-        console.log('error ' + err + ' in JSONPATH ' + query + ' processing of :' + data)
-      }
-    }
-    else {return data}
+      else {resolve(data)}
+    })
   }
 }
+
+function convertXMLTable2JSON (TableXML, indent, TableJSON) {
+  return new Promise(function (resolve, reject) {
+      parserXMLString.parseStringPromise(TableXML[indent]).then((result) => {
+      if (result) {
+        TableJSON.push(result)
+        indent = indent + 1;
+        if (indent < TableXML.length) {
+          resolve(convertXMLTable2JSON(TableXML,indent,TableJSON))
+        }
+        else 
+        {
+          resolve(TableJSON);
+        }
+        
+      }
+      else {
+        console.log(err);
+      }
+    });
+  })
+}
+
 class httpgetSoapProcessor {
   process (command) {
     return new Promise(function (resolve, reject) {
@@ -72,22 +100,29 @@ class httpgetSoapProcessor {
     })
   }
   query (data, query) {
-    if (query) {
-      try {
-        console.log('ccccavacacacacaca')
-        var doc = new xmldom().parseFromString(data);
-        console.log(doc)
-        var nodes = xpath.select(query, doc);
-        console.log('COUCOUCOUCOUCOUCU' + nodes[0].getAttribute('title') + nodes[0].localName)
-        console.log("Node: " + nodes[0].toString())
-        console.log('NODES : ' + nodes)
-        return nodes;
+    return new Promise(function (resolve, reject) {
+      if (query) {
+        try {
+          console.log('RAW XPATH Return elt 0: ' + data);
+          var doc = new xmldom().parseFromString(data);
+          console.log('RAW XPATH Return elt 0.1: ' + doc);
+          console.log('RAW XPATH Return elt 0.1: ' + query);
+          var nodes = xpath.select(query, doc);
+          console.log('RAW XPATH Return elt : ' + nodes);
+          console.log('RAW XPATH Return elt 2: ' + nodes.toString());
+          let JSonResult = [];
+          convertXMLTable2JSON(nodes, 0, JSonResult).then((result) => {
+            console.log('Result of conversion +> ');
+            console.log(result);
+            resolve(result)
+          })
+        }
+        catch (err) {
+          console.log('error ' + err + ' in XPATH ' + query + ' processing of :' + data)
+        }
       }
-      catch (err) {
-        console.log('error ' + err + ' in XPATH ' + query + ' processing of :' + data)
-      }
-    }
-    else {return data}
+      else {resolve(data)}
+    })
   }
 }
 class httppostProcessor {
@@ -95,7 +130,8 @@ class httppostProcessor {
     return new Promise(function (resolve, reject) {
       console.log(command);
       if (command.post){
-        http.post(command.post, command.message) 
+        http.post(command.post, command.message   
+           ) 
         .then(function(result) { 
           resolve(result.data)
         })
@@ -105,12 +141,14 @@ class httppostProcessor {
     })
   }
   query (data, query) {
-    try {
-      return jpath.query(JSON.parse(data), query);
-    }
-    catch (err) {
-      console.log('error ' + err + ' in JSONPATH ' + query + ' processing of :' + data)
-    }
+    return new Promise(function (resolve, reject) {
+      try {
+        resolve(jpath.query(JSON.parse(data), query));
+      }
+      catch (err) {
+        console.log('error ' + err + ' in JSONPATH ' + query + ' processing of :' + data)
+      }
+    })
   }
 }
 class staticProcessor {
@@ -120,12 +158,14 @@ class staticProcessor {
     })
   }
   query (data, query) {
-    try {
-      return jpath.query(JSON.parse(data), query);
-    }
-    catch {
-      console.log('error in JSONPATH ' + query + ' processing of :' + data)
-    }
+    return new Promise(function (resolve, reject) {
+        try {
+        resolve(jpath.query(JSON.parse(data), query));
+        }
+        catch {
+          console.log('error in JSONPATH ' + query + ' processing of :' + data)
+        }
+    })
   }
 }
 class cliProcessor {
@@ -142,13 +182,15 @@ class cliProcessor {
     })
   }
   query (data, query) {
-    try {
-      //let resultArray = new [];
-      return data.split(query);
-    }
-    catch {
-      console.log('error in string.search regex :' + query + ' processing of :' + data)
-    }
+    return new Promise(function (resolve, reject) {
+      try {
+        //let resultArray = new [];
+        resolve(data.split(query));
+      }
+      catch {
+        console.log('error in string.search regex :' + query + ' processing of :' + data)
+      }
+    })
   }
 }
 
@@ -165,7 +207,8 @@ module.exports = function controller(driver) {
   this.sendComponentUpdate;
   this.deviceVariables = []; //container for all device variables.
   this.imageH = []; //image helper to store all the getter of the dynamically created images.
-  this.labelH = []; //slider helper to store all the getter and setter of the dynamically created sliders.
+  this.sensorH = []; //sensor helper to store all the getter and setter of the dynamically created sensors.
+  this.labelH = []; //label helper to store all the getter and setter of the dynamically created labels.
   this.sliderH = []; //slider helper to store all the getter and setter of the dynamically created sliders.
   this.directoryH = []; //directory helper to store all the browse getter and setter of the dynamically created simple directories.
   this.linkedDirectoryH = []; //directory helper to store all the browse getter and setter of the dynamically created linked directories.
@@ -182,48 +225,6 @@ module.exports = function controller(driver) {
     return listenerList[listenerList.length-1];
   }
 
-  this.writeVariable = function(theVariable, theValue, deviceId) {//deviceId necessary as push to components.
-    let foundVar = self.deviceVariables.find(elt => {return elt.name == theVariable});
-    foundVar.value = theValue;
-    foundVar.listeners.forEach(element => {
-      element(foundVar.value, deviceId);
-    });
-
-  }
-
-  this.assignResult = function(inputChain, givenResult)
-  {
-    //console.log('AssignResult on :' + inputChain)
- //   console.log((givenResult))
-    if (givenResult && !(typeof(givenResult) in {"string":"", "number":"", "boolean":""}) ) {//in case the response is a json object, convert to string, escape quotes
-      givenResult = JSON.stringify(givenResult).replace(/"/g, '\\"').replace(/'/g, "\\'")//.replace(/(?=[()])/g, '\\');//.replace(/\(/g,"\(").replace(/\\)/g,"\\)");
-      givenResult = givenResult.replace(/\\\\/g, '\\\\\\') // Absolutely necessary to properly escape the escaped character. Or super tricky bug.
-    }
-    if (typeof(inputChain) == 'string') {
-      inputChain = inputChain.replace(RESULT, givenResult);
-      if (inputChain.startsWith('DYNAMIK ')) {
-        return eval(inputChain.split('DYNAMIK ')[1]);
-      }
-    }
-    return inputChain;
-  }
-
-  this.readVariables = function(inputChain) {
-    let preparedResult = inputChain;
-    console.log('here read variables')
-    console.log(typeof(inputChain))
-    console.log(inputChain)
-    if (typeof(inputChain) == 'string')
-    {
-      self.deviceVariables.forEach(variable => {
-        let token = variablePattern.pre + variable.name + variablePattern.post;
-        preparedResult = preparedResult.replace(token, variable.value);
-      })
-    }
-    //console.log('Chain Assigned : ' + preparedResult)
-    return preparedResult;
-  }
-
   this.addImageHelper = function(imageName, listened) {//function called by the MetaDriver to store 
     const newImageH = new imageHelper(imageName, listened, self)
     self.imageH.push(newImageH);
@@ -234,6 +235,12 @@ module.exports = function controller(driver) {
     const newLabelH = new labelHelper(labelName, listened, self)
     self.labelH.push(newLabelH);
     return newLabelH;
+  }
+
+  this.addSensorHelper = function(sensorName, listened) {//function called by the MetaDriver to store 
+    const newSensorH = new labelHelper(sensorName, listened, self)
+    self.sensorH.push(newSensorH);
+    return newSensorH;
   }
 
   this.addSliderHelper = function(min,max,commandtype, command, statuscommand, querystatus, slidername) {//function called by the MetaDriver to store 
@@ -251,6 +258,57 @@ module.exports = function controller(driver) {
   this.registerStateUpdateCallback = function(updateFunction) {//technical function to send event to the remote.
     self.sendComponentUpdate = updateFunction;
   };
+  
+
+  this.writeVariable = function(theVariable, theValue, deviceId) {//deviceId necessary as push to components.
+    
+    let foundVar = self.deviceVariables.find(elt => {return elt.name == theVariable});
+    console.log(foundVar)
+    foundVar.value = theValue; //Write value here
+    foundVar.listeners.forEach(element => { //invoke all listeners
+      element(foundVar.value, deviceId);
+    });
+  }
+
+  this.assignTo = function(Pattern, inputChain, givenResult) //Assign a value to the input chain. PAttern found is replaced by given value
+  {
+/*    if (givenResult && !(typeof(givenResult) in {"string":"", "number":"", "boolean":""}) ) {//in case the response is a json object, convert to string
+      givenResult = JSON.stringify(givenResult);
+      givenResult = givenResult.replace(/"/g, '\\"').replace(/'/g, "\\'")// escape quotes
+      givenResult = givenResult.replace(/\\\\/g, '\\\\\\') // Absolutely necessary to properly escape the escaped character. Or super tricky bug.
+    }
+*/  if (givenResult && !(typeof(givenResult) in {"string":"", "number":"", "boolean":""}) ) {//in case the response is a json object, convert to string
+      givenResult = JSON.stringify(givenResult);
+    }
+    if (givenResult && (typeof(givenResult) == 'string' )) {
+      givenResult = givenResult.replace(/\\/g, '\\\\') // Absolutely necessary to properly escape the escaped character. Or super tricky bug.
+      givenResult = givenResult.replace(/"/g, '\\"') // Absolutely necessary to properly escape the escaped character. Or super tricky bug.
+//      givenResult = givenResult.replace(/"/g, '\\"').replace(/'/g, "\\'")// escape quotes
+//      givenResult = givenResult.replace(/\\\\/g, '\\\\\\') // Absolutely necessary to properly escape the escaped character. Or super tricky bug.
+    }
+    if (typeof(inputChain) == 'string') {
+      inputChain = inputChain.replace(Pattern, givenResult);
+      if (inputChain.startsWith('DYNAMIK ')) {
+        return eval(inputChain.split('DYNAMIK ')[1]);
+      }
+    }
+    return inputChain;
+  }
+
+  this.readVariables = function(inputChain) { //replace in the input chain, all the variables found.
+    let preparedResult = inputChain;
+    if (typeof(inputChain) == 'string')
+    {
+      self.deviceVariables.forEach(variable => {
+        let token = variablePattern.pre + variable.name + variablePattern.post;
+//        console.log('name :' + token)
+//        console.log('name ; ' +variable.name+ 'value :' + variable.value)
+        preparedResult = preparedResult.replace(token, variable.value);
+      })
+    }
+     return preparedResult;
+  }
+
   
   this.commandProcessor = function(command, commandtype) { // process any command according to the target protocole
     return new Promise(function (resolve, reject) {
@@ -271,7 +329,7 @@ module.exports = function controller(driver) {
       }
       else {reject('The commandtype is not defined.' + commandtype + ' command : ' + command)}
       command = self.readVariables(command);
-
+      console.log('command run : ' + command)
       processingManager.process(command)
         .then((result) => {
           resolve(result)
@@ -281,6 +339,7 @@ module.exports = function controller(driver) {
   }
 
   this.queryProcessor = function (data, query, commandtype) { // process any command according to the target protocole
+    return new Promise(function (resolve, reject) {
       if (commandtype == 'http-get') {
         processingManager.processor = myHttpgetProcessor;
       }
@@ -300,7 +359,13 @@ module.exports = function controller(driver) {
       //console.log('Query Processor : ' + query)
       query = self.readVariables(query);
       //console.log('Query Processor : ' + query)
-      return processingManager.query(data, query);
+      if (query != undefined && query != '') {
+        processingManager.query(data, query).then((data) => {
+          resolve(data)
+        })
+      }
+      else {resolve(data)}
+    })
   }
 /*
   this.displayStatus = function (deviceId, message) {
@@ -315,18 +380,24 @@ module.exports = function controller(driver) {
   }
 */
   
-  this.evalWrite = function (evalwrite, result, deviceId) {
+  this.evalWrite = function (evalwrite, result, deviceId, NavigationIdentifierValue) {//
     if (evalwrite) { //case we want to write inside a variable
+      console.log('number of variable to write : ' + evalwrite.length)
       evalwrite.forEach(evalW => {
         //process the value
         let finalValue = self.readVariables(evalW.value);
-        finalValue = self.assignResult(finalValue, result);
+        finalValue = self.assignTo(RESULT, finalValue, result);
+        if (NavigationIdentifierValue)
+        {
+          finalValue = self.assignTo(NAVIGATIONID, finalValue, NavigationIdentifierValue);
+        }
+        console.log('assigning to ' + evalW.variable + ' result before writing variables ; ' + finalValue)
         self.writeVariable(evalW.variable, finalValue, deviceId); 
       });
     }
   }
 
-  this.evalDo = function (evaldo, result, deviceId) {
+  this.evalDo = function (evaldo, result, deviceId, NAVIGATIONIDentifierValue) {
     if (evaldo) { //case we want to trigger a button
       evaldo.forEach(evalD => {
         console.log('test value : ' + evalD.test);
@@ -334,6 +405,11 @@ module.exports = function controller(driver) {
         let finalDoTest = self.readVariables(evalD.test);// prepare the test to assign variable and be evaluated.
         console.log('finaldo :' + finalDoTest)
         finalDoTest = self.assignResult(finalDoTest, result);
+        finalDoTest = self.assignTo(RESULT, finalDoTest, result);
+        if (NAVIGATIONIDentifierValue)
+        {
+          finalDoTest = self.assignTo(NAVIGATIONID, finalDoTest, NAVIGATIONIDentifierValue);
+        }
         console.log('test value final : ' + finalDoTest);
         if (finalDoTest) {
           if (evalD.then && evalD.then != '')
@@ -358,14 +434,11 @@ module.exports = function controller(driver) {
         self.commandProcessor(command, commandtype)
         .then((result) => {
           console.log(result)
-          if (queryresult != "") {// Case we want to parse the result
-            console.log('Query :' + queryresult);
-            result = self.queryProcessor(result, queryresult, commandtype)[0];
-            console.log(result);
-          }
-          if (evalwrite) {self.evalWrite(evalwrite, result, deviceId);}
+          self.queryProcessor(result, queryresult, commandtype)[0].then((result) => {
+                      if (evalwrite) {self.evalWrite(evalwrite, result, deviceId);}
           if (evaldo) {self.evalDo(evaldo, result, deviceId);}
           resolve(result);
+          })
         })
         .catch((result) => { //if the command doesn't work.
           result = 'Command failed:' + result;

@@ -30,9 +30,13 @@ function createDevices () {
       console.log(driver.name);
       const controller = new metacontrol(driver);
       const theDevice = neeoapi.buildDevice("JAC MetaDriver " + driver.name) 
-        .setType("AVRECEIVER") 
+        .setType(driver.type) 
         .setDriverVersion(driver.version)
         .setManufacturer(driver.manufacturer)
+        if (driver.icon) {
+            theDevice.setIcon(driver.icon)
+        }
+        
          for (var prop in driver.variables) { // Initialisation of the variables
           if (Object.prototype.hasOwnProperty.call(driver.variables, prop)) {
              controller.addVariable(prop, driver.variables[prop])
@@ -58,6 +62,18 @@ function createDevices () {
           }
         }
 
+        for (var prop in driver.sensors) { // Dynamic creation of all sensors
+          if (Object.prototype.hasOwnProperty.call(driver.sensors, prop)) {
+            console.log(prop)
+            const theHelper = controller.addSensorHelper(prop, driver.sensors[prop].listen)
+            theDevice.addSensor({name: prop, label: (driver.sensors[prop].label == '') ? (prop) : (driver.sensors[prop].label),
+            type:driver.sensors[prop].type},
+            {
+              getter: theHelper.get
+            });
+          }
+        }
+
         for (var prop in driver.buttons) { // Dynamic creation of all buttons
           if (Object.prototype.hasOwnProperty.call(driver.buttons, prop)) {
             theDevice.addButton({name: prop, label: (driver.buttons[prop].label == '') ? (prop) : (driver.buttons[prop].label)})
@@ -77,35 +93,9 @@ function createDevices () {
               setter: theHelper.set, getter: theHelper.get
             })
           }
-        }/*
-        for (var prop in driver.directories) { // Dynamic creation of directories
-          if (Object.prototype.hasOwnProperty.call(driver.directories, prop)) {
-            const theHelper = controller.addDirectoryHelper();
-            for (var feed in driver.directories[prop].feeders) {
-              let feedConfig = {"name":feed, 
-                                "label":driver.directories[prop].feeders[feed].label, 
-                                "type":driver.directories[prop].feeders[feed].type, 
-                                "command":driver.directories[prop].feeders[feed].command, 
-                                "queryresult":driver.directories[prop].feeders[feed].queryresult, 
-                                "itemname":driver.directories[prop].feeders[feed].itemname,
-                                "itemlabel":driver.directories[prop].feeders[feed].itemlabel, 
-                                "itemaction":driver.directories[prop].feeders[feed].itemaction, 
-                                "itembrowse":driver.directories[prop].feeders[feed].itembrowse, 
-                                "itemimage":driver.directories[prop].feeders[feed].itemimage, 
-                                "evalnext":driver.directories[prop].feeders[feed].evalnext,
-                                "evalwrite":driver.directories[prop].feeders[feed].evalwrite,
-                                "actioncommand":driver.directories[prop].feeders[feed].actioncommand, 
-                              };
-              console.log(feedConfig)                        
-              theHelper.addFeederHelper(feedConfig);
-            }
-            theDevice.addDirectory({
-              name: prop, 
-              label: (driver.directories[prop].label == '') ? (prop) : (driver.directories[prop].label),
-            }, theHelper.browse)
+        }
 
-          }
-        }*/
+
         for (var prop in driver.directories) { // Dynamic creation of directories
           if (Object.prototype.hasOwnProperty.call(driver.directories, prop)) {
             const theHelper = controller.addDirectoryHelper();

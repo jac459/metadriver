@@ -1,11 +1,14 @@
 const neeoapi = require('neeo-sdk');
 const { JSONPath } = require('jsonpath/lib');
 const jpath = require('jsonpath');
+const variablePattern = {'pre':'$','post':''};
+const RESULT = variablePattern.pre + 'Result' + variablePattern.post;
+const BROWSEID = variablePattern.pre + 'NavigationIdentifier' + variablePattern.post;
 
 class directoryHelper {
   constructor(controller) {
     this.feederH = [];
-    this.browseHistory = []
+    this.browseHistory = [];
     this.currentFeederIndex = 0;
     this.controller = controller;
     this.previousOffset = 0; //check if we were scrolling;
@@ -18,14 +21,15 @@ class directoryHelper {
       action: (deviceId, params) => this.handleAction(deviceId, params),
     };
 
-    this.evalNext = function (evalnext, result) {
+    this.evalNext = function (evalnext, result, browseIdentifierValue) {
       if (evalnext) { //case we want to go to another feeder
         evalnext.forEach(evalN => {
           if (evalN.test == '' || evalN.test == true) {evalN.test = true}; //in case of no test, go to the do function
           let finalNextTest = self.controller.readVariables(evalN.test);// prepare the test to assign variable and be evaluated.
-          console.log('test')
-          finalNextTest = self.controller.assignResult(finalNextTest, result);
-          console.log('test2')
+          finalNextTest = self.controller.assignTo(RESULT, finalNextTest, result);
+          if (browseIdentifierValue) {
+            finalNextTest = self.controller.assignTo(BROWSEID, finalNextTest, browseIdentifierValue);
+          }
           if (finalNextTest) {
             if (evalN.then && evalN.then != '')
             {
@@ -38,7 +42,7 @@ class directoryHelper {
               self.currentFeederIndex = self.feederH.findIndex((feed) => {return (feed.name == evalN.or)});
             }
           }
-         })
+        })
       }
     }
 
@@ -48,10 +52,13 @@ class directoryHelper {
         console.log('browsing forward')
         //Take the good feeder:
         //Take the good commandset:
+        let PastQueryValue = params.browseIdentifier.split("$PastQueryValue=")[1];
+        console.log('PastQueryValue' + JSON.stringify(PastQueryValue))
+        params.browseIdentifier = params.browseIdentifier.split("$PastQueryValue=")[0];
         let commandSetIndex = params.browseIdentifier.split("$CommandSet=")[1];
         params.browseIdentifier = params.browseIdentifier.split("$CommandSet=")[0];
-        self.controller.evalWrite(self.feederH[self.currentFeederIndex].commandset[commandSetIndex].evalwrite, params.browseIdentifier, deviceId);
-        self.evalNext(self.feederH[self.currentFeederIndex].commandset[commandSetIndex].evalnext, params.browseIdentifier);//assign the good value to know the feeder
+        self.controller.evalWrite(self.feederH[self.currentFeederIndex].commandset[commandSetIndex].evalwrite, PastQueryValue, deviceId, params.browseIdentifier);
+        self.evalNext(self.feederH[self.currentFeederIndex].commandset[commandSetIndex].evalnext, PastQueryValue, params.browseIdentifier);//assign the good value to know the feeder
       }
       else if (params.history.length>0 && params.offset==0 && self.previousOffset == 0) {//case where we browse backward
         console.log('browsing backward')
@@ -95,6 +102,8 @@ class directoryHelper {
       let cacheList = [];
       return new Promise(function (resolve, reject) {
         
+//        self.currentCommandResult = [];//initialise as new commands will be done now.
+
         self.fillTheList(cacheList, allconfigs, params, 0, 0).then((cacheList) => {
             //console.log(cacheList);
             //Feed the neeo list
@@ -132,7 +141,7 @@ class directoryHelper {
                   thumbnailUri: cacheList[i].image,
                   actionIdentifier: cacheList[i].action,
                   browseIdentifier: cacheList[i].browse,
-                  uiAction: 'reload',
+                  uiAction: (cacheList[i].action != '' || cacheList[i].action != undefined) ? '' : 'reload',
                 });
               }
             }
@@ -144,7 +153,7 @@ class directoryHelper {
     }
 
     this.fillTheList = function (cacheList, allconfigs, params, indentCommand) {
-        let resultList;
+        //let resultList;
         let rAction;
         let rBrowse;
         let rName;
@@ -155,30 +164,33 @@ class directoryHelper {
         return new Promise(function (resolve, reject) {
           if (indentCommand < allconfigs.commandset.length) {
             let commandSet = allconfigs.commandset[indentCommand];
-            let processedCommand = self.controller.assignResult(commandSet.command, params.browseIdentifier);
+            let processedCommand = self.controller.assignTo(BROWSEID, commandSet.command, params.browseIdentifier);
             processedCommand = self.controller.readVariables(processedCommand);
             console.log('Final processed Command:' + processedCommand)
             self.controller.commandProcessor(processedCommand, commandSet.type)
               .then((result) => {
-                resultList = self.controller.queryProcessor(result, commandSet.queryresult, commandSet.type);
+//                self.currentCommandResult.push(result);
+                //resultList = self.controller.queryProcessor(result, commandSet.queryresult, commandSet.type);
                 rName = self.controller.readVariables(commandSet.itemname); //ensure that the item name chain has the variable interpreted (except $Result)
-console.log('resultList : ' + resultList)
                 rImage = self.controller.readVariables(commandSet.itemimage); 
                 rItemType = self.controller.readVariables(commandSet.itemtype); 
                 rLabel = self.controller.readVariables(commandSet.itemlabel); 
                 rAction = self.controller.readVariables(commandSet.itemaction); 
                 rBrowse = self.controller.readVariables(commandSet.itembrowse); 
-                resultList.forEach(oneItemResult => { //As in this case, $Result is a table, transform $Result to get every part of the table as one $Result
-                  cacheList.push({
-                    'name' : self.controller.assignResult(rName, oneItemResult),
-                    'image' : self.controller.assignResult(rImage, oneItemResult),
-                    'itemtype' : rItemType,
-                    'label' : self.controller.assignResult(rLabel, oneItemResult),
-                    'action' : self.controller.assignResult(rAction, oneItemResult),
-                    'browse' : rBrowse ? self.controller.assignResult(rBrowse, oneItemResult)+"$CommandSet="+indentCommand : rBrowse
-                  });//push the result of the itemname expression with result item to the namelist
-                });
-                resolve(self.fillTheList(cacheList, allconfigs, params, indentCommand + 1));
+                self.controller.queryProcessor(result, commandSet.queryresult, commandSet.type).then ((resultList) => {
+                  resultList.forEach(oneItemResult => { //As in this case, $Result is a table, transform $Result to get every part of the table as one $Result
+                   cacheList.push({
+                      'name' : self.controller.assignTo(RESULT, rName, oneItemResult),
+                      'image' : self.controller.assignTo(RESULT, rImage, oneItemResult),
+                      'itemtype' : rItemType,
+                      'label' : self.controller.assignTo(RESULT, rLabel, oneItemResult),
+                      'action' : rAction ? self.controller.assignTo(RESULT, rAction, oneItemResult)+"$CommandSet="+indentCommand+"$PastQueryValue=" + JSON.stringify(oneItemResult) : rAction,
+                      'browse' : rBrowse ? self.controller.assignTo(RESULT, rBrowse, oneItemResult)+"$CommandSet="+indentCommand+"$PastQueryValue=" + JSON.stringify(oneItemResult) : rBrowse
+                    });//push the result of the itemname expression with result item to the namelist
+                  });
+                  resolve(self.fillTheList(cacheList, allconfigs, params, indentCommand + 1));
+                })
+                
               })
               .catch(function (err) {
                 console.log("Fetching error: " + err);
@@ -203,10 +215,53 @@ console.log('resultList : ' + resultList)
     this.handleCurrentAction = function (deviceId, config, params) {
       console.log(params);
       return new Promise(function (resolve, reject) {
-       //here, the action identifier is the result.
-        self.controller.commandProcessor(params.actionIdentifier, config.type)
-          .then(function (result) { resolve(result) })
-          .catch(function (err) { reject(err); });
+        //here, the action identifier is the result.       
+        let PastQueryValue = params.actionIdentifier.split("$PastQueryValue=")[1];
+        console.log('PastQueryValue' + JSON.stringify(PastQueryValue))
+        params.actionIdentifier = params.actionIdentifier.split("$PastQueryValue=")[0];
+        let commandSetIndex = params.actionIdentifier.split("$CommandSet=")[1];
+        params.actionIdentifier = params.actionIdentifier.split("$CommandSet=")[0];
+        self.controller.evalWrite(self.feederH[self.currentFeederIndex].commandset[commandSetIndex].evalwrite, PastQueryValue, deviceId, params.actionIdentifier);
+        console.log(params.actionIdentifier);
+
+        //finding the feeder which is actually an action feeder
+        let ActionIndex = self.feederH.findIndex((feed) => {return (feed.name == params.actionIdentifier)});
+        console.log('1')
+        let commandSet = self.feederH[ActionIndex].commandset[0]
+        console.log('1')
+        let processedCommand = self.feederH[ActionIndex].commandset[0].command;
+        processedCommand = self.controller.readVariables(self.feederH[ActionIndex].commandset[0].command);
+        //processedCommand.message = self.controller.readVariables(self.feederH[ActionIndex].commandset[0].command.message);
+        console.log(processedCommand)
+        
+        //TEMPORAIRE HACK DE LA MORT QUI TUE
+        //processedCommand.message = processedCommand.message.replace(/\\/g, "")
+        console.log(processedCommand)
+        console.log('1')
+
+        console.log('Final processed Command:' + commandSet.type)
+        self.controller.commandProcessor(processedCommand, commandSet.type)
+          .then((result) => {
+            console.log(result)
+          })
+        if (self.feederH[self.currentFeederIndex].commandset[commandSetIndex].evalwrite)
+        {
+          self.controller.evalWrite(self.feederH[self.currentFeederIndex].commandset[commandSetIndex].evalwrite, PastQueryValue, deviceId, params.actionI);
+        }
+        if (params.actionIdentifier && (params.actionIdentifier != '')) {
+            self.controller.commandProcessor(params.actionIdentifier, config.type)
+              .then(function (result) { resolve(result) })
+              .catch(function (err) { reject(err); });
+        }
+        if (evalwrite) {self.evalWrite(evalwrite, result, deviceId);}
+        if (evaldo) {self.evalDo(evaldo, result, deviceId);}
+
+
+
+        self.controller.evalWrite(self.feederH[self.currentFeederIndex].commandset[commandSetIndex].evalwrite, PastQueryValue, deviceId, params.browseIdentifier);
+
+
+
       });
     };
   }
