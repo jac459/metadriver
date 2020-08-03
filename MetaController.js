@@ -3,6 +3,7 @@
 
 const { imageHelper } = require("./imageHelper");
 const { labelHelper } = require("./labelHelper");
+const { switchHelper } = require("./switchHelper");
 const { sliderHelper } = require("./sliderHelper");
 const { directoryHelper } = require("./directoryHelper");
 
@@ -207,6 +208,7 @@ module.exports = function controller(driver) {
   this.deviceVariables = []; //container for all device variables.
   this.imageH = []; //image helper to store all the getter of the dynamically created images.
   this.sensorH = []; //sensor helper to store all the getter and setter of the dynamically created sensors.
+  this.switchH = []; //sensor switch to store all the getter and setter of the dynamically created switches.
   this.labelH = []; //label helper to store all the getter and setter of the dynamically created labels.
   this.sliderH = []; //slider helper to store all the getter and setter of the dynamically created sliders.
   this.directoryH = []; //directory helper to store all the browse getter and setter of the dynamically created simple directories.
@@ -240,6 +242,12 @@ module.exports = function controller(driver) {
     const newSensorH = new labelHelper(sensorName, listened, self)
     self.sensorH.push(newSensorH);
     return newSensorH;
+  }
+
+  this.addSwitchHelper = function(switchName, listened) {//function called by the MetaDriver to store 
+    const newSwitchH = new switchHelper(switchName, listened, self)
+    self.switchH.push(newSwitchH);
+    return newSwitchH;
   }
 
   this.addSliderHelper = function(min,max,commandtype, command, statuscommand, querystatus, slidername) {//function called by the MetaDriver to store 

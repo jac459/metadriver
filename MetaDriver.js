@@ -79,7 +79,19 @@ function createDevices () {
             theDevice.addButton({name: prop, label: (driver.buttons[prop].label == '') ? (prop) : (driver.buttons[prop].label)})
           }
         }
-        
+    
+        for (var prop in driver.switches) { // Dynamic creation of all sliders
+          if (Object.prototype.hasOwnProperty.call(driver.switches, prop)) {
+           const theHelper = controller.addSwitchHelper(prop, driver.switches[prop].listen);
+           theDevice.addSwitch({
+             name: prop, 
+             label: (driver.switches[prop].label == '') ? (prop) : (driver.switches[prop].label),
+           },
+           {
+             setter: theHelper.set, getter: theHelper.get
+           })
+         }
+       }
 
         for (var prop in driver.sliders) { // Dynamic creation of all sliders
            if (Object.prototype.hasOwnProperty.call(driver.sliders, prop)) {
@@ -94,7 +106,6 @@ function createDevices () {
             })
           }
         }
-
 
         for (var prop in driver.directories) { // Dynamic creation of directories
           if (Object.prototype.hasOwnProperty.call(driver.directories, prop)) {

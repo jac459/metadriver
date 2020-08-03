@@ -2,6 +2,18 @@ var settings =
 {"drivers":
   [
     {
+      name:"LG Gary", 
+      manufacturer:"LG",
+      type:"AVRECEIVER", //ACCESSORY, AUDIO, AVRECEIVER, DVB (aka. satellite receiver), DVD (aka. disc player), GAMECONSOLE, HDMISWITCH
+      //LIGHT, MEDIAPLAYER, MUSICPLAYER, PROJECTOR, TUNER, TV, VOD (aka. Video-On-Demand box like Apple TV, Fire TV...), SOUNDBAR,
+      //icon:"sonos",
+      version:1,
+      buttons:{
+        "BUTTON 1": {label:"", type:"http-get", command:"http://192.168.1.24/YamahaExtendedControl/v1/main/setPower?power=on", queryresult:"$.*"},
+        "BUTTON 2": {label:"", type:"http-get", command:"http://192.168.1.24/YamahaExtendedControl/v1/main/setPower?power=standby", queryresult:"$.*"},
+      }
+    },
+    {
       name:"Yamaha Network Receiver", 
       manufacturer:"Yamaha",
       type:"AVRECEIVER", //ACCESSORY, AUDIO, AVRECEIVER, DVB (aka. satellite receiver), DVD (aka. disc player), GAMECONSOLE, HDMISWITCH
@@ -191,7 +203,7 @@ var settings =
     },
     {"name":"My Volumio 2", 
     "manufacturer":"Volumio",
-    "version":18,
+    "version":19,
     variables:{
       MyStatus:"",
       MyArtist:"",
@@ -200,13 +212,17 @@ var settings =
       PlayPayLoad:"",
       AlbumCoverURI:"",
       ArtistThumbURI:"",
+      DirectPlay:"",
      },  
      images:{
       "AlbumCover" : {label:"", size : "small", listen:"AlbumArtURI"},
       "ArtistThumb" : {label:"", size : "large", listen:"AlbumArtURI"}
       },
-    labels:{
+    labels:{  
       "CurrentStatus" : {label:"status", listen:"MyStatus"},
+    },
+    switches:{
+      "PlayMode" : {label:"Play or Queue", listen:"DirectPlay"},
     },
     sliders:{
       "VOLUME": {label:"", min : 0, max : 100, unit : "db", type:"http-get", command:"http://volumio.local/api/v1/commands/?cmd=volume&volume=", statuscommand:"http://volumio.local/api/v1/getState", queryresult:"$.volume"},
