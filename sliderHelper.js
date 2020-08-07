@@ -1,11 +1,11 @@
 class sliderHelper {
-  constructor(min, max, commandtype, command, statuscommand, querystatus, slidername, controller) {
+  constructor(min, max, commandtype, command, querystatus, variableListened, name, controller) {
     this.min = min;
     this.max = max;
     this.command = command;
-    this.statuscommand = statuscommand;
     this.querystatus = querystatus;
-    this.slidername = slidername;
+    this.name = name;
+    this.value;
     this.commandtype = commandtype;
     var self = this;
     this.toDeviceValue = function (value) {
@@ -16,25 +16,40 @@ class sliderHelper {
     };
     this.get = function () {
       return new Promise(function (resolve, reject) {
-        controller.commandProcessor(self.statuscommand, self.commandtype)
-          .then(function (result) {
-            resolve(controller.queryProcessor(result, self.querystatus, self.commandtype)[0]);
-          })
-          .catch(function (err) { reject(err); });
+        resolve(self.value);
+        //controller.commandProcessor(self.statuscommand, self.commandtype)
+        //  .then(function (result) {
+        //    resolve(controller.queryProcessor(result, self.querystatus, self.commandtype)[0]);
+        //  })
+        //  .catch(function (err) { reject(err); });
       });
     };
     this.set = function (deviceId, newValue) {
       controller.commandProcessor(self.command + self.toDeviceValue(newValue), self.commandtype) // set the slider to the same range than the target device
         .then(function (result) {
-          controller.sendComponentUpdate({ uniqueDeviceId: deviceId, component: slidername, value: newValue })
+          controller.sendComponentUpdate({ uniqueDeviceId: deviceId, component: name, value: newValue })
             .catch((err) => { console.log(err); });
-//          controller.displayStatus(deviceId, self.toDeviceValue(newValue));
           console.log(result);
         })
         .catch(function (err) {
           console.log(err);
         });
     };
+    this.update = function (theValue, deviceId) {
+      return new Promise(function (resolve, reject) {
+        if (self.value != theValue) {
+          console.log('theValue')
+          console.log(theValue)
+          self.value = theValue;
+          controller.sendComponentUpdate({ uniqueDeviceId: deviceId, component: self.name, value: theValue })
+          .catch((err) => {console.log(err); reject(err); });
+        }
+        resolve();
+      });
+    };
+    controller.addListenerVariable(variableListened, self.update);
+
+
   }
 }
 exports.sliderHelper = sliderHelper;

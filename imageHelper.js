@@ -1,6 +1,6 @@
 class imageHelper {
-  constructor(imageName, variableListened, controller) {
-    this.imageName = imageName;
+  constructor(name, variableListened, controller) {
+    this.name = name;
     this.variableListened = variableListened;
     this.value = '';
     var self = this;
@@ -12,9 +12,11 @@ class imageHelper {
 
     this.update = function (theValue, deviceId) {
       return new Promise(function (resolve, reject) {
-        self.value = theValue;
-        controller.sendComponentUpdate({ uniqueDeviceId: deviceId, component: self.imageName, value: self.value})
-          .catch((err) => { console.log(err); reject(err); });
+        if (self.value != theValue) {
+          self.value = theValue;
+          controller.sendComponentUpdate({ uniqueDeviceId: deviceId, component: self.name, value: self.value})
+            .catch((err) => { console.log(err); reject(err); });
+        }
         resolve();
       });
     };

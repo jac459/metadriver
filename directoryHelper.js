@@ -6,7 +6,8 @@ const RESULT = variablePattern.pre + 'Result' + variablePattern.post;
 const BROWSEID = variablePattern.pre + 'NavigationIdentifier' + variablePattern.post;
 
 class directoryHelper {
-  constructor(controller) {
+  constructor(dirname, controller) {
+    this.name = dirname;
     this.feederH = [];
     this.browseHistory = [];
     this.currentFeederIndex = 0;
@@ -48,7 +49,7 @@ class directoryHelper {
 
     this.fetchList = function (deviceId, params) { //browse management and delegation to feeders. to be refactored later>
       return new Promise(function (resolve, reject) {
-      if (params.browseIdentifier != '') { //case were a directory was selected in the list
+      if (params.browseIdentifier != undefined && params.browseIdentifier != '') { //case were a directory was selected in the list
         console.log('browsing forward')
         //Take the good feeder:
         //Take the good commandset:
@@ -60,19 +61,20 @@ class directoryHelper {
         self.controller.evalWrite(self.feederH[self.currentFeederIndex].commandset[commandSetIndex].evalwrite, PastQueryValue, deviceId, params.browseIdentifier);
         self.evalNext(self.feederH[self.currentFeederIndex].commandset[commandSetIndex].evalnext, PastQueryValue, params.browseIdentifier);//assign the good value to know the feeder
       }
-      else if (params.history.length>0 && params.offset==0 && self.previousOffset == 0) {//case where we browse backward
+      else if (params.history != undefined && params.history.length>0 && params.offset==0 && self.previousOffset == 0) {//case where we browse backward
         console.log('browsing backward')
         console.log(params.history.length)
         console.log(self.browseHistory.length)
         console.log(self.browseHistory)
         self.currentFeederIndex = self.browseHistory[params.history.length];
+        if (self.currentFeederIndex == undefined) {self.currentFeederIndex = 0;}
         console.log('current feeder' + self.currentFeederIndex)
       }
-      else if ( params.offset>0) {
+      else if ( params.offset != undefined && params.offset>0) {
         console.log ('scrolling')
         self.previousOffset = params.offset;
       }
-      else if ( params.offset==0 && self.previousOffset > 0) {//we were scrolling and get back to begining of list either by up scroll or back button
+      else if ( params.offset != undefined && params.offset==0 && self.previousOffset > 0) {//we were scrolling and get back to begining of list either by up scroll or back button
         self.previousOffset = 0;
       }
       else {
@@ -80,16 +82,17 @@ class directoryHelper {
         self.currentFeederIndex = 0
       } // beginning
 
-      if (self.browseHistory.length<params.history.length) {
-        self.browseHistory.push(self.currentFeederIndex) //memorize the path of browsing for feeder 
+      if (params.history != undefined) {
+        if (self.browseHistory.length<params.history.length) {
+          self.browseHistory.push(self.currentFeederIndex) //memorize the path of browsing for feeder 
+        }
+        else {self.browseHistory[params.history.length] = self.currentFeederIndex}
       }
-      else {self.browseHistory[params.history.length] = self.currentFeederIndex}
-
 
       console.log('my browse feeder history : ' + self.browseHistory )
 
       self.fetchCurrentList(deviceId, self.feederH[self.currentFeederIndex], params)
-          .then((list) => { resolve(list); })
+          .then((list) => {resolve(list);})
           .catch((err) => { reject(err); });
       });
     };
@@ -224,6 +227,8 @@ class directoryHelper {
         let commandSet = self.feederH[ActionIndex].commandset[0]
         let processedCommand = self.feederH[ActionIndex].commandset[0].command;
         processedCommand = self.controller.readVariables(self.feederH[ActionIndex].commandset[0].command);
+        processedCommand = self.controller.assignTo(RESULT, processedCommand, PastQueryValue);
+        console.log(JSON.parse(processedCommand))
         self.controller.commandProcessor(processedCommand, commandSet.type)
           .then((result) => {
             console.log(result)

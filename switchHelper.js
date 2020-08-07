@@ -1,25 +1,33 @@
 class switchHelper {
-  constructor(switchname, variableListened, controller) {
+  constructor(name, variableListened, controller) {
     
-    this.switchname = switchname;
+    this.name = name;
     this.variableListened = variableListened;
-    this.value = '';
+    this.value = false;
     var self = this;
+    controller.addListenerVariable(variableListened, self.update);
 
     this.get = function () {
       return self.value;
     };
-
-    this.set = function (theValue, deviceId) {
+    this.update = function (theValue, deviceId) {
       return new Promise(function (resolve, reject) {
-        self.value = theValue;
-        controller.sendComponentUpdate({ uniqueDeviceId: deviceId, component: self.switchname, value: theValue })
-          .catch((err) => {console.log(err); reject(err); });
+        if (self.value != theValue) {
+            self.value = theValue;
+          controller.sendComponentUpdate({ uniqueDeviceId: deviceId, component: self.name, value: theValue })
+          .catch((err) => {console.log("Error while trying to put the value : " + theValue+ " in this component : " + self.name + " => " + err); reject(err); });
+        }
+        resolve();
+      });
+    };
+
+    this.set = function (deviceId, theValue) {
+      return new Promise(function (resolve, reject) {
+        self.update(theValue, deviceId)
         controller.writeVariable(variableListened, theValue, deviceId);
         resolve();
       });
     };
-    controller.addListenerVariable(variableListened, self.set);
   }
 }
 exports.switchHelper = switchHelper;

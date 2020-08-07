@@ -4,23 +4,30 @@
 const { imageHelper } = require("./imageHelper");
 const { labelHelper } = require("./labelHelper");
 const { switchHelper } = require("./switchHelper");
+const { sensorHelper } = require("./sensorHelper");
 const { sliderHelper } = require("./sliderHelper");
 const { directoryHelper } = require("./directoryHelper");
+const { exec } = require("child_process");
+const { cachedDataVersionTag } = require('v8'); // check if needed for discovery of neeo brain and suppress otherwise.
+const { resolve } = require("path");
 
 const xpath = require('xpath');
 const xmldom = require('xmldom').DOMParser;
 const parserXMLString = require('xml2js').Parser({explicitArray:false, mergeAttrs : true});
 const http = require('http.min');
 const jpath = require('jsonpath');
+const io = require('socket.io-client');
 const wol = require('wake_on_lan');
 const variablePattern = {'pre':'$','post':''};
 const RESULT = variablePattern.pre + 'Result' + variablePattern.post;
-//const NAVIGATIONID = variablePattern.pre + 'NavigationIdentifier' + variablePattern.post;
-const { exec } = require("child_process");
-const { cachedDataVersionTag } = require('v8'); // check if needed for discovery of neeo brain and suppress otherwise.
-const { resolve } = require("path");
+const HTTPGET = 'http-get';
+const HTTPGETSOAP = 'http-get-soap';
+const HTTPPOST = 'http-post';
+const STATIC = 'static';
+const CLI = 'cli';
+const WEBSOCKET = 'webSocket';
 
-//STRATEGY DESIGN PATTERN FOR THE COMMAND TO BE USED (http-get, post, websocket, ...) New processor to be added here. This strategy mix both transport and data format (json, soap, ...)
+//STRATEGY DESIGN PATTERN FOR THE COMMAND TO BE USED (HTTPGET, post, websocket, ...) New processor to be added here. This strategy mix both transport and data format (json, soap, ...)
 class ProcessingManager {
   constructor() {
     this._processor = null;
@@ -41,6 +48,9 @@ class ProcessingManager {
   query(data, query) {
     return this._processor.query(data, query)
   }
+  listen (command, listener, _listenCallback, socket) {
+    return this._processor.listen(command, listener, _listenCallback, socket)
+  }
 }
 class httpgetProcessor {
   process (command) {
@@ -56,8 +66,8 @@ class httpgetProcessor {
     return new Promise(function (resolve, reject) {
       if (query) {
         try {
-          let temp = JSON.parse(data);
-          resolve(jpath.query(temp, query));
+          if (typeof(data) == 'string') {data = JSON.parse(data)}
+          resolve(jpath.query(data, query));
         }
         catch (err) {
           console.log('error ' + err + ' in JSONPATH ' + query + ' processing of :' + data)
@@ -65,6 +75,51 @@ class httpgetProcessor {
       }
       else {resolve(data)}
     })
+  }
+  listen (command, listener, _listenCallback) {
+    return new Promise(function (resolve, reject) {
+      let previousResult = ''
+      setInterval(() => {
+        http(command) 
+        .then(function(result) { 
+          if (result != previousResult) {
+            previousResult = result;
+            _listenCallback(result, listener);
+          }
+          resolve('')
+        })
+        .catch((err) => {console.log(err)})
+      }, 1000);
+     
+ })
+}
+}
+
+class webSocketProcessor {
+  process (command, socket) {
+    return new Promise(function (resolve, reject) {
+      if (typeof(command) == 'string') {command = JSON.parse(command)}
+      if (command.call){
+        socket.emit(command.emit, command.message)
+        resolve('')
+      }
+    })
+  }
+  query (data, query) {
+    return new Promise(function (resolve, reject) {
+      try {
+        resolve(jpath.query(data, query));
+      }
+      catch (err) {
+        console.log('error ' + err + ' in JSONPATH ' + query + ' processing of :' + data)
+      }
+    })
+  }
+  listen (command, listener, _listenCallback, socket) {
+    return new Promise(function (resolve, reject) {
+        socket.on(command, (result) => {_listenCallback(result, listener)});
+        resolve('');
+   })
   }
 }
 
@@ -125,12 +180,15 @@ class httpgetSoapProcessor {
       else {resolve(data)}
     })
   }
+  listen (command, listener, _listenCallback) {
+    return '';
+  }
 }
 class httppostProcessor {
   process (command) {
     return new Promise(function (resolve, reject) {
       if (typeof(command) == 'string') {command = JSON.parse(command)}
-      if (command.post){
+      if (command.call){
         http.post(command.post, JSON.parse(command.message)) 
         .then(function(result) { 
           resolve(result.data)
@@ -150,6 +208,9 @@ class httppostProcessor {
       }
     })
   }
+  listen (command, listener, _listenCallback) {
+    return '';
+  }
 }
 class staticProcessor {
   process (command) {
@@ -166,6 +227,9 @@ class staticProcessor {
           console.log('error in JSONPATH ' + query + ' processing of :' + data)
         }
     })
+  }
+  listen (command, listener, _listenCallback) {
+    return '';
   }
 }
 class cliProcessor {
@@ -192,6 +256,9 @@ class cliProcessor {
       }
     })
   }
+  listen (command, listener, _listenCallback) {
+    return '';
+  }
 }
 
 
@@ -201,26 +268,38 @@ const myHttpgetSoapProcessor = new httpgetSoapProcessor();
 const myHttppostProcessor = new httppostProcessor();
 const myCliProcessor = new cliProcessor();
 const myStaticProcessor = new staticProcessor();
+const myWebSocketProcessor = new webSocketProcessor();
 
 module.exports = function controller(driver) {
   this.buttons = driver.buttons; //structure keeping all buttons of the driver
   this.sendComponentUpdate;
+  this.socket;
   this.deviceVariables = []; //container for all device variables.
+  this.listeners = []; //container for all device listeners.
   this.imageH = []; //image helper to store all the getter of the dynamically created images.
   this.sensorH = []; //sensor helper to store all the getter and setter of the dynamically created sensors.
   this.switchH = []; //sensor switch to store all the getter and setter of the dynamically created switches.
   this.labelH = []; //label helper to store all the getter and setter of the dynamically created labels.
   this.sliderH = []; //slider helper to store all the getter and setter of the dynamically created sliders.
   this.directoryH = []; //directory helper to store all the browse getter and setter of the dynamically created simple directories.
-  this.linkedDirectoryH = []; //directory helper to store all the browse getter and setter of the dynamically created linked directories.
-  this.buttonsWithMultipleCommands = []; //Memorize for each button with multiple command associated, the last command used. (useful for example for toggle buttons)
   var self = this;
    
+  this.addSocket = function (name){
+    self.socket = io.connect(name);
+ //   io.on('connection', function(socket) {
+ //     self.socket = socket
+ //   });
+  }
+
+  this.addListener = function(params) {
+    self.listeners.push(params);
+  }
+
   this.addVariable = function(name, value) {
     self.deviceVariables.push({'name':name, 'value':value, 'listeners': []});
   }
 
-  this.addListenerVariable = function(theVariable, theFunction) {
+  this.addListenerVariable = function(theVariable, theFunction) { // who listen to variable changes.
     const listenerList = self.deviceVariables.find(elt => {return elt.name == theVariable}).listeners;
     listenerList.push(theFunction);
     return listenerList[listenerList.length-1];
@@ -239,7 +318,7 @@ module.exports = function controller(driver) {
   }
 
   this.addSensorHelper = function(sensorName, listened) {//function called by the MetaDriver to store 
-    const newSensorH = new labelHelper(sensorName, listened, self)
+    const newSensorH = new sensorHelper(sensorName, listened, self)
     self.sensorH.push(newSensorH);
     return newSensorH;
   }
@@ -250,14 +329,14 @@ module.exports = function controller(driver) {
     return newSwitchH;
   }
 
-  this.addSliderHelper = function(min,max,commandtype, command, statuscommand, querystatus, slidername) {//function called by the MetaDriver to store 
-    const newSliderH = new sliderHelper(min,max,commandtype, command, statuscommand, querystatus, slidername, self)
+  this.addSliderHelper = function(min,max,commandtype, command, querystatus, listen, slidername) {//function called by the MetaDriver to store 
+    const newSliderH = new sliderHelper(min,max,commandtype, command, querystatus, listen, slidername, self)
     self.sliderH.push(newSliderH);
     return newSliderH;
   }
 
-  this.addDirectoryHelper = function() {//function called by the MetaDriver to store the features of the list 
-    const newDirectoryH = new directoryHelper(self)
+  this.addDirectoryHelper = function(dirname) {//function called by the MetaDriver to store the features of the list 
+    const newDirectoryH = new directoryHelper(dirname, self)
     self.directoryH.push(newDirectoryH);
     return newDirectoryH;
   }
@@ -265,6 +344,14 @@ module.exports = function controller(driver) {
   this.registerStateUpdateCallback = function(updateFunction) {//technical function to send event to the remote.
     self.sendComponentUpdate = updateFunction;
   };
+
+   this.registerInitiationCallback = function() {//technical function called at device initiation to start some listeners
+ 
+    self.listeners.forEach(listener => {
+      self.listenStart(listener)
+    });
+ 
+  }
   
 
   this.writeVariable = function(theVariable, theValue, deviceId) {//deviceId necessary as push to components.
@@ -278,21 +365,25 @@ module.exports = function controller(driver) {
 
   this.assignTo = function(Pattern, inputChain, givenResult) //Assign a value to the input chain. PAttern found is replaced by given value
   {
-    if (givenResult && !(typeof(givenResult) in {"string":"", "number":"", "boolean":""}) ) {//in case the response is a json object, convert to string
-      givenResult = JSON.stringify(givenResult);
-    }
-    if (givenResult && (typeof(givenResult) == 'string' )) {
-      givenResult = givenResult.replace(/\\/g, '\\\\') // Absolutely necessary to properly escape the escaped character. Or super tricky bug.
-      givenResult = givenResult.replace(/"/g, '\\"') // Absolutely necessary to properly escape the escaped character. Or super tricky bug.
-    }
-    if (typeof(inputChain) == 'string') {
-      inputChain = inputChain.replace(Pattern, givenResult);
-      console.log(inputChain)
-      if (inputChain.startsWith('DYNAMIK ')) {
-        return eval(inputChain.split('DYNAMIK ')[1]);
+    try {
+      if (givenResult && !(typeof(givenResult) in {"string":"", "number":"", "boolean":""}) ) {//in case the response is a json object, convert to string
+        givenResult = JSON.stringify(givenResult);
       }
+      if (givenResult && (typeof(givenResult) == 'string' )) {
+        givenResult = givenResult.replace(/\\/g, '\\\\') // Absolutely necessary to properly escape the escaped character. Or super tricky bug.
+        givenResult = givenResult.replace(/"/g, '\\"') // Absolutely necessary to properly escape the escaped character. Or super tricky bug.
+      }
+      if (typeof(inputChain) == 'string') {
+        inputChain = inputChain.replace(Pattern, givenResult);
+        if (inputChain.startsWith('DYNAMIK ')) {
+          return eval(inputChain.split('DYNAMIK ')[1]);
+        }
+      }
+      return inputChain;
     }
-    return inputChain;
+    catch (err) {
+      console.log('function assignedTo error with argument ('+Pattern+', '+inputChain+', '+givenResult+'). Error: ' + err)
+    }
   }
 
   this.readVariables = function(inputChain) { //replace in the input chain, all the variables found.
@@ -312,24 +403,27 @@ module.exports = function controller(driver) {
   
   this.commandProcessor = function(command, commandtype) { // process any command according to the target protocole
     return new Promise(function (resolve, reject) {
-      if (commandtype == 'http-get') {
+      if (commandtype == HTTPGET) {
         processingManager.processor = myHttpgetProcessor;
       } 
-      else if (commandtype == 'http-get-soap') {
+      else if (commandtype == HTTPGETSOAP) {
         processingManager.processor = myHttpgetSoapProcessor;
       } 
-      else if (commandtype == 'http-post') {
+      else if (commandtype == HTTPPOST) {
         processingManager.processor = myHttppostProcessor;
       }
-      else if (commandtype == 'static') {
+      else if (commandtype == STATIC) {
         processingManager.processor = myStaticProcessor;
       }
-      else if (commandtype == 'cli') {
+      else if (commandtype == CLI) {
         processingManager.processor = myCliProcessor;
       }
-      else {reject('The commandtype is not defined.' + commandtype + ' command : ' + command)}
+      else if (commandtype == WEBSOCKET) {
+        processingManager.processor = myWebSocketProcessor;
+      }
+      else {reject('The commandtype to process is not defined.' + commandtype + ' command : ' + command)}
       command = self.readVariables(command);
-      processingManager.process(command)
+      processingManager.process(command, self.socket)
         .then((result) => {
           resolve(result)
         })
@@ -337,29 +431,63 @@ module.exports = function controller(driver) {
     })    
   }
 
-  this.queryProcessor = function (data, query, commandtype) { // process any command according to the target protocole
+  this.listenProcessor = function(command, commandtype, listener) { // process any command according to the target protocole
     return new Promise(function (resolve, reject) {
-      if (commandtype == 'http-get') {
+      if (commandtype == HTTPGET) {
         processingManager.processor = myHttpgetProcessor;
-      }
-      else if (commandtype == 'http-get-soap') {
+      } 
+      else if (commandtype == HTTPGETSOAP) {
         processingManager.processor = myHttpgetSoapProcessor;
       } 
-      else if (commandtype == 'http-post') {
+      else if (commandtype == HTTPPOST) {
         processingManager.processor = myHttppostProcessor;
       }
-      else if (commandtype == 'static') {
+      else if (commandtype == STATIC) {
         processingManager.processor = myStaticProcessor;
       }
-      else if (commandtype == 'cli') {
+      else if (commandtype == CLI) {
         processingManager.processor = myCliProcessor;
       }
-      else {reject('commandtype not defined.')}
+      else if (commandtype == WEBSOCKET) {
+        processingManager.processor = myWebSocketProcessor;
+      }
+      else {reject('The commandtype to listen is not defined.' + commandtype + ' command : ' + command)}
+      command = self.readVariables(command);
+      processingManager.listen(command, listener, self.onListenExecute, self.socket)
+        .then((result) => {
+           resolve(result)
+        })
+        .catch((err) => {reject (err)})
+    })    
+  }
+
+  this.queryProcessor = function (data, query, commandtype) { // process any command according to the target protocole
+    return new Promise(function (resolve, reject) {
+      if (commandtype == HTTPGET) {
+        processingManager.processor = myHttpgetProcessor;
+      }
+      else if (commandtype == HTTPGETSOAP) {
+        processingManager.processor = myHttpgetSoapProcessor;
+      } 
+      else if (commandtype == HTTPPOST) {
+        processingManager.processor = myHttppostProcessor;
+      }
+      else if (commandtype == STATIC) {
+        processingManager.processor = myStaticProcessor;
+      }
+      else if (commandtype == CLI) {
+        processingManager.processor = myCliProcessor;
+      }
+      else if (commandtype == WEBSOCKET) {
+        processingManager.processor = myWebSocketProcessor;
+      }
+      else {reject('commandtype to querry is not defined.')}
       //console.log('Query Processor : ' + query)
       query = self.readVariables(query);
       //console.log('Query Processor : ' + query)
       if (query != undefined && query != '') {
         processingManager.query(data, query).then((data) => {
+          console.log(data)
           resolve(data)
         })
       }
@@ -379,14 +507,12 @@ module.exports = function controller(driver) {
   }
 */
   
-  this.evalWrite = function (evalwrite, result, deviceId) {//
+  this.evalWrite = function (evalwrite, result, deviceId) {
     if (evalwrite) { //case we want to write inside a variable
-      console.log('number of variable to write : ' + evalwrite.length)
       evalwrite.forEach(evalW => {
         //process the value
         let finalValue = self.readVariables(evalW.value);
-        finalValue = self.assignTo(RESULT, finalValue, result);
-       
+            finalValue = self.assignTo(RESULT, finalValue, result);
         console.log('assigning to ' + evalW.variable + ' result before writing variables ; ' + finalValue)
         self.writeVariable(evalW.variable, finalValue, deviceId); 
       });
@@ -423,7 +549,29 @@ module.exports = function controller(driver) {
     }
   }
 
-  this.commandButtonProcessor = function (name, deviceId, commandtype, command, queryresult, evaldo, evalwrite) {
+  this.onListenExecute = function (result, listener) {
+    let deviceId = 'default' // TODO Find a way to dynamically get the deviceId (in order to support discovery)    
+    self.queryProcessor(result, listener.queryresult, listener.type).then((result) => {
+      //result = result[0];
+      let resultString = result.toString();
+      if (listener.evalwrite) {self.evalWrite(listener.evalwrite, result, deviceId);}
+      if (listener.evaldo) {self.evalDo(listener.evaldo, result, deviceId);}
+    })
+  }
+
+  this.listenStart = function (listener) {
+    return new Promise(function (resolve, reject) {
+      try {
+        console.log('my listener'); 
+        console.log(listener)
+        self.listenProcessor(listener.command, listener.type, listener);
+      } 
+      catch (err) {reject('Error when starting to listen. ' + err)}
+    })
+  }
+
+
+  this.actionManager = function (name, deviceId, commandtype, command, queryresult, evaldo, evalwrite) {
     return new Promise(function (resolve, reject) {
       try {
         console.log(command+commandtype)
@@ -450,12 +598,13 @@ module.exports = function controller(driver) {
   
   this.onButtonPressed = function(name, deviceId) {
     console.log('[CONTROLLER]' + name + ' button pressed for device ' + deviceId);
+ 
     let theButton = self.buttons[name];
     console.log(theButton)
     if (theButton != undefined) {
-      if (theButton.type in {'http-get':"", 'http-post':"", "static":"", 'websocket':"", 'MQTT':"", 'cli':""}) {
+      if (theButton.type in {HTTPGET:"", HTTPPOST:"", STATIC:"", WEBSOCKET:"", 'MQTT':"", 'cli':""}) {
         if (theButton.command != undefined){ // In case the button has only one command defined
-          self.commandButtonProcessor(name, deviceId, theButton.type, theButton.command, theButton.queryresult, theButton.evaldo, theButton.evalwrite)
+          self.actionManager(name, deviceId, theButton.type, theButton.command, theButton.queryresult, theButton.evaldo, theButton.evalwrite)
           .then((result)=>{
             console.log('Processed: '+result)
           })
