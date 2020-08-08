@@ -147,6 +147,13 @@ This is a new feature we can attach to a button (or any actionnable component).
 - $Result: $Result is a specific variable being assigned the result of the command. In this example, it is very easy because the command is of type "static". With an http-get you would get the result of the call, but with a type static, it just copies the value inserted in command. 
 - evalwrite (2) : Comming back to evalwrite, this function just copy in the "variable", the "value" part.
 
+### Tutorial Step 2.1 - more components
+Let's extend the previous example:
 
+#### Triggering multiple evalwrite.
+Here you see 2 new buttons, up and down. This buttons have each 2 evalwrite. Each evalwrite is between {...}. But if you take a closer look at the tuto 2, you see that you also have [...]. This indicate an array. So basically to have an array with 2 evalwrite, it will look like that: [{...}, [{...}]. 
+#### The switch element.
+The switch element is quite straight forward. You can assign it some commands and you can control it like a label with a "listen" attribute. The accepted value will be either false or true. /!\ In JSON, false and true are NOT between double quote ". So you directly have true or false (cf the example).
+#### The picture element
 
 
