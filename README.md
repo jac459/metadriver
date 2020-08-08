@@ -197,5 +197,6 @@ In evaldo, you have:
 - or:the name of the button to be triggered if the result is false. 
 - DYNAMIK. In this example, you have seen a weird expression: DYNAMIK $Result. This is because the $Result in this driver can only be a string. So here the $Result will be "true" for example if the switch is on the right. In fact we don't need it to be "true" (like the string true) but true (like the boolean value). So we ask the driver to interpret the string value and transform it in a real boolean. In the next steps, we will see a lot of powerful and more complex usage of DYNAMIK keyword.
 /!\ IMPORTANTE NOTE: This DYNAMIK feature is extremely powerful and is available on many fields. It truely allows to adapt to many real world situation in order to manage various different devices. The drawback is that it generates 'in theory' a security issue because it allows to inject code into the metadriver. For this reason, you should avoid running the driver as an administrator (and you don't have any reason to do that).
-
+Note 2: In this example, you see how variables are used in a field. It is just $ before the name of the variable so the driver knows it is a variable ($MyVariable). 
+IMPORTANT: Don't use 'nested' names for variables. For example if you have a variable MyVariable and MyVariable2, if you write in a field $MyVariable2, the driver will understand it as Myvariable and '2'. So for example if the value of $MyVariable is Hello, you will endup with Hello2.
 
