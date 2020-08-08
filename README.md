@@ -72,9 +72,13 @@ The target with this driver is to create a set of "device files" in order to con
 
 ## How to use
 
+When you run of the driver, the driver will scan your "activated" folder and try to load any device placed here.
+ 
+IMPORTANT: On the first run, the driver will detact your Neeo Brain and create a 'config.js' file in order to store its IP and Port. If you have problem connecting, make sure to delete the "config.js" file and run again. If you have still can't and the port is taken, you can manually edit the config.js file and change the port number (any arbitrary number). 
 
+If the driver is correctly loaded, you can go to your Neeo App and search for the name of the driver you created.
 
-You need to edit the settings.js
-Adding your own interactions.
+To use the driver without creating your own device files, you just need to know that and put the device files you are interrested on the "activated" folder and restart the driver. You will now be able to run them on the remote.
+
 
 
