@@ -1,0 +1,36 @@
+{
+  "name": "metadriver-master",
+  "version": "0.7.0",
+  "description": "full customizable driver to control any device with neeo (including list and device monitoring)",
+  "main": "meta.js",
+  "scripts": {
+    "start": "node meta.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jac459/metadriver.git"
+  },
+  "keywords": [
+    "neeo",
+    "meta",
+    "jac"
+  ],
+  "author": "jac459",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/jac459/metadriver/issues"
+  },
+  "homepage": "https://github.com/jac459/metadriver#readme",
+  "dependencies": {
+    "fs": "0.0.1-security",
+    "http.min": "^2.0.1",
+    "jsonpath": "^1.0.2",
+    "neeo-sdk": "^0.53.8",
+    "socket.io-client": "^2.3.0",
+    "wake_on_lan": "^1.0.0",
+    "xml2js": "^0.4.23",
+    "xmldom": "^0.3.0",
+    "xpath": "0.0.27"
+  }
+}
