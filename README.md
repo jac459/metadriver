@@ -115,3 +115,38 @@ Note: for more complexe devices, you can download an intermediary driver, exposi
 ### Tutorial Step 2 - Label device
 
 This first step was easy but very boring. Let's have a bit more fun. Now we will have 2 buttons controlling what a label display.
+Let's have a look at the code:
+```
+{"name":"Tuto Step2", 
+    "manufacturer":"Your Name",
+    "version":2,
+    "type":"AVRECEIVER", 
+    "variables":{
+      "LabelStatus":"Default value"
+    },
+    "labels":{
+      "CurrentStatus" : {"label":"status", "listen":"LabelStatus"}
+    },  
+   
+    "buttons":{
+      "CURSOR LEFT": {"label":"", "type":"static", "command":"It works on the left", "evalwrite":[{"variable":"LabelStatus","value":"$Result"}]},
+      "CURSOR RIGHT": {"label":"", "type":"static", "command":"On the right too", "evalwrite":[{"variable":"LabelStatus","value":"$Result"}]}
+    }
+}
+```
+#### variables
+In this example we introduce a major concept which is the variables.
+The variable is very important but itself, it is of no use. 
+"LabelStatus":"Default value" => the LabelStatus is an arbitrary name that you choose (in one word please) . The 'default value' is a ... default value that you choose. Can be empty.
+#### label
+Then in the label part. You see an arbitrary name (CurrentStatus, one word), a label name, if you want to change the label, and then the most important:
+- listen: in this important field, you put the name of a variable. After, each time you assign a value to this variable, the label will have this value.
+#### evalwrite
+This is a new feature we can attach to a button (or any actionnable component). 
+- evalwrite: evalwrite allows you to write a value in a variable. There is a lot of complex way to do it, but in this simple example, we will use a very special variable:
+- $Result: $Result is a specific variable being assigned the result of the command. In this example, it is very easy because the command is of type "static". With an http-get you would get the result of the call, but with a type static, it just copies the value inserted in command. 
+- evalwrite (2) : Comming back to evalwrite, this function just copy in the "variable", the "value" part.
+
+
+
+
