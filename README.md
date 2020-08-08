@@ -9,7 +9,7 @@ This readme apply to metadriver Version 0.7.0 => Alpha release for advanced user
 #### Full Support
 (tested on many devices)
 
-- Control any device with http-get and JSON API.
+- Control any device with http-get and JSON API (REST).
 - Create Buttons
 - Create sliders 
 - Create switches 
@@ -82,7 +82,9 @@ To use the driver without creating your own device files, you just need to know 
 
 ## Tutorial : Creating your own devices
 
-### Tutorial Step 1 - Simple button device
+Note: you should have a basic understanding of JSON. JSON is an extremly simple file format, with an "Attribute" : "Value" concept. This tutorial will not explain JSON as such but you shouldn't be affraid of it, it really is very simple.
+
+### Tutorial Step 1 - Simple buttons device
 
 In order to create your single button device you can use the following sample file:
 ```
@@ -98,5 +100,17 @@ In order to create your single button device you can use the following sample fi
     }
 }
 ```
+Let's have a look on the file and understand each fieds:
+- name : this is the name your device will have, you will be able to find it by this name in the remote.
+- manufacturer : put the brand of the device you will control here.
+- version : IMPORTANT /!\ /!\ Once a device is first created, its structure is set. If you add new buttons and you want the remote to notice, you will need to delete the device and recreate the device (not convenient) OR just increment the version number. In the future, if you add an item and get frustrated because the remote doens't seems to care, remember this version field. NOTE: you cna not edit or delete a button by incrementing the version, you will need to delete and reload the device.
+- type : IMPORTANT /!\ /!\ This field is also important, it will drive the way your remote will interpret your device. The problem is that not all features are supported for all devices. For example, if you want to use the channel button, you can't use a light device type, you will need a AVRECEIVER or TV type for example. As a simple way to create, I like to use the AVRECEIVER, you have to make it appears in the remote by activating it in the recipes part (choose SHOW) but it is quite flexible and support most of the interactions.If you see warning lines when you run the device, it is because in this example you didn't declare INPUT buttons while your device is an AVRECEIVER. It doesn't matter but it shows you how neeo reacts. You can dive into the neeo SDK in order to better understand the limitation of each device (note that the documentation is incomplete).
+The type you can choose from are: ACCESSORY, AUDIO, AVRECEIVER, DVB (aka. satellite receiver), DVD (aka. disc player), GAMECONSOLE, HDMISWITCH, LIGHT, MEDIAPLAYER, MUSICPLAYER, PROJECTOR, TUNER, TV, VOD (aka. Video-On-Demand box like Apple TV, Fire TV...), SOUNDBAR.
+- buttons : You have here the list of the buttons. The name can be any name and you can change the display name in the "label" attribute. Some buttons are recognised by the remote control. It is specially handy if you want to map a feature to an hardware button like the cursor. In this example, you can use the cursor arows of the remote directly.
+The list of the recognise buttons is presented here : https://github.com/NEEOInc/neeo-sdk#neeo-macro-names. Please note that this list is incomplete and you can discover other buttons by browsing planet-neeo forum or the widgets description. It is anyway a good start.
+- type (in buttons) : This field is very important as it will drive the protocole used for your device. In this example, it is just an http request (GET). The supported types are: http-get, http-post, webSocket (works with socket.io), static, cli and http-get-soap. Examples on each types will be provided. More types will be added in the future.
+- command: Here you put the url you want to call. This is a very simpe and efficient to control a device, much faster and reliable than with Infra Red control. A lot of devices are exposing directly an API and you just have to copy paste your URL in the command field (inside the quotes). For example, here you can find an easy way to control your Xiaomi TV: https://github.com/spocky/mireco#gitv-http-api-featuresdocumentation or here , your yamaha receiver: http://habitech.s3.amazonaws.com/PDFs/YAM/MusicCast/Yamaha%20MusicCast%20HTTP%20simplified%20API%20for%20ControlSystems.pdf. You are often just a google search away. 
+Note: for more complexe devices, you can download an intermediary driver, exposing a REST API. So this meta driver will use this driver to remote control. I use such a driver in Python to control my Xbox One X. The resulting performance is excellent (instant reaction).
 
+### Tutorial Step 2 - Label device
 
