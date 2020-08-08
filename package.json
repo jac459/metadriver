@@ -1,5 +1,5 @@
 {
-  "name": "metadriver-master",
+  "name": "@jac459/metadriver",
   "version": "0.7.0",
   "description": "full customizable driver to control any device with neeo (including list and device monitoring)",
   "main": "meta.js",
@@ -32,5 +32,9 @@
     "xml2js": "^0.4.23",
     "xmldom": "^0.3.0",
     "xpath": "0.0.27"
-  }
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com/"
+  },
+  "devDependencies": {}
 }

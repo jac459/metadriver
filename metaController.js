@@ -18,6 +18,7 @@ const http = require('http.min');
 const jpath = require('jsonpath');
 const io = require('socket.io-client');
 const wol = require('wake_on_lan');
+const { isArray } = require("util");
 const variablePattern = {'pre':'$','post':''};
 const RESULT = variablePattern.pre + 'Result' + variablePattern.post;
 const HTTPGET = 'http-get';
@@ -355,7 +356,6 @@ module.exports = function controller(driver) {
   
 
   this.writeVariable = function(theVariable, theValue, deviceId) {//deviceId necessary as push to components.
-    
     let foundVar = self.deviceVariables.find(elt => {return elt.name == theVariable});
     foundVar.value = theValue; //Write value here
     foundVar.listeners.forEach(element => { //invoke all listeners
@@ -388,12 +388,18 @@ module.exports = function controller(driver) {
 
   this.readVariables = function(inputChain) { //replace in the input chain, all the variables found.
     let preparedResult = inputChain;
+    console.log(inputChain)
+    console.log('inputChain')
     if (typeof(preparedResult) == 'object') {
       preparedResult = JSON.stringify(preparedResult);
     }
+    console.log(inputChain)
     if (typeof(preparedResult) == 'string')
       self.deviceVariables.forEach(variable => {
+        console.log(variable)
         let token = variablePattern.pre + variable.name + variablePattern.post;
+        console.log(preparedResult)
+
         preparedResult = preparedResult.replace(token, variable.value);
     })
     
@@ -512,8 +518,8 @@ module.exports = function controller(driver) {
       evalwrite.forEach(evalW => {
         //process the value
         let finalValue = self.readVariables(evalW.value);
-            finalValue = self.assignTo(RESULT, finalValue, result);
-        console.log('assigning to ' + evalW.variable + ' result before writing variables ; ' + finalValue)
+        finalValue = self.assignTo(RESULT, finalValue, result);
+        console.log('assigning to ' + evalW.variable + ' result before writing variables : ' + finalValue)
         self.writeVariable(evalW.variable, finalValue, deviceId); 
       });
     }
@@ -574,12 +580,13 @@ module.exports = function controller(driver) {
   this.actionManager = function (name, deviceId, commandtype, command, queryresult, evaldo, evalwrite) {
     return new Promise(function (resolve, reject) {
       try {
-        console.log(command+commandtype)
+        console.log(command+ ' - ' + commandtype)
         self.commandProcessor(command, commandtype)
         .then((result) => {
-          console.log(result)
           self.queryProcessor(result, queryresult, commandtype).then((result) => {
-            result = result[0];
+            if (Array.isArray(result)) {
+              result = result[0];
+            }
             if (evalwrite) {self.evalWrite(evalwrite, result, deviceId);}
             if (evaldo) {self.evalDo(evaldo, result, deviceId);}
             resolve(result);
@@ -600,10 +607,9 @@ module.exports = function controller(driver) {
     console.log('[CONTROLLER]' + name + ' button pressed for device ' + deviceId);
  
     let theButton = self.buttons[name];
-    console.log(theButton)
     if (theButton != undefined) {
-      if (theButton.type in {HTTPGET:"", HTTPPOST:"", STATIC:"", WEBSOCKET:"", 'MQTT':"", 'cli':""}) {
-        if (theButton.command != undefined){ // In case the button has only one command defined
+        if ((theButton.type == HTTPGET) || (theButton.type == HTTPPOST) || (theButton.type == STATIC) || (theButton.type == WEBSOCKET) || (theButton.type == CLI)) {
+        if (theButton.command != undefined){ 
           self.actionManager(name, deviceId, theButton.type, theButton.command, theButton.queryresult, theButton.evaldo, theButton.evalwrite)
           .then((result)=>{
             console.log('Processed: '+result)
