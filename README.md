@@ -6,7 +6,7 @@ https://www.youtube.com/watch?v=LN6M7-U_0Bk&t=12s
 This readme apply to metadriver Version 0.7.0 => Alpha release for advanced users.
 
 ## Features
-### Full Support
+#### Full Support
 (tested on many devices)
 
 - Control any device with http-get and JSON API.
@@ -19,7 +19,7 @@ This readme apply to metadriver Version 0.7.0 => Alpha release for advanced user
 - Chained commands (one button have different behaviour each time pressed, example, mute toggle will mute on or off when pressed)
 - Variables Management for complexe integrations => a button or a choice in a list, can write in a variable, this variable can be reused by other components.
 
-### Partial Support
+#### Partial Support
 (tested with on device)
 
 - Control any device with http-post and JSON API.
@@ -30,12 +30,12 @@ This readme apply to metadriver Version 0.7.0 => Alpha release for advanced user
 - Listen to devices through WebSocket or http pooling.
 - Wake On Lan
 
-### In Progress
+#### In Progress
 (being developped)
 - Device activation detection (in order to stop pooling when the device is not activated.
 - Player widget.
 
-### To Do
+#### To Do
 (not started but planned)
 - Support of headers on http calls.
 - Create lists (directories) with paging and complexe navigation (buttons)
