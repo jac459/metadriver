@@ -145,15 +145,57 @@ Then in the label part. You see an arbitrary name (CurrentStatus, one word), a l
 This is a new feature we can attach to a button (or any actionnable component). 
 - evalwrite: evalwrite allows you to write a value in a variable. There is a lot of complex way to do it, but in this simple example, we will use a very special variable:
 - $Result: $Result is a specific variable being assigned the result of the command. In this example, it is very easy because the command is of type "static". With an http-get you would get the result of the call, but with a type static, it just copies the value inserted in command. 
-- evalwrite (2) : Comming back to evalwrite, this function just copy in the "variable", the "value" part.
+- evalwrite (2) : Comming back to evalwrite, this function just copy in the "variable", the "value" part. 
+  /!\ IMPORTANTE NOTE: You can have multiple evalwrite triggered. The code would look like that: "evalwrite":[{"variable":"LabelStatus","value":"$Result"}, {"variable":"anotherVariable","value":"AnotherValue"}]. Each evalwrite is between [...], indicating an array, and then as normally: {...}. So basically to have an array with 2 evalwrite, it will look like that: [{...}, [{...}].
 
-### Tutorial Step 2.1 - more components
-Let's extend the previous example:
-
-#### Triggering multiple evalwrite.
-Here you see 2 new buttons, up and down. This buttons have each 2 evalwrite. Each evalwrite is between {...}. But if you take a closer look at the tuto 2, you see that you also have [...]. This indicate an array. So basically to have an array with 2 evalwrite, it will look like that: [{...}, [{...}]. 
+### Tutorial Step 3 - Let's go to something more complex...
+Let's extend the previous example. Now we will have a button up and down. These buttons, changes the value of a switch and the switch changes the value of 2 pictures
+```
+{"name":"Tuto Step3", 
+    "manufacturer":"Your Name",
+    "version":3,
+    "type":"AVRECEIVER", 
+    "variables":{
+      "LabelStatus":"Default value",
+      "Power":false,
+      "AlbumURI": "",
+      "URI1": "https://raw.githubusercontent.com/jac459/metadriver/master/AVReceiver/DSP/ThemeStandard/chamber_sce.jpg",
+      "URI2": "https://raw.githubusercontent.com/jac459/metadriver/master/AVReceiver/DSP/ThemeStandard/surr_decoder_sce.jpg"
+    },
+    "labels":{
+      "CurrentStatus" : {"label":"status", "listen":"LabelStatus"}
+    }, 
+    "images":{
+           "AlbumCover" : {"label":"", "size" : "large", "listen":"AlbumURI"},
+           "AlbumThumb" : {"label":"", "size" : "small", "listen":"AlbumURI"}
+           },
+       
+    "switches":{
+      "PowerSwitch" : {"label":"", "listen":"Power", "evaldo":[{"test":"DYNAMIK $Result", "then":"__SHOWIMAGE1", "or":"__SHOWIMAGE2"}]}
+    },
+    "buttons":{
+      "CURSOR LEFT": {"label":"", "type":"static", "command":"It works on the left", "evalwrite":[{"variable":"LabelStatus","value":"$Result"}]},
+      "CURSOR RIGHT": {"label":"", "type":"static", "command":"On the right too", "evalwrite":[{"variable":"LabelStatus","value":"$Result"}]},
+      "CURSOR UP": {"label":"", "type":"static", "command":true, "evalwrite":[{"variable":"Power","value":"$Result"}]},
+      "CURSOR DOWN": {"label":"", "type":"static", "command":false, "evalwrite":[{"variable":"Power","value":"$Result"}]},
+      "__SHOWIMAGE1": {"label":"", "type":"static", "command":"", "evalwrite":[{"variable":"AlbumURI","value":"$URI1"}]},
+      "__SHOWIMAGE2": {"label":"", "type":"static", "command":"", "evalwrite":[{"variable":"AlbumURI","value":"$URI2"}]}
+    }
+}
+```
+#### The image element
+The image element is quite straight forward, it displays a picture.
+- label: the picture label, name if not provided.
+- size: can be small or large.
+- listen: the listen is attached to a variable, like the label, but it has to be an URL pointing on a jpg if you want something to be displayed. Recommanded size of the pic is 480x480px for a big image and 100x100px for a small.
 #### The switch element.
-The switch element is quite straight forward. You can assign it some commands and you can control it like a label with a "listen" attribute. The accepted value will be either false or true. /!\ In JSON, false and true are NOT between double quote ". So you directly have true or false (cf the example).
-#### The picture element
+The switch element is a bit more complex. You can assign it some commands and you can control it like a label with a "listen" attribute. The accepted value will be either false or true. /!\ In JSON, false and true are NOT between double quote ". So you directly have true or false (cf the example). With the switch, we introduce a new element which is evaldo. evaldo can be also present in a button. Meaning a button can have bothe evaldo and evalwrite. On the contrary, a switch can only have evaldo. When evalwrite is here to write into variables, evaldo is there to perform an action (triggering a button).
+#### evaldo
+In evaldo, you have:
+- test: this test can be true or false (more on it later).
+- do: the name of the button to be triggered if the result is true. If you don't want a button to be visible but you want to be able to call it, just prefix it by "__" like int the example.
+- or:the name of the button to be triggered if the result is false. 
+- DYNAMIK. In this example, you have seen a weird expression: DYNAMIK $Result. This is because the $Result in this driver can only be a string. So here the $Result will be "true" for example if the switch is on the right. In fact we don't need it to be "true" (like the string true) but true (like the boolean value). So we ask the driver to interpret the string value and transform it in a real boolean. In the next steps, we will see a lot of powerful and more complex usage of DYNAMIK keyword.
+/!\ IMPORTANTE NOTE: This DYNAMIK feature is extremely powerful and is available on many fields. It truely allows to adapt to many real world situation in order to manage various different devices. The drawback is that it generates 'in theory' a security issue because it allows to inject code into the metadriver. For this reason, you should avoid running the driver as an administrator (and you don't have any reason to do that).
 
 
