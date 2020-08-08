@@ -80,5 +80,23 @@ If the driver is correctly loaded, you can go to your Neeo App and search for th
 
 To use the driver without creating your own device files, you just need to know that and put the device files you are interrested on the "activated" folder and restart the driver. You will now be able to run them on the remote.
 
+## Tutorial : Creating your own devices
+
+### Tutorial Step 1 - Simple button device
+
+In order to create your single button device you can use the following sample file:
+```
+{"name":"Tuto Step1", 
+    "manufacturer":"Your Name",
+    "version":1,
+    "type":"AVRECEIVER", 
+    "buttons":{
+      "CURSOR LEFT": {"label":"", "type":"http-get", "command":"http://192.168.1.33:6095/controller?action=keyevent&keycode=left"},
+      "CURSOR RIGHT": {"label":"", "type":"http-get", "command":"http://192.168.1.33:6095/controller?action=keyevent&keycode=right"},
+      "CURSOR UP": {"label":"", "type":"http-get", "command":"http://192.168.1.33:6095/controller?action=keyevent&keycode=up"},
+      "CURSOR DOWN": {"label":"", "type":"http-get", "command":"http://192.168.1.33:6095/controller?action=keyevent&keycode=down"}
+    }
+}
+```
 
 
