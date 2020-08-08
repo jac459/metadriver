@@ -11,7 +11,7 @@ const driverTable = [];
 
 function getConfig() {
   return new Promise(function (resolve, reject) {
-    fs.readFile('./config.js', (err, data) => {
+    fs.readFile(__dirname + '/config.js', (err, data) => {
       if (err) {console.log('No config file, the initial setup will be launched');resolve(null);}
       else { 
         if (data && (data != '')) {
@@ -32,7 +32,7 @@ function getHelper (HelpTable, prop) {
 function getIndividualActivatedDrivers(files, driverList, driverIterator) {
   return new Promise(function (resolve, reject) {
     if (driverIterator < files.length) {
-      console.log('Activating driver :' + files[driverIterator])
+      console.log('Activating drivers :' + files[driverIterator])
       fs.readFile(activatedModule + files[driverIterator], (err, data) => {
         if (data) {
           try {
@@ -58,6 +58,7 @@ function getIndividualActivatedDrivers(files, driverList, driverIterator) {
 
 function getActivatedDrivers() {
   return new Promise(function (resolve, reject) {
+    console.log("Searching drivers in : " + activatedModule);
     fs.readdir(activatedModule, (err, files) => {
       console.log('drivers found');
       var driverList = [];
@@ -366,7 +367,7 @@ function runNeeo () {
       name: "Meta Driver 1.0",
       devices: driverTable
     };
-    //console.log(neeoSettings)
+    console.log(neeoSettings)
     console.log('Trying to start the Driver')
     neeoapi.startServer(neeoSettings)
       .then(() => {
