@@ -114,3 +114,4 @@ Note: for more complexe devices, you can download an intermediary driver, exposi
 
 ### Tutorial Step 2 - Label device
 
+This first step was easy but very boring. Let's have a bit more fun. Now we will have 2 buttons controlling what a label display.
