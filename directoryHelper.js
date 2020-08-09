@@ -142,13 +142,12 @@ class directoryHelper {
                   title: cacheList[i].name,
                   label: cacheList[i].label,
                   thumbnailUri: cacheList[i].image,
-                  actionIdentifier: cacheList[i].action,
+                  actionIdentifier: (cacheList[i].action ? cacheList[i].action + "$ListIndex=" + i : cacheList[i].action), //For support of index
                   browseIdentifier: cacheList[i].browse,
                   uiAction: (cacheList[i].action != '' || cacheList[i].action != undefined) ? '' : 'reload',
                 });
               }
             }
-            //console.log(neeoList)
             resolve(neeoList);
           })
         
@@ -156,7 +155,6 @@ class directoryHelper {
     }
 
     this.fillTheList = function (cacheList, allconfigs, params, indentCommand) {
-        //let resultList;
         let rAction;
         let rBrowse;
         let rName;
@@ -206,41 +204,38 @@ class directoryHelper {
 
     this.handleAction = function (deviceId, params) {
       return new Promise(function (resolve, reject) {
-        self.handleCurrentAction(deviceId, self.feederH[self.currentFeederIndex], params)
+        self.handleCurrentAction(deviceId, params)
           .then((action) => { resolve(action); })
           .catch((err) => { reject(err); });
       });
     };
 
-    this.handleCurrentAction = function (deviceId, config, params) {
+    this.handleCurrentAction = function (deviceId, params) {
       console.log(params);
       return new Promise(function (resolve, reject) {
-        //here, the action identifier is the result.       
+        //here, the action identifier is the result.  
+        let ListIndex = params.actionIdentifier.split("$ListIndex=")[1];
+        params.actionIdentifier = params.actionIdentifier.split("$ListIndex=")[0];
         let PastQueryValue = params.actionIdentifier.split("$PastQueryValue=")[1];
         params.actionIdentifier = params.actionIdentifier.split("$PastQueryValue=")[0];
         let commandSetIndex = params.actionIdentifier.split("$CommandSet=")[1];
         params.actionIdentifier = params.actionIdentifier.split("$CommandSet=")[0];
         self.controller.evalWrite(self.feederH[self.currentFeederIndex].commandset[commandSetIndex].evalwrite, PastQueryValue, deviceId);
-        console.log(params);
-        console.log(commandSetIndex);
-        console.log(PastQueryValue);
            
         //finding the feeder which is actually an action feeder
         let ActionIndex = self.feederH.findIndex((feed) => {return (feed.name == params.actionIdentifier)});
-        console.log(ActionIndex);
         let commandSet = self.feederH[ActionIndex].commandset[0]
-        console.log(commandSet);
         let processedCommand = self.feederH[ActionIndex].commandset[0].command;
-        console.log(processedCommand);
         processedCommand = self.controller.readVariables(self.feederH[ActionIndex].commandset[0].command);
-        console.log(processedCommand);
         processedCommand = self.controller.assignTo(RESULT, processedCommand, PastQueryValue);
-        console.log(processedCommand);
+        while (processedCommand != processedCommand.replace("$ListIndex", ListIndex)) {
+          processedCommand = processedCommand.replace("$ListIndex", ListIndex);
+        }
         self.controller.commandProcessor(processedCommand, commandSet.type)
           .then((result) => {
             console.log(result)
         })
-    
+        resolve();
       });
     };
   }

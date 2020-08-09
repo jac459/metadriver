@@ -32,7 +32,7 @@ const WEBSOCKET = 'webSocket';
 class ProcessingManager {
   constructor() {
     this._processor = null;
-  };
+  }; 
   set processor(processor) {
     this._processor = processor;
   };
@@ -49,11 +49,17 @@ class ProcessingManager {
   query(data, query) {
     return this._processor.query(data, query)
   }
-  listen (command, listener, _listenCallback, socket) {
-    return this._processor.listen(command, listener, _listenCallback, socket)
+  startListen (command, listener, _listenCallback, socket) {
+    return this._processor.startListen(command, listener, _listenCallback, socket)
   }
+  stopListen (listener) {
+    return this._processor.stopListen(listener)
+  }
+
 }
 class httpgetProcessor {
+  constructor() {
+  }; 
   process (command) {
     return new Promise(function (resolve, reject) {
       http(command) 
@@ -77,23 +83,30 @@ class httpgetProcessor {
       else {resolve(data)}
     })
   }
-  listen (command, listener, _listenCallback) {
+  startListen (command, listener, _listenCallback) {
     return new Promise(function (resolve, reject) {
-      let previousResult = ''
-      setInterval(() => {
-        http(command) 
-        .then(function(result) { 
-          if (result != previousResult) {
-            previousResult = result;
-            _listenCallback(result, listener);
-          }
-          resolve('')
-        })
-        .catch((err) => {console.log(err)})
-      }, 1000);
-     
- })
-}
+        let previousResult = '';
+        listener.timer = setInterval(() => {
+          http(command) 
+          .then(function(result) { 
+            if (result != previousResult) {
+              previousResult = result;
+              _listenCallback(result, listener);
+            }
+            resolve('')
+          })
+          .catch((err) => {console.log(err)})
+        }, (listener.pooltime?listener.pooltime:1000));
+        if (listener.poolduration && (listener.poolduration != '')) {
+          setTimeout(() => {
+            clearInterval(listener.timer)
+          }, listener.poolduration);
+        }
+    })
+  }
+  stopListen (listener) {
+    clearInterval(listener.timer);
+  }
 }
 
 class webSocketProcessor {
@@ -101,7 +114,7 @@ class webSocketProcessor {
     return new Promise(function (resolve, reject) {
       if (typeof(command) == 'string') {command = JSON.parse(command)}
       if (command.call){
-        socket.emit(command.emit, command.message)
+        listener.io.emit(command.emit, command.message)
         resolve('')
       }
     })
@@ -116,11 +129,19 @@ class webSocketProcessor {
       }
     })
   }
-  listen (command, listener, _listenCallback, socket) {
+  startListen (command, listener, _listenCallback) {
     return new Promise(function (resolve, reject) {
-        socket.on(command, (result) => {_listenCallback(result, listener)});
+        console.log('Starting to listen to the device.')
+        console.log(listener)
+        console.log(command)
+        listener.io = io.connect(listener.socket);
+        listener.io.on(command, (result) => {_listenCallback(result, listener)});
         resolve('');
    })
+  }
+  stopListen (listener) {
+    console.log('Stop listening to the device.')
+    listener.io.disconnect(listener.socket);
   }
 }
 
@@ -190,7 +211,7 @@ class httppostProcessor {
     return new Promise(function (resolve, reject) {
       if (typeof(command) == 'string') {command = JSON.parse(command)}
       if (command.call){
-        http.post(command.post, JSON.parse(command.message)) 
+        http.post(command.call, command.message) 
         .then(function(result) { 
           resolve(result.data)
         })
@@ -285,14 +306,10 @@ module.exports = function controller(driver) {
   this.directoryH = []; //directory helper to store all the browse getter and setter of the dynamically created simple directories.
   var self = this;
    
-  this.addSocket = function (name){
-    self.socket = io.connect(name);
- //   io.on('connection', function(socket) {
- //     self.socket = socket
- //   });
-  }
-
+ 
   this.addListener = function(params) {
+    params.timer = ""; // for pooling
+    params.io = ""; // for websocket
     self.listeners.push(params);
   }
 
@@ -350,11 +367,11 @@ module.exports = function controller(driver) {
   };
 
    this.registerInitiationCallback = function() {//technical function called at device initiation to start some listeners
- 
+ /*
     self.listeners.forEach(listener => {
       self.listenStart(listener)
     });
- 
+ */
   }
   
 
@@ -398,31 +415,7 @@ module.exports = function controller(driver) {
     }
   }
 
-/*  this.assignTo = function(Pattern, inputChain, givenResult) //Assign a value to the input chain. Pattern found is replaced by given value
-  {
-   try {
-      if (givenResult && !(typeof(givenResult) in {"string":"", "number":"", "boolean":""}) ) {//in case the response is a json object, convert to string
-        givenResult = JSON.stringify(givenResult);
-      }
-      if (givenResult && (typeof(givenResult) == 'string' )) {
-        givenResult = givenResult.replace(/\\/g, '\\\\') // Absolutely necessary to properly escape the escaped character. Or super tricky bug.
-        givenResult = givenResult.replace(/"/g, '\\"') // Absolutely necessary to properly escape the escaped character. Or super tricky bug.
-      }
-      if (typeof(inputChain) == 'string') {
-        inputChain = inputChain.replace(Pattern, givenResult);
-        if (inputChain.startsWith('DYNAMIK ')) {
-          console.log(inputChain.split('DYNAMIK ')[1])
-          console.log(eval(inputChain.split('DYNAMIK ')[1]))
-          return eval(inputChain.split('DYNAMIK ')[1]);
-        }
-      }
-      return inputChain;
-    }
-    catch (err) {
-      console.log('function assignedTo error with argument ('+Pattern+', '+inputChain+', '+givenResult+'). Error: ' + err)
-    }
-  }
-*/
+
   this.readVariables = function(inputChain) { //replace in the input chain, all the variables found.
     let preparedResult = inputChain;
     if (typeof(preparedResult) == 'object') {
@@ -494,11 +487,39 @@ module.exports = function controller(driver) {
       }
       else {reject('The commandtype to listen is not defined.' + commandtype + ' command : ' + command)}
       command = self.readVariables(command);
-      processingManager.listen(command, listener, self.onListenExecute, self.socket)
+      processingManager.startListen(command, listener, self.onListenExecute)
         .then((result) => {
            resolve(result)
         })
         .catch((err) => {reject (err)})
+    })    
+  }
+
+  this.stopListenProcessor = function(command, commandtype, listener) { // process any command according to the target protocole
+    return new Promise(function (resolve, reject) {
+      console.log('command')
+      console.log(command)
+      console.log(commandtype)
+      if (commandtype == HTTPGET) {
+        processingManager.processor = myHttpgetProcessor;
+      } 
+      else if (commandtype == HTTPGETSOAP) {
+        processingManager.processor = myHttpgetSoapProcessor;
+      } 
+      else if (commandtype == HTTPPOST) {
+        processingManager.processor = myHttppostProcessor;
+      }
+      else if (commandtype == STATIC) {
+        processingManager.processor = myStaticProcessor;
+      }
+      else if (commandtype == CLI) {
+        processingManager.processor = myCliProcessor;
+      }
+      else if (commandtype == WEBSOCKET) {
+        processingManager.processor = myWebSocketProcessor;
+      }
+      else {reject('The commandtype to stop listen is not defined.' + commandtype + ' command : ' + command)}
+       processingManager.stopListen(listener);
     })    
   }
 
@@ -587,18 +608,30 @@ module.exports = function controller(driver) {
     let deviceId = 'default' // TODO Find a way to dynamically get the deviceId (in order to support discovery)    
     self.queryProcessor(result, listener.queryresult, listener.type).then((result) => {
       //result = result[0];
-      let resultString = result.toString();
+      if (Array.isArray(result)) {
+        result = result[0];
+      }
       if (listener.evalwrite) {self.evalWrite(listener.evalwrite, result, deviceId);}
-      if (listener.evaldo) {self.evalDo(listener.evaldo, result, deviceId);}
+      //if (listener.evaldo) {self.evalDo(listener.evaldo, result, deviceId);}
     })
   }
 
   this.listenStart = function (listener) {
     return new Promise(function (resolve, reject) {
       try {
-        console.log('my listener'); 
+        console.log('Listener starting'); 
         console.log(listener)
         self.listenProcessor(listener.command, listener.type, listener);
+      } 
+      catch (err) {reject('Error when starting to listen. ' + err)}
+    })
+  }
+  this.listenStop = function (listener) {
+    return new Promise(function (resolve, reject) {
+      try {
+        console.log('Listener stopping.'); 
+        console.log(listener)
+        self.stopListenProcessor(listener.command, listener.type, listener);
       } 
       catch (err) {reject('Error when starting to listen. ' + err)}
     })
@@ -635,6 +668,16 @@ module.exports = function controller(driver) {
     console.log('[CONTROLLER]' + name + ' button pressed for device ' + deviceId);
  
     let theButton = self.buttons[name];
+    if (name == "INITIALISE") {//Listener management to listen to other devices. Start listening on power on.
+      self.listeners.forEach(listener => {
+        self.listenStart(listener);
+      });
+    }
+    if (name == "CLEANUP") {//listener management to listen to other devices. Stop listening on power off.
+      self.listeners.forEach(listener => {
+        self.listenStop(listener);
+      });
+    }
     if (theButton != undefined) {
       if ((theButton.type == HTTPGET) || (theButton.type == HTTPPOST) || (theButton.type == STATIC) || (theButton.type == WEBSOCKET) || (theButton.type == CLI)) {
         if (theButton.command != undefined){ 

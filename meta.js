@@ -112,6 +112,9 @@ function executeDriversCreationFromFiles (drivers) {
                name : prop, 
                type : driver.listeners[prop].type,
                command : driver.listeners[prop].command,
+               socket : driver.listeners[prop].socket,
+               pooltime : driver.listeners[prop].pooltime,
+               poolduration : driver.listeners[prop].poolduration,
                queryresult : driver.listeners[prop].queryresult,
                evalwrite : driver.listeners[prop].evalwrite,
               })
