@@ -179,14 +179,14 @@ class directoryHelper {
                 rBrowse = self.controller.readVariables(commandSet.itembrowse); 
                 self.controller.queryProcessor(result, commandSet.queryresult, commandSet.type).then ((resultList) => {
                   resultList.forEach(oneItemResult => { //As in this case, $Result is a table, transform $Result to get every part of the table as one $Result
-                   cacheList.push({
+                    cacheList.push({
                       'name' : self.controller.assignTo(RESULT, rName, oneItemResult),
                       'image' : self.controller.assignTo(RESULT, rImage, oneItemResult),
                       'itemtype' : rItemType,
                       'label' : self.controller.assignTo(RESULT, rLabel, oneItemResult),
-                      'action' : rAction ? self.controller.assignTo(RESULT, rAction, oneItemResult)+"$CommandSet="+indentCommand+"$PastQueryValue=" + JSON.stringify(oneItemResult) : rAction,
-                      'browse' : rBrowse ? self.controller.assignTo(RESULT, rBrowse, oneItemResult)+"$CommandSet="+indentCommand+"$PastQueryValue=" + JSON.stringify(oneItemResult) : rBrowse
-                    });//push the result of the itemname expression with result item to the namelist
+                      'action' : rAction ? self.controller.assignTo(RESULT, rAction, oneItemResult)+"$CommandSet="+indentCommand+"$PastQueryValue=" + ((typeof(oneItemResult) == 'string')?oneItemResult:JSON.stringify(oneItemResult)) : rAction,
+                      'browse' : rBrowse ? self.controller.assignTo(RESULT, rBrowse, oneItemResult)+"$CommandSet="+indentCommand+"$PastQueryValue=" + ((typeof(oneItemResult) == 'string')?oneItemResult:JSON.stringify(oneItemResult)) : rBrowse
+                    });
                   });
                   resolve(self.fillTheList(cacheList, allconfigs, params, indentCommand + 1));
                 })
@@ -221,14 +221,21 @@ class directoryHelper {
         let commandSetIndex = params.actionIdentifier.split("$CommandSet=")[1];
         params.actionIdentifier = params.actionIdentifier.split("$CommandSet=")[0];
         self.controller.evalWrite(self.feederH[self.currentFeederIndex].commandset[commandSetIndex].evalwrite, PastQueryValue, deviceId);
-      
+        console.log(params);
+        console.log(commandSetIndex);
+        console.log(PastQueryValue);
+           
         //finding the feeder which is actually an action feeder
         let ActionIndex = self.feederH.findIndex((feed) => {return (feed.name == params.actionIdentifier)});
+        console.log(ActionIndex);
         let commandSet = self.feederH[ActionIndex].commandset[0]
+        console.log(commandSet);
         let processedCommand = self.feederH[ActionIndex].commandset[0].command;
+        console.log(processedCommand);
         processedCommand = self.controller.readVariables(self.feederH[ActionIndex].commandset[0].command);
+        console.log(processedCommand);
         processedCommand = self.controller.assignTo(RESULT, processedCommand, PastQueryValue);
-        console.log(JSON.parse(processedCommand))
+        console.log(processedCommand);
         self.controller.commandProcessor(processedCommand, commandSet.type)
           .then((result) => {
             console.log(result)

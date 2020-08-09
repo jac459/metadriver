@@ -301,9 +301,12 @@ module.exports = function controller(driver) {
   }
 
   this.addListenerVariable = function(theVariable, theFunction) { // who listen to variable changes.
-    const listenerList = self.deviceVariables.find(elt => {return elt.name == theVariable}).listeners;
-    listenerList.push(theFunction);
-    return listenerList[listenerList.length-1];
+    if (theVariable != undefined && theVariable != '' && theFunction != undefined && theFunction) {
+      const listenerList = self.deviceVariables.find(elt => {return elt.name == theVariable}).listeners;
+      listenerList.push(theFunction);
+      return listenerList[listenerList.length-1];
+    }
+    else {return undefined};
   }
 
   this.addImageHelper = function(imageName, listened) {//function called by the MetaDriver to store 
@@ -324,14 +327,14 @@ module.exports = function controller(driver) {
     return newSensorH;
   }
 
-  this.addSwitchHelper = function(switchName, listened) {//function called by the MetaDriver to store 
-    const newSwitchH = new switchHelper(switchName, listened, self)
+  this.addSwitchHelper = function(switchName, listen, evaldo) {//function called by the MetaDriver to store 
+    const newSwitchH = new switchHelper(switchName, listen, evaldo, self)
     self.switchH.push(newSwitchH);
     return newSwitchH;
   }
 
-  this.addSliderHelper = function(min,max,commandtype, command, querystatus, listen, slidername) {//function called by the MetaDriver to store 
-    const newSliderH = new sliderHelper(min,max,commandtype, command, querystatus, listen, slidername, self)
+  this.addSliderHelper = function(listen, evaldo, slidername) {//function called by the MetaDriver to store 
+    const newSliderH = new sliderHelper(listen, evaldo, slidername, self)
     self.sliderH.push(newSliderH);
     return newSliderH;
   }
@@ -357,15 +360,47 @@ module.exports = function controller(driver) {
 
   this.writeVariable = function(theVariable, theValue, deviceId) {//deviceId necessary as push to components.
     let foundVar = self.deviceVariables.find(elt => {return elt.name == theVariable});
-    foundVar.value = theValue; //Write value here
-    foundVar.listeners.forEach(element => { //invoke all listeners
-      element(foundVar.value, deviceId);
-    });
+    if (foundVar.value != theValue) {// If the value changed.
+      foundVar.value = theValue; //Write value here
+      foundVar.listeners.forEach(element => { //invoke all listeners
+        element(deviceId, foundVar.value);
+      });
+    }
   }
 
-  this.assignTo = function(Pattern, inputChain, givenResult) //Assign a value to the input chain. PAttern found is replaced by given value
+  this.assignTo = function(Pattern, inputChain, givenResult) //Assign a value to the input chain. Pattern found is replaced by given value
   {
-    try {
+   try {
+      if (givenResult && !(typeof(givenResult) in {"string":"", "number":"", "boolean":""}) ) {//in case the response is a json object, convert to string
+        givenResult = JSON.stringify(givenResult);
+      }
+      
+      if (typeof(inputChain) == 'string') {
+        if (inputChain.startsWith('DYNAMIK ')) {
+          if (givenResult && (typeof(givenResult) == 'string' )) {
+            givenResult = givenResult.replace(/\\/g, '\\\\') // Absolutely necessary to properly escape the escaped character. Or super tricky bug.
+            givenResult = givenResult.replace(/"/g, '\\"') // Absolutely necessary to properly escape the escaped character. Or super tricky bug.
+          }
+          inputChain = inputChain.replace(Pattern, givenResult);
+          console.log(inputChain.split('DYNAMIK ')[1])
+          console.log(eval(inputChain.split('DYNAMIK ')[1]))
+          return eval(inputChain.split('DYNAMIK ')[1]);
+        }
+        else {
+          inputChain = inputChain.replace(Pattern, givenResult);
+          return inputChain;
+        }
+      }
+      return inputChain;
+    }
+    catch (err) {
+      console.log('function assignedTo error with argument ('+Pattern+', '+inputChain+', '+givenResult+'). Error: ' + err)
+    }
+  }
+
+/*  this.assignTo = function(Pattern, inputChain, givenResult) //Assign a value to the input chain. Pattern found is replaced by given value
+  {
+   try {
       if (givenResult && !(typeof(givenResult) in {"string":"", "number":"", "boolean":""}) ) {//in case the response is a json object, convert to string
         givenResult = JSON.stringify(givenResult);
       }
@@ -376,6 +411,8 @@ module.exports = function controller(driver) {
       if (typeof(inputChain) == 'string') {
         inputChain = inputChain.replace(Pattern, givenResult);
         if (inputChain.startsWith('DYNAMIK ')) {
+          console.log(inputChain.split('DYNAMIK ')[1])
+          console.log(eval(inputChain.split('DYNAMIK ')[1]))
           return eval(inputChain.split('DYNAMIK ')[1]);
         }
       }
@@ -385,24 +422,19 @@ module.exports = function controller(driver) {
       console.log('function assignedTo error with argument ('+Pattern+', '+inputChain+', '+givenResult+'). Error: ' + err)
     }
   }
-
+*/
   this.readVariables = function(inputChain) { //replace in the input chain, all the variables found.
     let preparedResult = inputChain;
-    console.log(inputChain)
-    console.log('inputChain')
     if (typeof(preparedResult) == 'object') {
       preparedResult = JSON.stringify(preparedResult);
     }
-    console.log(inputChain)
     if (typeof(preparedResult) == 'string')
       self.deviceVariables.forEach(variable => {
-        console.log(variable)
         let token = variablePattern.pre + variable.name + variablePattern.post;
-        console.log(preparedResult)
-
-        preparedResult = preparedResult.replace(token, variable.value);
+        while (preparedResult != preparedResult.replace(token, variable.value)) {
+          preparedResult = preparedResult.replace(token, variable.value);
+        }
     })
-    
      return preparedResult;
   }
 
@@ -429,6 +461,9 @@ module.exports = function controller(driver) {
       }
       else {reject('The commandtype to process is not defined.' + commandtype + ' command : ' + command)}
       command = self.readVariables(command);
+      command = self.assignTo(RESULT, command, "");
+      console.log('final command : ')
+      console.log(command)
       processingManager.process(command, self.socket)
         .then((result) => {
           resolve(result)
@@ -493,6 +528,7 @@ module.exports = function controller(driver) {
       //console.log('Query Processor : ' + query)
       if (query != undefined && query != '') {
         processingManager.query(data, query).then((data) => {
+          console.log("Result of the query")
           console.log(data)
           resolve(data)
         })
@@ -525,20 +561,12 @@ module.exports = function controller(driver) {
     }
   }
 
-  this.evalDo = function (evaldo, result, deviceId, NAVIGATIONIDentifierValue) {
+    this.evalDo = function (evaldo, result, deviceId) {
     if (evaldo) { //case we want to trigger a button
       evaldo.forEach(evalD => {
-        console.log('test value : ' + evalD.test);
         if (evalD.test == '' || evalD.test == true) {evalD.test = true}; //in case of no test, go to the do function
         let finalDoTest = self.readVariables(evalD.test);// prepare the test to assign variable and be evaluated.
-        console.log('finaldo :' + finalDoTest)
-        finalDoTest = self.assignResult(finalDoTest, result);
         finalDoTest = self.assignTo(RESULT, finalDoTest, result);
-        if (NAVIGATIONIDentifierValue)
-        {
-          finalDoTest = self.assignTo(NAVIGATIONID, finalDoTest, NAVIGATIONIDentifierValue);
-        }
-        console.log('test value final : ' + finalDoTest);
         if (finalDoTest) {
           if (evalD.then && evalD.then != '')
           {
@@ -608,7 +636,7 @@ module.exports = function controller(driver) {
  
     let theButton = self.buttons[name];
     if (theButton != undefined) {
-        if ((theButton.type == HTTPGET) || (theButton.type == HTTPPOST) || (theButton.type == STATIC) || (theButton.type == WEBSOCKET) || (theButton.type == CLI)) {
+      if ((theButton.type == HTTPGET) || (theButton.type == HTTPPOST) || (theButton.type == STATIC) || (theButton.type == WEBSOCKET) || (theButton.type == CLI)) {
         if (theButton.command != undefined){ 
           self.actionManager(name, deviceId, theButton.type, theButton.command, theButton.queryresult, theButton.evaldo, theButton.evalwrite)
           .then((result)=>{
@@ -618,20 +646,6 @@ module.exports = function controller(driver) {
               console.log("Error when processing the command : " + err)
            })
         }
-      }
-      else if (theButton.type == 'slidercontrol') {
-         let SH = self.sliderH.find((sliderhelper) => { return (sliderhelper.slidername == theButton.slidername)}); // get the right slider with get and set capacity
-         console.log(SH)
-         SH.get()
-          .then((result) => {
-            console.log(result)
-            result = Number(result) + Number(theButton.step);
-            console.log ('Slider: ' + result);
-            SH.set(deviceId, SH.toSliderValue(result));
-          })
-          .catch((err) => {
-            console.log (err)
-          })
       }
       else if (theButton.type == 'wol') {
         console.log(theButton.command)

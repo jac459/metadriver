@@ -10,7 +10,7 @@ class imageHelper {
       })
     }; 
 
-    this.update = function (theValue, deviceId) {
+    this.update = function (deviceId, theValue) {
       return new Promise(function (resolve, reject) {
         if (self.value != theValue) {
           self.value = theValue;

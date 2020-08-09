@@ -6,6 +6,7 @@ const fs = require('fs')
 const activatedModule = __dirname + '/activated/';
 const { exec } = require("child_process");
 const { resolve } = require("path");
+const BUTTONHIDE = '__'
 var config = {brainip : '', brainport : ''};
 const driverTable = [];
 
@@ -139,13 +140,13 @@ function executeDriversCreationFromFiles (drivers) {
 
         for (var prop in driver.switches) { // Dynamic creation of all sliders
           if (Object.prototype.hasOwnProperty.call(driver.switches, prop)) {
-           controller.addSwitchHelper(prop, driver.switches[prop].listen);
+           controller.addSwitchHelper(prop, driver.switches[prop].listen, driver.switches[prop].evaldo);
           }
         }
 
         for (var prop in driver.sliders) { // Dynamic creation of all sliders
           if (Object.prototype.hasOwnProperty.call(driver.sliders, prop)) {
-            controller.addSliderHelper(driver.sliders[prop].min,driver.sliders[prop].max,driver.sliders[prop].type, driver.sliders[prop].command, driver.sliders[prop].queryresult, driver.sliders[prop].listen, prop);
+            controller.addSliderHelper(driver.sliders[prop].listen, driver.sliders[prop].evaldo, prop);
           }
         }
 
@@ -234,7 +235,9 @@ function executeDriversCreationFromFiles (drivers) {
         for (var prop in driver.buttons) { // Dynamic creation of all buttons
           if (Object.prototype.hasOwnProperty.call(driver.buttons, prop)) {
             if (theDevice.buttons.findIndex((item) => {return (item.param.name == prop)})<0) {//not button of same name (in case included in a widget)
-              theDevice.addButton({name: prop, label: (driver.buttons[prop].label == '') ? (prop) : (driver.buttons[prop].label)})
+              if (!prop.startsWith(BUTTONHIDE)){ //If the button doesnt need to be hidden.
+                theDevice.addButton({name: prop, label: (driver.buttons[prop].label == '') ? (prop) : (driver.buttons[prop].label)})
+              }
             }
           }
         }
