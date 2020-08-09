@@ -1,0 +1,39 @@
+{"name":"MiTV", 
+    "manufacturer":"Xiaomi",
+    "version":3,
+    "type":"TV", 
+    "variables":{
+        "MyStatus":"",
+        "MyTVIP":"192.168.1.33",
+        "PackageName":""
+    },
+    "labels":{
+        "CurrentStatus" : {"label":"status", "listen":"MyStatus"}
+    },
+    "buttons":{
+        "CURSOR LEFT": {"label":"", "type":"http-get", "command":"http://$MyTVIP:6095/controller?action=keyevent&keycode=left", "queryresult":"$.msg", "evalwrite":[{"variable":"MyStatus","value":"DYNAMIK (\"$Result\"==\"success\")?\"Left pressed\":\"Command Failed\""}]},
+        "CURSOR RIGHT": {"label":"", "type":"http-get", "command":"http://$MyTVIP:6095/controller?action=keyevent&keycode=right", "queryresult":"$.msg", "evalwrite":[{"variable":"MyStatus","value":"DYNAMIK (\"$Result\"==\"success\")?\"Right pressed\":\"Command Failed\""}]},
+        "CURSOR UP": {"label":"", "type":"http-get", "command":"http://$MyTVIP:6095/controller?action=keyevent&keycode=up", "queryresult":"$.msg", "evalwrite":[{"variable":"MyStatus","value":"DYNAMIK (\"$Result\"==\"success\")?\"Up pressed\":\"Command Failed\""}]},
+        "CURSOR DOWN": {"label":"", "type":"http-get", "command":"http://$MyTVIP:6095/controller?action=keyevent&keycode=down", "queryresult":"$.msg", "evalwrite":[{"variable":"MyStatus","value":"DYNAMIK (\"$Result\"==\"success\")?\"Down pressed\":\"Command Failed\""}]},
+        "CURSOR ENTER": {"label":"", "type":"http-get", "command":"http://$MyTVIP:6095/controller?action=keyevent&keycode=enter", "queryresult":"$.msg", "evalwrite":[{"variable":"MyStatus","value":"DYNAMIK (\"$Result\"==\"success\")?\"Ok pressed\":\"Command Failed\""}]},
+        "INPUT HDMI 1": {"label":"", "type":"http-get", "command":"http://$MyTVIP:6095/controller?action=changesource&source=HDMI1", "queryresult":"$.msg", "evalwrite":[{"variable":"MyStatus","value":"DYNAMIK (\"$Result\"==\"success\")?\"HDMI 1 Source\":\"Command Failed\""}]},
+        "INPUT HDMI 2": {"label":"", "type":"http-get", "command":"http://$MyTVIP:6095/controller?action=changesource&source=HDMI2", "queryresult":"$.msg", "evalwrite":[{"variable":"MyStatus","value":"DYNAMIK (\"$Result\"==\"success\")?\"HDMI 2 Source\":\"Command Failed\""}]},
+        "INPUT HDMI 3": {"label":"", "type":"http-get", "command":"http://$MyTVIP:6095/controller?action=changesource&source=HDMI3", "queryresult":"$.msg", "evalwrite":[{"variable":"MyStatus","value":"DYNAMIK (\"$Result\"==\"success\")?\"HDMI 3 Source\":\"Command Failed\""}]},
+        "MENU": {"label":"", "type":"http-get", "command":"http://$MyTVIP:6095/controller?action=keyevent&keycode=menu", "queryresult":"$.msg", "evalwrite":[{"variable":"MyStatus","value":"DYNAMIK (\"$Result\"==\"success\")?\"Menu pressed\":\"Command Failed\""}]},
+        "BACK": {"label":"", "type":"http-get", "command":"http://$MyTVIP:6095/controller?action=keyevent&keycode=back", "queryresult":"$.msg", "evalwrite":[{"variable":"MyStatus","value":"DYNAMIK (\"$Result\"==\"success\")?\"Back pressed\":\"Command Failed\""}]},
+        "EXIT": {"label":"", "type":"http-get", "command":"http://$MyTVIP:6095/controller?action=keyevent&keycode=exit", "queryresult":"$.msg", "evalwrite":[{"variable":"MyStatus","value":"DYNAMIK (\"$Result\"==\"success\")?\"Exit pressed\":\"Command Failed\""}]},
+        "VOLUME DOWN": {"label":"", "type":"http-get", "command":"http://$MyTVIP:6095/controller?action=keyevent&keycode=volumedown", "queryresult":"$.msg", "evalwrite":[{"variable":"MyStatus","value":"DYNAMIK (\"$Result\"==\"success\")?\"Volume down\":\"Command Failed\""}]},
+        "VOLUME UP": {"label":"", "type":"http-get", "command":"http://$MyTVIP:6095/controller?action=keyevent&keycode=volumeup", "queryresult":"$.msg", "evalwrite":[{"variable":"MyStatus","value":"DYNAMIK (\"$Result\"==\"success\")?\"Volume up\":\"Command Failed\""}]},
+        "POWER OFF": {"label":"", "type":"http-get", "command":"http://$MyTVIP:6095/controller?action=keyevent&keycode=power", "queryresult":"$.msg", "evalwrite":[{"variable":"MyStatus","value":"DYNAMIK (\"$Result\"==\"success\")?\"Power Off\":\"Command Failed\""}]},
+        "POWER ON": {"label":"", "type":"http-get", "command":"http://$MyTVIP:6095/controller?action=getinstalledapp&count=999&changeIcon=1", "queryresult":"$.msg", "evalwrite":[{"variable":"MyStatus","value":"DYNAMIK (\"$Result\"==\"success\")?\"Power is on\":\"Trying to Switch on by IR\""}], "evaldo":[{"test":"DYNAMIK \"$Result\"==\"success\"", "then":"", "or":"POWER ON-IR"}]},
+        "__POWER ON-IR": {"label":"", "type":"http-get", "command":"http://$MyTVIP:6095/controller?action=keyevent&keycode=power", "queryresult":"$.msg", "evalwrite":[{"variable":"MyStatus","value":"DYNAMIK (\"$Result\"==\"success\")?\"Power Off\":\"Command Failed\""}]}
+    },
+    "directories":{
+        "Programs": {"label":"", "feeders": {
+            "Programs":{"label":"", "commandset": [{"type":"http-get", "command":"http://$MyTVIP:6095/controller?action=getinstalledapp&count=999&changeIcon=1", "queryresult":"$.data.AppInfo[*]", "itemname":"DYNAMIK JSON.parse(\"$Result\").AppName", "itemlabel":"\"Android TV App\"", 
+                "itemaction":"ProgramSet", "itemimage":"DYNAMIK JSON.parse(\"$Result\").IconURL", "evalwrite":[{"variable":"PackageName","value":"DYNAMIK JSON.parse(\"$Result\").PackageName"}]}]},
+            "ProgramSet":{"label":"", "commandset": [{"type":"http-get", "command":"http://$MyTVIP:6095/controller?action=startapp&type=packagename&packagename=$PackageName"}]}
+           }
+        }
+    }
+}
