@@ -1,6 +1,6 @@
 {"name":"Yamaha Receiver", 
     "manufacturer":"Yamaha",
-    "version":9,
+    "version":10,
     "type":"AVRECEIVER", 
     "variables":{
         "MyStatus":"",
@@ -16,6 +16,12 @@
     },
     "switches":{
         "MuteSwitch" : {"label":"", "listen":"IsMuted", "evaldo":[{"test":"DYNAMIK $Result", "then":"__MUTEON", "or":"__MUTEOFF"}]}
+    },
+    "listeners":{
+        "YamahaStatus" : {"type":"http-get", "command":"http://192.168.1.24/YamahaExtendedControl/v1/main/getStatus", "pooltime":"1000", "poolduration":"5000", "queryresult" : "$.data", 
+          "evalwrite" : [ 
+           {"variable" : "VolumePlayed","value" : "DYNAMIK Math.round(Number(JSON.parse(\"$Result\").volume)*100/161)"}
+        ]}
     },
     "buttons":{
         "POWER ON": {"label":"", "type":"http-get", "command":"http://192.168.1.24/YamahaExtendedControl/v1/main/setPower?power=on", "queryresult":"$.response_code", "evalwrite":[{"variable":"MyStatus","value":"DYNAMIK ($Result==0)?\"Receiver On\":\"command Failed\""}]},
