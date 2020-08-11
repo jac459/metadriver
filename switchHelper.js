@@ -11,6 +11,17 @@ class switchHelper {
       return self.value;
     };
      
+    this.update = function (deviceId, theValue) {
+      return new Promise(function (resolve, reject) {
+        if (self.value != theValue) {
+          self.value = theValue;
+          controller.sendComponentUpdate({ uniqueDeviceId: deviceId, component: self.name, value: theValue })
+          .catch((err) => {console.log("Error while trying to put the value : " + theValue+ " in this component : " + self.name + " => " + err); reject(err); });
+        }
+        resolve();
+      });
+    };
+
     this.set = function (deviceId, theValue) {
       return new Promise(function (resolve, reject) {
         if (self.value != theValue) {
@@ -23,7 +34,7 @@ class switchHelper {
         resolve();
       });
     };
-   controller.addListenerVariable(variableListened, self.set);
+   controller.addListenerVariable(variableListened, self.update);
   }
 }
 exports.switchHelper = switchHelper;

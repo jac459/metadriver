@@ -39,109 +39,115 @@ class ProcessingManager {
   get processor() {
     return this._processor;
   }
-  process(command) {
+  process(params) {
     return new Promise( (resolve, reject) => {
-      this._processor.process(command)
+      this._processor.process(params)
       .then((result) => {resolve(result)})
       .catch((err) => reject (err))
     })
   }
-  query(data, query) {
-    return this._processor.query(data, query)
+  query(params) {
+    return this._processor.query(params)
   }
-  startListen (command, listener, _listenCallback, socket) {
-    return this._processor.startListen(command, listener, _listenCallback, socket)
+  startListen (params) {
+    return this._processor.startListen(params)
   }
-  stopListen (listener) {
-    return this._processor.stopListen(listener)
+  stopListen (params) {
+    return this._processor.stopListen(params)
   }
 
 }
 class httpgetProcessor {
   constructor() {
   }; 
-  process (command) {
+  process (params) {
     return new Promise(function (resolve, reject) {
-      http(command) 
+      http(params.command) 
       .then(function(result) { 
         resolve(result.data)
       })
-      .catch((err) => {reject (err)})
+      .catch((err) => {
+        reject (err)})
     })
   }
-  query (data, query) {
+  query (params) {
     return new Promise(function (resolve, reject) {
-      if (query) {
+      if (params.query) {
         try {
-          if (typeof(data) == 'string') {data = JSON.parse(data)}
-          resolve(jpath.query(data, query));
+          if (typeof(params.data) == 'string') {params.data = JSON.parse(params.data)}
+          resolve(jpath.query(params.data, params.query));
         }
         catch (err) {
-          console.log('error ' + err + ' in JSONPATH ' + query + ' processing of :' + data)
+          console.log('error ' + err + ' in JSONPATH ' + params.query + ' processing of :' + params.data)
         }
       }
-      else {resolve(data)}
+      else {resolve(params.data)}
     })
   }
-  startListen (command, listener, _listenCallback) {
+  startListen (params) {
     return new Promise(function (resolve, reject) {
         let previousResult = '';
-        listener.timer = setInterval(() => {
-          http(command) 
+        params.listener.timer = setInterval(() => {
+          http(params.command) 
           .then(function(result) { 
             if (result != previousResult) {
               previousResult = result;
-              _listenCallback(result, listener);
+              params._listenCallback(result, params.listener);
             }
-            resolve('')
+            resolve('');
           })
           .catch((err) => {console.log(err)})
-        }, (listener.pooltime?listener.pooltime:1000));
-        if (listener.poolduration && (listener.poolduration != '')) {
-          setTimeout(() => {
-            clearInterval(listener.timer)
-          }, listener.poolduration);
+        }, (params.listener.pooltime?params.listener.pooltime:1000));
+        if (params.listener.poolduration && (params.listener.poolduration != '')) {
+            setTimeout(() => {
+              clearInterval(params.listener.timer)
+            }, params.listener.poolduration);
         }
     })
   }
-  stopListen (listener) {
-    clearInterval(listener.timer);
+  stopListen (params) {
+    clearInterval(params.listener.timer);
   }
 }
 
 class webSocketProcessor {
-  process (command, socket) {
+  process (params) {
     return new Promise(function (resolve, reject) {
-      if (typeof(command) == 'string') {command = JSON.parse(command)}
-      if (command.call){
-        listener.io.emit(command.emit, command.message)
-        resolve('')
+      if (typeof(params.command) == 'string') {params.command = JSON.parse(params.command)}
+      if (params.command.call){
+        params.socketIO.emit(params.command.call, params.command.message);
+        resolve('');
       }
     })
   }
-  query (data, query) {
+  query (params) {
     return new Promise(function (resolve, reject) {
       try {
-        resolve(jpath.query(data, query));
+        if (params.query) {
+          resolve(jpath.query(params.data, params.query));
+        }
+        else {
+          resolve(params.data);
+        }
       }
       catch (err) {
-        console.log('error ' + err + ' in JSONPATH ' + query + ' processing of :' + data)
+        console.log('error ' + err + ' in JSONPATH ' + params.query + ' processing of :' + params.data)
       }
     })
   }
-  startListen (command, listener, _listenCallback) {
+  startListen (params) {
     return new Promise(function (resolve, reject) {
-        console.log('Starting to listen to the device.')
-        console.log(listener)
-        console.log(command)
-        listener.io = io.connect(listener.socket);
-        listener.io.on(command, (result) => {_listenCallback(result, listener)});
+        console.log('Starting to listen to the device.');
+        console.log(params.listener);
+        console.log(params.command);
+        params.socketIO.on(params.command, (result) => {params._listenCallback(result, params.listener)});
         resolve('');
    })
   }
-  stopListen (listener) {
+  stopListen (params) {
     console.log('Stop listening to the device.')
-    listener.io.disconnect(listener.socket);
+//    TODO stop listening
+//    listener.io.disconnect(listener.socket);
   }
 }
 
@@ -168,26 +174,26 @@ function convertXMLTable2JSON (TableXML, indent, TableJSON) {
 }
 
 class httpgetSoapProcessor {
-  process (command) {
+  process (params) {
     return new Promise(function (resolve, reject) {
-      http(command) 
+      http(params.command) 
       .then(function(result) { 
         resolve(result.data)
       })
       .catch((err) => {reject (err)})
     })
   }
-  query (data, query) {
+  query (params) {
     return new Promise(function (resolve, reject) {
-      if (query) {
+      if (params.query) {
         try {
-          console.log('RAW XPATH Return elt 0: ' + data);
-          var doc = new xmldom().parseFromString(data);
-          console.log('RAW XPATH Return elt 0.1: ' + doc);
-          console.log('RAW XPATH Return elt 0.1: ' + query);
-          var nodes = xpath.select(query, doc);
-          console.log('RAW XPATH Return elt : ' + nodes);
-          console.log('RAW XPATH Return elt 2: ' + nodes.toString());
+          //console.log('RAW XPATH Return elt 0: ' + data);
+          var doc = new xmldom().parseFromString(params.data);
+          //console.log('RAW XPATH Return elt 0.1: ' + doc);
+          //console.log('RAW XPATH Return elt 0.1: ' + query);
+          var nodes = xpath.select(params.query, doc);
+          //console.log('RAW XPATH Return elt : ' + nodes);
+          //console.log('RAW XPATH Return elt 2: ' + nodes.toString());
           let JSonResult = [];
           convertXMLTable2JSON(nodes, 0, JSonResult).then((result) => {
             console.log('Result of conversion +> ');
@@ -196,68 +202,85 @@ class httpgetSoapProcessor {
           })
         }
         catch (err) {
-          console.log('error ' + err + ' in XPATH ' + query + ' processing of :' + data)
+          console.log('error ' + err + ' in XPATH ' + params.query + ' processing of :' + params.data)
         }
       }
-      else {resolve(data)}
+      else {resolve(params.data)}
     })
   }
-  listen (command, listener, _listenCallback) {
+  listen (params) {
     return '';
   }
 }
 class httppostProcessor {
-  process (command) {
+  process (params) {
     return new Promise(function (resolve, reject) {
-      if (typeof(command) == 'string') {command = JSON.parse(command)}
-      if (command.call){
-        http.post(command.call, command.message) 
+      if (typeof(params.command) == 'string') {params.command = JSON.parse(params.command)}
+      if (params.command.call){
+        console.log('COMMAND')
+        console.log('COMMAND')
+        console.log('COMMAND')
+        console.log('COMMAND')
+        console.log(params)
+        console.log(params.command.message)
+        http.post(params.command.call, params.command.message) 
         .then(function(result) { 
+          console.log('Result of the post command:');
+          console.log(result.data);
+          console.log(params);
           resolve(result.data)
         })
-        .catch((err) => {console.log(err);reject (err)})
+        .catch((err) => {console.log("Error in the post command: "); console.log(err);reject (err)})
       }
       else {reject('no post command provided or improper format')}
     })
   }
-  query (data, query) {
+  query (params) {
     return new Promise(function (resolve, reject) {
       try {
-        resolve(jpath.query(JSON.parse(data), query));
+        resolve(jpath.query(JSON.parse(params.data), params.query));
       }
       catch (err) {
-        console.log('error ' + err + ' in JSONPATH ' + query + ' processing of :' + data)
+        console.log('error ' + err + ' in JSONPATH ' + params.query + ' processing of :' + params.data)
       }
     })
   }
-  listen (command, listener, _listenCallback) {
+  listen (params) {
     return '';
   }
 }
 class staticProcessor {
-  process (command) {
+  process (params) {
     return new Promise(function (resolve, reject) {
-      resolve(command);
+      resolve(params.command);
     })
   }
-  query (data, query) {
+  query (params) {
     return new Promise(function (resolve, reject) {
         try {
-        resolve(jpath.query(JSON.parse(data), query));
+          if (params.query && params.query != '') {
+            resolve(jpath.query(JSON.parse(params.data), params.query));
+          }
+          else {
+            if (params.data != '') {
+              resolve(JSON.parse(params.data))
+            }
+            else {resolve()}
+          }
         }
         catch {
-          console.log('error in JSONPATH ' + query + ' processing of :' + data)
+          console.log('error in JSONPATH ' + params.query + ' processing of :' + params.data)
         }
     })
   }
-  listen (command, listener, _listenCallback) {
+  listen (params) {
     return '';
   }
 }
 class cliProcessor {
-  process (command) {
+  process (params) {
     return new Promise(function (resolve, reject) {
-        exec(command, (stdout, stderr) => {
+        exec(params.command, (stdout, stderr) => {
           if (stdout) {
             resolve(stdout);
           }
@@ -267,18 +290,18 @@ class cliProcessor {
         })
     })
   }
-  query (data, query) {
+  query (params) {
     return new Promise(function (resolve, reject) {
       try {
         //let resultArray = new [];
-        resolve(data.split(query));
+        resolve(params.data.split(params.query));
       }
       catch {
-        console.log('error in string.search regex :' + query + ' processing of :' + data)
+        console.log('error in string.search regex :' + params.query + ' processing of :' + params.data)
       }
     })
   }
-  listen (command, listener, _listenCallback) {
+  listen (params) {
     return '';
   }
 }
@@ -295,7 +318,8 @@ const myWebSocketProcessor = new webSocketProcessor();
 module.exports = function controller(driver) {
   this.buttons = driver.buttons; //structure keeping all buttons of the driver
   this.sendComponentUpdate;
-  this.socket;
+  this.socketIO;
+  this.socketName = driver.socket;
   this.deviceVariables = []; //container for all device variables.
   this.listeners = []; //container for all device listeners.
   this.imageH = []; //image helper to store all the getter of the dynamically created images.
@@ -308,8 +332,6 @@ module.exports = function controller(driver) {
    
  
   this.addListener = function(params) {
-    params.timer = ""; // for pooling
-    params.io = ""; // for websocket
     self.listeners.push(params);
   }
 
@@ -318,12 +340,18 @@ module.exports = function controller(driver) {
   }
 
   this.addListenerVariable = function(theVariable, theFunction) { // who listen to variable changes.
-    if (theVariable != undefined && theVariable != '' && theFunction != undefined && theFunction) {
-      const listenerList = self.deviceVariables.find(elt => {return elt.name == theVariable}).listeners;
-      listenerList.push(theFunction);
-      return listenerList[listenerList.length-1];
+    try {
+      if (theVariable != undefined && theVariable != '' && theFunction != undefined && theFunction) {
+        const listenerList = self.deviceVariables.find(elt => {return elt.name == theVariable}).listeners;
+        listenerList.push(theFunction);
+        return listenerList[listenerList.length-1];
+      }
+      else {return undefined};
     }
-    else {return undefined};
+    catch (err) {
+      console.log("It seems that you haven\'t created the variable yet");
+      console.log(err)
+    }
   }
 
   this.addImageHelper = function(imageName, listened) {//function called by the MetaDriver to store 
@@ -332,8 +360,8 @@ module.exports = function controller(driver) {
     return newImageH;
   }
   
-  this.addLabelHelper = function(labelName, listened) {//function called by the MetaDriver to store 
-    const newLabelH = new labelHelper(labelName, listened, self)
+  this.addLabelHelper = function(labelName, listened, actionListened) {//function called by the MetaDriver to store 
+    const newLabelH = new labelHelper(labelName, listened, self, actionListened)
     self.labelH.push(newLabelH);
     return newLabelH;
   }
@@ -388,19 +416,21 @@ module.exports = function controller(driver) {
   this.assignTo = function(Pattern, inputChain, givenResult) //Assign a value to the input chain. Pattern found is replaced by given value
   {
    try {
+ 
       if (givenResult && !(typeof(givenResult) in {"string":"", "number":"", "boolean":""}) ) {//in case the response is a json object, convert to string
         givenResult = JSON.stringify(givenResult);
       }
-      
+     
       if (typeof(inputChain) == 'string') {
         if (inputChain.startsWith('DYNAMIK ')) {
           if (givenResult && (typeof(givenResult) == 'string' )) {
             givenResult = givenResult.replace(/\\/g, '\\\\') // Absolutely necessary to properly escape the escaped character. Or super tricky bug.
             givenResult = givenResult.replace(/"/g, '\\"') // Absolutely necessary to properly escape the escaped character. Or super tricky bug.
           }
-          inputChain = inputChain.replace(Pattern, givenResult);
-          console.log(inputChain.split('DYNAMIK ')[1])
-          console.log(eval(inputChain.split('DYNAMIK ')[1]))
+          while (inputChain != inputChain.replace(Pattern, givenResult)) {
+            inputChain = inputChain.replace(Pattern, givenResult);
+          }
+   
           return eval(inputChain.split('DYNAMIK ')[1]);
         }
         else {
@@ -455,9 +485,8 @@ module.exports = function controller(driver) {
       else {reject('The commandtype to process is not defined.' + commandtype + ' command : ' + command)}
       command = self.readVariables(command);
       command = self.assignTo(RESULT, command, "");
-      console.log('final command : ')
-      console.log(command)
-      processingManager.process(command, self.socket)
+      let params = {'command' : command, 'socketIO' : self.socketIO};
+      processingManager.process(params)
         .then((result) => {
           resolve(result)
         })
@@ -487,7 +516,8 @@ module.exports = function controller(driver) {
       }
       else {reject('The commandtype to listen is not defined.' + commandtype + ' command : ' + command)}
       command = self.readVariables(command);
-      processingManager.startListen(command, listener, self.onListenExecute)
+      let params = {'command' : command, 'listener' : listener, '_listenCallback' : self.onListenExecute, 'socketIO' : self.socketIO};
+      processingManager.startListen(params)
         .then((result) => {
            resolve(result)
         })
@@ -497,9 +527,6 @@ module.exports = function controller(driver) {
 
   this.stopListenProcessor = function(command, commandtype, listener) { // process any command according to the target protocole
     return new Promise(function (resolve, reject) {
-      console.log('command')
-      console.log(command)
-      console.log(commandtype)
       if (commandtype == HTTPGET) {
         processingManager.processor = myHttpgetProcessor;
       } 
@@ -519,7 +546,8 @@ module.exports = function controller(driver) {
         processingManager.processor = myWebSocketProcessor;
       }
       else {reject('The commandtype to stop listen is not defined.' + commandtype + ' command : ' + command)}
-       processingManager.stopListen(listener);
+      let params = {'listener' : listener}
+      processingManager.stopListen(params);
     })    
   }
 
@@ -546,15 +574,10 @@ module.exports = function controller(driver) {
       else {reject('commandtype to querry is not defined.')}
       //console.log('Query Processor : ' + query)
       query = self.readVariables(query);
-      //console.log('Query Processor : ' + query)
-      if (query != undefined && query != '') {
-        processingManager.query(data, query).then((data) => {
-          console.log("Result of the query")
-          console.log(data)
+      let params = {'query' : query, 'data' : data}
+      processingManager.query(params).then((data) => {
           resolve(data)
         })
-      }
-      else {resolve(data)}
     })
   }
 /*
@@ -605,7 +628,8 @@ module.exports = function controller(driver) {
   }
 
   this.onListenExecute = function (result, listener) {
-    let deviceId = 'default' // TODO Find a way to dynamically get the deviceId (in order to support discovery)    
+    let deviceId = 'default' // TODO Find a way to dynamically get the deviceId (in order to support discovery)  
+    console.log('onlistenExecute')  
     self.queryProcessor(result, listener.queryresult, listener.type).then((result) => {
       //result = result[0];
       if (Array.isArray(result)) {
@@ -669,6 +693,7 @@ module.exports = function controller(driver) {
  
     let theButton = self.buttons[name];
     if (name == "INITIALISE") {//Listener management to listen to other devices. Start listening on power on.
+      if (self.socketIO == "" || self.socketIO == undefined) {self.socketIO = io.connect(self.socketName);}
       self.listeners.forEach(listener => {
         self.listenStart(listener);
       });
@@ -677,6 +702,7 @@ module.exports = function controller(driver) {
       self.listeners.forEach(listener => {
         self.listenStop(listener);
       });
+      self.socketIO.disconnect(self.socketName);
     }
     if (theButton != undefined) {
       if ((theButton.type == HTTPGET) || (theButton.type == HTTPPOST) || (theButton.type == STATIC) || (theButton.type == WEBSOCKET) || (theButton.type == CLI)) {

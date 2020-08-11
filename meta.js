@@ -6,6 +6,7 @@ const fs = require('fs')
 const activatedModule = __dirname + '/activated/';
 const { exec } = require("child_process");
 const { resolve } = require("path");
+const { get } = require("http");
 const BUTTONHIDE = '__'
 var config = {brainip : '', brainport : ''};
 const driverTable = [];
@@ -96,14 +97,17 @@ function executeDriversCreationFromFiles (drivers) {
             theDevice.setIcon(driver.icon)
         }
         
-        if (driver.socket) {controller.addSocket(driver.socket)}// create a socket needed for websocket connection only
+        //TODO Suppress when refactored 
+        //if (driver.socket) {controller.addSocket(driver.socket)}// create a socket needed for websocket connection only
         
         //CREATING VARIABLES
-         for (var prop in driver.variables) { // Initialisation of the variables
+        for (var prop in driver.variables) { // Initialisation of the variables
           if (Object.prototype.hasOwnProperty.call(driver.variables, prop)) {
              controller.addVariable(prop, driver.variables[prop])
           }
         }
+        controller.addVariable('NeeoBrainIP', config.brainip); //Adding a usefull system variable giving the brain IP address.
+
    
         //CREATING LISTENERS
         for (var prop in driver.listeners) { // Initialisation of the variables
@@ -112,7 +116,7 @@ function executeDriversCreationFromFiles (drivers) {
                name : prop, 
                type : driver.listeners[prop].type,
                command : driver.listeners[prop].command,
-               socket : driver.listeners[prop].socket,
+               timer : "", //prepare the the listener to save the timer here.
                pooltime : driver.listeners[prop].pooltime,
                poolduration : driver.listeners[prop].poolduration,
                queryresult : driver.listeners[prop].queryresult,
@@ -131,7 +135,7 @@ function executeDriversCreationFromFiles (drivers) {
      
         for (var prop in driver.labels) { // Dynamic creation of all labels
           if (Object.prototype.hasOwnProperty.call(driver.labels, prop)) {
-            controller.addLabelHelper(prop, driver.labels[prop].listen)
+            controller.addLabelHelper(prop, driver.labels[prop].listen, driver.labels[prop].actionlisten)
           }
         }
 
@@ -292,7 +296,7 @@ function executeDriversCreationFromFiles (drivers) {
 
         for (var prop in driver.sliders) { // Dynamic creation of all sliders
            if (Object.prototype.hasOwnProperty.call(driver.sliders, prop)) {
-            if (theDevice.sliders.findIndex((item) => {return (item.param.name == prop)})<0) {//not image of same name (in case included in a widget)
+            if (theDevice.sliders.findIndex((item) => {return (item.param.name == prop)})<0) {//not slider of same name (in case included in a widget)
               theDevice.addSlider({
                 name: prop, 
                 label: (driver.sliders[prop].label == '') ? (prop) : (driver.sliders[prop].label),
@@ -307,7 +311,7 @@ function executeDriversCreationFromFiles (drivers) {
 
         for (var prop in driver.directories) { // Dynamic creation of directories
           if (Object.prototype.hasOwnProperty.call(driver.directories, prop)) {
-            if (theDevice.directories.findIndex((item) => {return (item.param.name == prop)})<0) {//not image of same name (in case included in a widget)
+            if (theDevice.directories.findIndex((item) => {return (item.param.name == prop)})<0) {//not directory of same name (in case included in a widget)
               theDevice.addDirectory({
                 name: prop, 
                 label: (driver.directories[prop].label == '') ? (prop) : (driver.directories[prop].label),
@@ -404,12 +408,10 @@ function runNeeo () {
 
 //MAIN
 
-createDevices()
+getConfig().then(() => {
+  createDevices()
   .then (() => {
-    getConfig().then(() => {
-      setupNeeo();
-    })
+    setupNeeo();
   })
-  .catch ((err) => {console.log('Error during device creation.'); console.log(err)})
+})
 
- 

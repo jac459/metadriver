@@ -12,6 +12,8 @@ class imageHelper {
 
     this.update = function (deviceId, theValue) {
       return new Promise(function (resolve, reject) {
+        console.log('Image Helper called')
+        console.log(theValue)
         if (self.value != theValue) {
           self.value = theValue;
           controller.sendComponentUpdate({ uniqueDeviceId: deviceId, component: self.name, value: self.value})

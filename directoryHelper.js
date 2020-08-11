@@ -25,7 +25,7 @@ class directoryHelper {
     this.evalNext = function (evalnext, result, browseIdentifierValue) {
       if (evalnext) { //case we want to go to another feeder
         evalnext.forEach(evalN => {
-          if (evalN.test == '' || evalN.test == true) {evalN.test = true}; //in case of no test, go to the do function
+          //if (evalN.test == '') {evalN.test = true}; //in case of no test, go to the do function TODO: correction, not working.
           let finalNextTest = self.controller.readVariables(evalN.test);// prepare the test to assign variable and be evaluated.
           finalNextTest = self.controller.assignTo(RESULT, finalNextTest, result);
           if (browseIdentifierValue) {
@@ -107,7 +107,7 @@ class directoryHelper {
         
 //        self.currentCommandResult = [];//initialise as new commands will be done now.
 
-        self.fillTheList(cacheList, allconfigs, params, 0, 0).then((cacheList) => {
+        self.fillTheList(cacheList, allconfigs, params, 0, 0).then((cacheList) => {//cacheList, allconfigs, params, indentCommand
             //console.log(cacheList);
             //Feed the neeo list
             let neeoList;
@@ -123,7 +123,7 @@ class directoryHelper {
                 let tiles = [];
                 tiles.push({
                     thumbnailUri: cacheList[i].image,
-                    actionIdentifier: cacheList[i].action,
+                    actionIdentifier: (cacheList[i].action ? cacheList[i].action + "$ListIndex=" + (i-1) : cacheList[i].action), //For support of index
                     uiAction: 'reload',
                 })
                 if ((i+1 < cacheList.length) && (cacheList[i+1].itemtype == 'tile')) {
@@ -142,7 +142,7 @@ class directoryHelper {
                   title: cacheList[i].name,
                   label: cacheList[i].label,
                   thumbnailUri: cacheList[i].image,
-                  actionIdentifier: (cacheList[i].action ? cacheList[i].action + "$ListIndex=" + i : cacheList[i].action), //For support of index
+                  actionIdentifier: (cacheList[i].action ? cacheList[i].action + "$ListIndex=" + (i-1) : cacheList[i].action), //For support of index
                   browseIdentifier: cacheList[i].browse,
                   uiAction: (cacheList[i].action != '' || cacheList[i].action != undefined) ? '' : 'reload',
                 });
@@ -163,10 +163,11 @@ class directoryHelper {
         let rLabel;
         return new Promise(function (resolve, reject) {
           if (indentCommand < allconfigs.commandset.length) {
+            cacheList, allconfigs, params, indentCommand
             let commandSet = allconfigs.commandset[indentCommand];
             let processedCommand = self.controller.assignTo(BROWSEID, commandSet.command, params.browseIdentifier);
             processedCommand = self.controller.readVariables(processedCommand);
-            console.log('Final processed Command:' + processedCommand)
+            console.log('Final processed Command:' + processedCommand);
             self.controller.commandProcessor(processedCommand, commandSet.type)
               .then((result) => {
                 rName = self.controller.readVariables(commandSet.itemname); //ensure that the item name chain has the variable interpreted (except $Result)
@@ -175,7 +176,13 @@ class directoryHelper {
                 rLabel = self.controller.readVariables(commandSet.itemlabel); 
                 rAction = self.controller.readVariables(commandSet.itemaction); 
                 rBrowse = self.controller.readVariables(commandSet.itembrowse); 
-                self.controller.queryProcessor(result, commandSet.queryresult, commandSet.type).then ((resultList) => {
+                self.controller.queryProcessor(result, commandSet.queryresult, commandSet.type).then ((tempResultList) => {
+                  let resultList = [];
+                  if (!Array.isArray(tempResultList)) {//must be an array so make it an array if not
+                    resultList.push(tempResultList);
+                  }
+                  else {resultList = tempResultList;}
+
                   resultList.forEach(oneItemResult => { //As in this case, $Result is a table, transform $Result to get every part of the table as one $Result
                     cacheList.push({
                       'name' : self.controller.assignTo(RESULT, rName, oneItemResult),
@@ -191,7 +198,8 @@ class directoryHelper {
                 
               })
               .catch(function (err) {
-                console.log("Fetching error: " + err);
+                console.log("Fetching error: ");
+                console.log(err);
               });
           }
           else {
@@ -221,22 +229,47 @@ class directoryHelper {
         let commandSetIndex = params.actionIdentifier.split("$CommandSet=")[1];
         params.actionIdentifier = params.actionIdentifier.split("$CommandSet=")[0];
         self.controller.evalWrite(self.feederH[self.currentFeederIndex].commandset[commandSetIndex].evalwrite, PastQueryValue, deviceId);
-           
+         
         //finding the feeder which is actually an action feeder
         let ActionIndex = self.feederH.findIndex((feed) => {return (feed.name == params.actionIdentifier)});
-        let commandSet = self.feederH[ActionIndex].commandset[0]
-        let processedCommand = self.feederH[ActionIndex].commandset[0].command;
-        processedCommand = self.controller.readVariables(self.feederH[ActionIndex].commandset[0].command);
-        processedCommand = self.controller.assignTo(RESULT, processedCommand, PastQueryValue);
-        while (processedCommand != processedCommand.replace("$ListIndex", ListIndex)) {
-          processedCommand = processedCommand.replace("$ListIndex", ListIndex);
-        }
-        self.controller.commandProcessor(processedCommand, commandSet.type)
-          .then((result) => {
-            console.log(result)
-        })
-        resolve();
+        
+        //Processing all commandset recursively
+        resolve(self.executeAllActions(PastQueryValue, ListIndex, self.feederH[ActionIndex].commandset, 0));
       });
+    };
+
+    this.executeAllActions = function (PastQueryValue, ListIndex, allCommandSet, indexCommand) {
+      return new Promise(function (resolve, reject) {
+        
+        if (indexCommand < allCommandSet.length){
+          let commandSet = allCommandSet[indexCommand]; 
+          let processedCommand = commandSet.command;
+          processedCommand = self.controller.readVariables(processedCommand);
+          processedCommand = self.controller.assignTo(RESULT, processedCommand, PastQueryValue);
+          while (processedCommand != processedCommand.replace("$ListIndex", ListIndex)) { // Manage Index values
+            processedCommand = processedCommand.replace("$ListIndex", ListIndex);
+          } 
+          console.log(processedCommand);
+          self.controller.commandProcessor(processedCommand, commandSet.type)
+            .then((resultC) => {
+              console.log(resultC);
+          
+              self.controller.queryProcessor(resultC, commandSet.queryresult, commandSet.type)
+              .then ((result) => {
+                console.log(result)
+                resolve(self.executeAllActions(result, ListIndex, allCommandSet, indexCommand+1))
+              })
+              .catch ((err) => {
+                console.log("Error while parsing the command result.")
+                resolve(err);
+              })
+          })
+        }
+        else
+        {
+          resolve(); 
+        } 
+      })           
     };
   }
 }

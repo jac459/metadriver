@@ -16,8 +16,21 @@ class sliderHelper {
         resolve(self.value);
       });
     };
+    this.update = function (deviceId, theValue) {
+      return new Promise(function (resolve, reject) {
+        console.log('Label Helper updated')
+        console.log(theValue)
+        if (self.value != theValue) {
+          self.value = theValue;
+          controller.sendComponentUpdate({ uniqueDeviceId: deviceId, component: self.name, value: theValue})
+          .catch((err) => {console.log("Error while trying to put the value : " + theValue+ " in this component : " + self.name + " => " + err); reject(err); });
+        }
+       resolve();
+      });
+    };
     this.set = function (deviceId, theValue) {
       return new Promise(function (resolve, reject) {
+        console.log('Label Helper called')
         console.log(theValue)
         if (self.value != theValue) {
           self.value = theValue;
@@ -29,7 +42,7 @@ class sliderHelper {
        resolve();
       });
     };
-    controller.addListenerVariable(self.variableListened, self.set);
+    controller.addListenerVariable(self.variableListened, self.update);
    }
 }
 exports.sliderHelper = sliderHelper;
