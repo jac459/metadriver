@@ -26,6 +26,7 @@
     "fs": "0.0.1-security",
     "http.min": "^2.0.1",
     "jsonpath": "^1.0.2",
+    "mqtt": "^4.1.0",
     "neeo-sdk": "^0.53.8",
     "socket.io-client": "^2.3.0",
     "wake_on_lan": "^1.0.0",

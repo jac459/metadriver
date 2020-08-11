@@ -1,0 +1,15 @@
+{"name":"Tuto MQTT", 
+  "manufacturer":"Acme",
+  "version":1,
+  "type":"AVRECEIVER",
+  "buttons":{
+    "CURSOR LEFT": {"label":"", "type":"mqtt", "command":"{\"Topic\":\"NeeoBrain/Acme/NeeomaticXL\",\"Message\":\"Left
+\"}"},
+    "CURSOR RIGHT": {"label":"", "type":"mqtt", "command":"{\"Topic\":\"NeeoBrain/Acme/NeeomaticXL\",\"Message\":\"Rig
+ht\"}"},
+    "CURSOR UP": {"label":"", "type":"mqtt", "command":"{\"Topic\":\"NeeoBrain/Acme/NeeomaticXL\",\"Message\":\"Up\"}"
+},
+    "CURSOR DOWN": {"label":"", "type":"mqtt", "command":"{\"Topic\":\"NeeoBrain/Acme/NeeomaticXL\",\"Message\":\"Down
+\"}"}
+  }
+}
