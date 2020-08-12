@@ -278,4 +278,74 @@ My MiTV doesn't understand WOL. But it understand IR. Unfortunately, it is the v
 So here is the trick. On the power on button, the first think I do is a basic command to the TV. If the TV is on, it should always be a success. If it is not, in the evalwrite I mention Trying to switch on by IR. In the evaldo, I do the same test, and then I launch another command. For your information this command is a neeo brain command launching an IR call using my broadlink driver (but could be any), then I throw an infra red call but being 100% sure that it never switch off the TV. 
 NOTE: in order to get the exact text of any of your recipe, you could use the brain explorer of my meta. It is currently a bit raw but I will refine soon.
 
+### Tutorial Step 4b - List component.
+
+In this component we will start to learn the (by far) more complexe component of the neeo remote. It is also (by far) the coolest.
+Let's analyse these somewhat cryptic lines:
+```
+"directories":{
+    "Programs": {"label":"", "feeders": {
+        "Programs":{"label":"", "commandset": [{"type":"http-get", "command":"http://$MyTVIP:6095/controller?action=getinstalledapp&count=999&changeIcon=1", "queryresult":"$.data.AppInfo[*]", "itemname":"DYNAMIK JSON.parse(\"$Result\").AppName", "itemlabel":"\"Android TV App\"", 
+            "itemaction":"ProgramSet", "itemimage":"DYNAMIK JSON.parse(\"$Result\").IconURL", "evalwrite":[{"variable":"PackageName","value":"DYNAMIK JSON.parse(\"$Result\").PackageName"}]}]},
+        "ProgramSet":{"label":"", "commandset": [{"type":"http-get", "command":"http://$MyTVIP:6095/controller?action=startapp&type=packagename&packagename=$PackageName"}]}
+       }
+    }
+}
+```
+A Directory is basically a button calling a list. In this case, we will have one buttton, programs.
+Then we have feeders. A feeder basically feed the list with data. In the feeder we decide what to feed and how to display (listitem and tile for example). Finally we have also a special feeder for action to be done. Multiple feeders allow navigation among feeders. For example as you see in the volumio demo. (it frankly quite a nightmare to code but hey!, in the meta it is done for you :-).  
+In this example we have 2 feeders, one to display the program, another to perform an action.
+The first feeder (called programs also) trigger a command returning a gigantic JSON (cut here in order to save place)
+```
+{
+
+"status":0,
+
+"msg":"success",
+
+"data":{"AppInfo":[{"PackageName":"com.archos.mediacenter.videofree","IconURL":"http:\/\/192.168.1.33:6095\/request?action=getResource&name=com.archos.mediacenter.videofree1.png","AppName":"Archos Video","Order":1},{"PackageName":"org.videolan.vlc","IconURL":"http:\/\/192.168.1.33:6095\/request?action=getResource&name=org.videolan.vlc1.png","AppName":"VLC","Order":2},{"PackageName":"com.mxtech.videoplayer.ad","IconURL":"http:\/\/192.168.1.33:6095\/request?action=getResource&name=com.mxtech.videoplayer.ad1.png","AppName":"MX Player","Order":3},{"PackageName":"com.cloudtv","IconURL":"http:\/\/192.168.1.33:6095\/request?action=getResource&name=com.cloudtv1.png","AppName":"OTT","Order":4},{"PackageName":"com.newtv.cboxtv","IconURL":"http:\/\/192.168.1.33:6095\/request?action=getResource&name=com.newtv.cboxtv1.png","AppName":"CCTV.新视听","Order":5},
+```
+What is interresting us are the values in the lines:
+```
+{"PackageName":"org.videolan.vlc","IconURL":"http:\/\/192.168.1.33:6095\/request?action=getResource&name=org.videolan.vlc1.png","AppName":"VLC","Order":2}
+```
+In order to get that we do the jsonpath: $.data.AppInfo[*]. 
+
+It returns:
+```
+[
+ {
+   "PackageName": "com.archos.mediacenter.videofree",
+   "IconURL": "http://192.168.1.33:6095/request?action=getResource&name=com.archos.mediacenter.videofree1.png",
+   "AppName": "Archos Video",
+   "Order": 1
+ },
+ {
+   "PackageName": "org.videolan.vlc",
+   "IconURL": "http://192.168.1.33:6095/request?action=getResource&name=org.videolan.vlc1.png",
+   "AppName": "VLC",
+   "Order": 2
+ },
+ ...
+ ```
+This is what we want. the VERY IMPORTANT point to note is that the value returned is an array. as you remember, an array is between [...].
+SO basically, each lines of the list will be assigned one item of the table.
+#### itemname
+Item name is the name of the item displayed. The value we will choose is the appname attribute. In order to get it, we need to do :"DYNAMIK JSON.parse(\"$Result\").AppName"
+Again something new here, but immensely useful, JSON.parse (case sensitive). The JSON.parse will read a small JSON expression and make the attributes and their value available.
+#### itemlabel
+A fixed label here.
+#### itemimage
+Url for the thumbnail beign displayed, we use the IconURL given by my TV.
+#### itemaction
+Here is the name of the next feeder performing the action, in our case, ProgramSet.
+#### evalwrite
+Here is our old friend evalwrite. It will be activated when we click on the line. Here it will help to persist the packagename. Because the packagename is used as an argument for the action we want to trigger.
+#### action feeder
+Action feeder is not really a feeder but the action triggered when we click on an item on the list.
+In our case you see the following command.
+http://$MyTVIP:6095/controller?action=startapp&type=packagename&packagename=$PackageName
+You can recognised the $PackageName we have used. It will basically start the application in my TV we have choosen.
+
+  
 
