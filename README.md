@@ -44,7 +44,7 @@ This readme apply to metadriver Version 0.7.0 => Alpha release for advanced user
 #### To Do
 (not started but planned)
 - Support of headers on http calls.
-- Create lists (directories) with paging and complexe navigation (buttons)
+- Buttons in list
 - additional transport and format (MQTT, TCP, ...).
 - more sample devices (including IR blaster examples).
 
