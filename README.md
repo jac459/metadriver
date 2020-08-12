@@ -265,5 +265,17 @@ This command looks a bit weird so let's have a closer look at it.
 We first have DYNAMIK. DYNAMIK is our friend asking the dirver to interpret the string as javascript.
 then lets have a look at the first part into brakets:
 We are comparing to strings. Inside a DYNAMIK field, strings are always between 2 \". Why? Because we need to know the " is not a json one but part of the field, so we exit it as an external caracter. So as a conclusion, \"$Result\" means 'I want what is inside $Result and compare it as a string'. So we wnat to compare it to \"success\". The way to compare is '=='. It means, is it equal ? As you remember the normal resul of the command should be 'success' so in this case, if the command works well, it will indeed be equal.
+Going back to the global field, you can see it globally look likes that: atest ? something : somethingelse. As you remember, on the left side of the question mark is a condition, is success equal to success. Yes it is, so the result will be true. If it is true, the something will be chosen, if the result is false, the something else would be chosen. The test you can use are ==, <=, >=, <, >, != (not equal), and many others.
+So basically as you start to understand, if the command return success, we will diplay Left pressed, if not, command failed.
+
+Ok, we are all set for the second part of this tuto step.
+```
+"POWER ON": {"label":"", "type":"http-get", "command":"http://$MyTVIP:6095/controller?action=getinstalledapp&count=999&changeIcon=1", "queryresult":"$.msg", "evalwrite":[{"variable":"MyStatus","value":"DYNAMIK (\"$Result\"==\"success\")?\"Power is on\":\"Trying to Switch on by IR\""}], "evaldo":[{"test":"DYNAMIK \"$Result\"==\"success\"", "then":"", "or":"__POWER ON-IR"}]},
+"__POWER ON-IR": {"label":"", "type":"http-get", "command":"http://192.168.1.26:3000/v1/projects/home/rooms/6394342251295670272/devices/6699143044186243072/macros/6699143044261740545/trigger", "queryresult":"$.msg", "evalwrite":[{"variable":"MyStatus","value":"DYNAMIK (\"$Result\"==\"success\")?\"Power Off\":\"Command Failed\""}]}
+```
+In this example, you can see something much more interresting than displaying 'left pressed' in the remote.
+My MiTV doesn't understand WOL. But it understand IR. Unfortunately, it is the very same command to power on or power off the TV. So basically when I power on the recipe, sometimes it is powering on the TV, sometimes it switch off (making me very popular with my fammily :-).
+So here is the trick. On the power on button, the first think I do is a basic command to the TV. If the TV is on, it should always be a success. If it is not, in the evalwrite I mention Trying to switch on by IR. In the evaldo, I do the same test, and then I launch another command. For your information this command is a neeo brain command launching an IR call using my broadlink driver (but could be any), then I throw an infra red call but being 100% sure that it never switch off the TV. 
+NOTE: in order to get the exact text of any of your recipe, you could use the brain explorer of my meta. It is currently a bit raw but I will refine soon.
 
 
