@@ -208,7 +208,9 @@ IMPORTANT: Don't use 'nested' names for variables. For example if you have a var
 
 ### Tutorial Step 4 - Starting with real life example: controlling a MiTV (Xiaomi).
 
-In order to have more advanced interactions, let's see how the driver analyses, MiTV answers.
+https://www.youtube.com/watch?v=-XNF1mSqwuo
+
+In order to have more advanced interactions, let's see how the driver analyses MiTV' answers.
 
 ```
 {"name":"MiTV", 
