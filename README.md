@@ -206,3 +206,64 @@ In evaldo, you have:
 Note 2: In this example, you see how variables are used in a field. It is just $ before the name of the variable so the driver knows it is a variable ($MyVariable). 
 IMPORTANT: Don't use 'nested' names for variables. For example if you have a variable MyVariable and MyVariable2, if you write in a field $MyVariable2, the driver will understand it as Myvariable and '2'. So for example if the value of $MyVariable is Hello, you will endup with Hello2.
 
+### Tutorial Step 4 - Starting with real life example: controlling a MiTV (Xiaomi).
+
+In order to have more advanced interactions, let's see how the driver analyses, MiTV answers.
+
+```
+{"name":"MiTV", 
+    "manufacturer":"Xiaomi",
+    "version":3,
+    "type":"TV", 
+    "variables":{
+        "MyStatus":"",
+        "MyTVIP":"192.168.1.33",
+        "PackageName":""
+    },
+    "labels":{
+        "CurrentStatus" : {"label":"status", "listen":"MyStatus"}
+    },
+    "buttons":{
+        "CURSOR LEFT": {"label":"", "type":"http-get", "command":"http://$MyTVIP:6095/controller?action=keyevent&keycode=left", "queryresult":"$.msg", "evalwrite":[{"variable":"MyStatus","value":"DYNAMIK (\"$Result\"==\"success\")?\"Left pressed\":\"Command Failed\""}]},
+        "CURSOR RIGHT": {"label":"", "type":"http-get", "command":"http://$MyTVIP:6095/controller?action=keyevent&keycode=right", "queryresult":"$.msg", "evalwrite":[{"variable":"MyStatus","value":"DYNAMIK (\"$Result\"==\"success\")?\"Right pressed\":\"Command Failed\""}]},
+ ```
+ 
+ The beginning of this driver is quite boring, but the first thing you can notice is how the variable MyTVIP is used
+.
+Int the Get command: http://$MyTVIP:6095/controller?action=keyevent&keycode=left
+The value of the IP will be immediately modified and replaced. So if you change the IP you need to change only in one place. You will see later that it enables quite complexe scenarios.
+But now, let's focus of the most important part of this tutorial step :
+#### queryresult
+In order to understand query result, you need to understand the problem it solves. All the deivces we are trying to control are diverse, they speak different language, and most of the time they don't answer the way we want. Fortunately, most of the time they answer using a syntax called JSON (meta also supports XML, more on that later).
+In order to understand an answer in json, that can be extremely long (the neeo brain answer with 1000s of characters), you need to navigate through it. JPATH is our friend for that.
+So to be clear, if you are using an 'http-get' type of command, the queryresult will be a jpath.
+Let's see what it means.
+Going back to my MiTV, when I request the TV, it is answering with a weird thing:
+```
+{
+"status":0,
+"msg":"success",
+"data":{}
+}
+```
+Remember this format ? It is the same format used by our settings, the industry standard JSON. But it is too complex.
+We don't want to deal with that. We need only to now what is inside the msg part if it is a success. So that we can know if our command has worked.
+To simplify it we will filter using jpath (or jsonpath). 
+Please have a look at this: https://github.com/dchester/jsonpath
+It explains how to filter using jpath.
+In our case, the jpath is "$.msg". When applied to the json quoted before, it return.... success. Which is exactly what we want.
+In order to create a jpath yourself (it can be complexe, especially for example with a complex json like the brain), I strongly advice you to use an online evaluator: https://jsonpath.com/ (for example, there are many).
+You copy your json returned in your browser, and aplly your path.
+
+#### $Result 
+So to complete what was said in the previous tuto, $Result is in fact the result of the command, filtered by the queryresult. In our MiTV, it gives something much simpler: success. We could directly apply this to the label, but let's make something a bit more complex.
+#### evalwrite
+Here, we use our friend evalwrite. We will assign to MyStatus, itself attached to the label.
+What we will assign is : 
+#### DYNAMIK (\"$Result\"==\"success\")?\"Left pressed\":\"Command Failed\"
+This command looks a bit weird so let's have a closer look at it.
+We first have DYNAMIK. DYNAMIK is our friend asking the dirver to interpret the string as javascript.
+then lets have a look at the first part into brakets:
+We are comparing to strings. Inside a DYNAMIK field, strings are always between 2 \". Why? Because we need to know the " is not a json one but part of the field, so we exit it as an external caracter. So as a conclusion, \"$Result\" means 'I want what is inside $Result and compare it as a string'. So we wnat to compare it to \"success\". The way to compare is '=='. It means, is it equal ? As you remember the normal resul of the command should be 'success' so in this case, if the command works well, it will indeed be equal.
+
+
