@@ -1,3 +1,7 @@
+As I am working quite a lot on this driver nowadays, don't hesitate to supporte me to buy coffee. More coffees help me getting awake longer time and being more productive :-). 
+
+https://www.paypal.me/jac459
+
 # metadriver
 Programmable driver for Neeo to command any device and generate complex integration.
 Example of integration:
