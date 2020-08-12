@@ -57,7 +57,7 @@
       "__DIRECTPLAY": {"label":"", "type":"static", "command":"", "evalwrite":[{"variable":"MyPlayMode","value":"ACTION_Play"}, {"variable":"DirectPlay","value":"false"}]},
       "__PUTINQUEUE": {"label":"", "type":"static", "command":"", "evalwrite":[{"variable":"MyPlayMode","value":"ACTION_Queue"}, {"variable":"DirectPlay","value":"true"}]},
       "VOLUME UP": {"label":"", "type":"static", "command":"", "evalwrite":[{"variable":"VolumePlayed","value":"DYNAMIK (Number($VolumePlayed)<95)?Number($VolumePlayed)+5:100"}], "evaldo":[{"test":true, "then":"__VOLUMESET", "or":""}]},
-      "VOLUME DOWN": {"label":"", "type":"static", "command":"", "evalwrite":[{"variable":"VolumePlayed","value":"DYNAMIK (Number($VolumePlayed)>5)?Number($VolumePlayed)-5:0"}]},
+      "VOLUME DOWN": {"label":"", "type":"static", "command":"", "evalwrite":[{"variable":"VolumePlayed","value":"DYNAMIK (Number($VolumePlayed)>5)?Number($VolumePlayed)-5:0"}], "evaldo":[{"test":true, "then":"__VOLUMESET", "or":""}]},
       "STOP": {"label":"", "type":"http-get", "command":"http://volumio.local/api/v1/commands/?cmd=stop", "queryresult":"$.response", "evalwrite":[{"variable":"Playing","value":"Music Stopped"}]},
       "PLAY": {"label":"", "type":"http-get", "command":"http://volumio.local/api/v1/commands/?cmd=play", "queryresult":"$.response", "evalwrite":[{"variable":"Playing","value":"Music Started"}]},
       "PLAY TOGGLE": {"label":"", "type":"http-get", "command":"http://volumio.local/api/v1/commands/?cmd=toggle", "queryresult":"$.response", "evalwrite":[{"variable":"Playing","value":""}]},
@@ -140,7 +140,7 @@
         "feeders": {
           "Queue":{"label":"Queue", "commandset": [
             {"type":"static", "command":"[{\"image\":\"\"}]", "itemtype":"tile", "itemaction":"ACTION_Clear","itemimage":"https://raw.githubusercontent.com/jac459/metadriver/master/pictures/clear.jpg"},
-            {"type":"http-get", "command":"http://volumio.local/api/v1/getQueue", "queryresult":"$.queue[*]", "itemname":"DYNAMIK JSON.parse(\"$Result\").name", "itemlabel":"DYNAMIK JSON.parse(\"$Result\").artist", "itemaction":"ACTION_Play", "itemimage":"DYNAMIK \"http://volumio.local\" + JSON.parse(\"$Result\").albumart"}
+            {"type":"http-get", "command":"http://volumio.local/api/v1/getQueue", "queryresult":"$.queue[*]", "itemname":"DYNAMIK JSON.parse(\"$Result\").name", "itemlabel":"DYNAMIK JSON.parse(\"$Result\").artist", "itemaction":"ACTION_Play", "itemimage":"DYNAMIK (!JSON.parse(\"$Result\").albumart.startsWith(\"http\") ? (\"http://volumio.local\" + JSON.parse(\"$Result\").albumart) : JSON.parse(\"$Result\").albumart)"}
           ]},
           "ACTION_Play":{"label":"", "commandset": [{"type":"http-get", "command":"http://volumio.local/api/v1/commands/?cmd=play&N=$ListIndex", "queryresult":"", "itemname":"DYNAMIK JSON.parse(\"$Result\").title", "itemaction":"", "itemlabel":"Recipe name", "itemimage":"$AlbumArtURI"}]},
           "ACTION_Clear":{"label":"", "commandset": [{"type":"http-get", "command":"http://volumio.local/api/v1/commands/?cmd=clearQueue", "queryresult":"", "itemname":"DYNAMIK JSON.parse(\"$Result\").title", "itemlabel":"Recipe name", "itemaction":"Evaldo", "itemimage":"$AlbumArtURI"}]}
