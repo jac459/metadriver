@@ -106,7 +106,7 @@ class httpgetProcessor {
     })
   }
   stopListen (params) {
-    clearInterval(params.listener.timer);
+    clearInterval(params.timer);
   }
 }
 
@@ -525,29 +525,28 @@ module.exports = function controller(driver) {
     })    
   }
 
-  this.stopListenProcessor = function(command, commandtype, listener) { // process any command according to the target protocole
+  this.stopListenProcessor = function(listener) { // process any command according to the target protocole
     return new Promise(function (resolve, reject) {
-      if (commandtype == HTTPGET) {
+      if (listener.type == HTTPGET) {
         processingManager.processor = myHttpgetProcessor;
       } 
-      else if (commandtype == HTTPGETSOAP) {
+      else if (listener.type == HTTPGETSOAP) {
         processingManager.processor = myHttpgetSoapProcessor;
       } 
-      else if (commandtype == HTTPPOST) {
+      else if (listener.type == HTTPPOST) {
         processingManager.processor = myHttppostProcessor;
       }
-      else if (commandtype == STATIC) {
+      else if (listener.type == STATIC) {
         processingManager.processor = myStaticProcessor;
       }
-      else if (commandtype == CLI) {
+      else if (listener.type == CLI) {
         processingManager.processor = myCliProcessor;
       }
-      else if (commandtype == WEBSOCKET) {
+      else if (listener.type == WEBSOCKET) {
         processingManager.processor = myWebSocketProcessor;
       }
-      else {reject('The commandtype to stop listen is not defined.' + commandtype + ' command : ' + command)}
-      let params = {'listener' : listener}
-      processingManager.stopListen(params);
+      else {reject('The commandtype to stop listen is not defined.' + listener.type + ' command : ' + listener.command)}
+      processingManager.stopListen(listener);
     })    
   }
 
@@ -650,18 +649,7 @@ module.exports = function controller(driver) {
       catch (err) {reject('Error when starting to listen. ' + err)}
     })
   }
-  this.listenStop = function (listener) {
-    return new Promise(function (resolve, reject) {
-      try {
-        console.log('Listener stopping.'); 
-        console.log(listener)
-        self.stopListenProcessor(listener.command, listener.type, listener);
-      } 
-      catch (err) {reject('Error when starting to listen. ' + err)}
-    })
-  }
-
-
+  
   this.actionManager = function (name, deviceId, commandtype, command, queryresult, evaldo, evalwrite) {
     return new Promise(function (resolve, reject) {
       try {
@@ -700,7 +688,7 @@ module.exports = function controller(driver) {
     }
     if (name == "CLEANUP") {//listener management to listen to other devices. Stop listening on power off.
       self.listeners.forEach(listener => {
-        self.listenStop(listener);
+        self.stopListenProcessor(listener);
       });
       self.socketIO.disconnect(self.socketName);
     }
