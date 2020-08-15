@@ -1,12 +1,12 @@
 {"name":"Volumio", 
     "manufacturer":"Volumio",
-    "version":23,
-    "type":"AVRECEIVER", 
-    "socket":"http://volumio.local", 
+    "version":26,
+    "type":"AUDIO", 
+    "webSocket":"http://volumio.local", 
     "listeners" : {
       "VolumioStatus" : {"type":"webSocket", "command":"pushState", "queryresult" : "", 
         "evalwrite" : [ 
-            {"variable" : "Playing", "value" : "DYNAMIK JSON.parse(\"$Result\").title"}, 
+            {"variable" : "Playing", "value" : "DYNAMIK JSON.parse(\"$Result\").title + \" - \" + JSON.parse(\"$Result\").album + \" - \" + JSON.parse(\"$Result\").artist + \" @ \" + JSON.parse(\"$Result\").trackType+ ((JSON.parse(\"$Result\").bitdepth && JSON.parse(\"$Result\").samplerate) ? (\"/\"+JSON.parse(\"$Result\").bitdepth.replace(/ /g, \"\")+\"/\"+JSON.parse(\"$Result\").samplerate.replace(/ /g, \"\")) : \"\")"}, 
             {"variable" : "VolumePlayed", "value" : "DYNAMIK JSON.parse(\"$Result\").volume"}, 
             {"variable" : "VolumePlayedDisplay", "value" : "DYNAMIK '||'.repeat(JSON.parse(\"$Result\").volume) + '--'.repeat(Math.round((100-JSON.parse(\"$Result\").volume)/3))"}, 
             {"variable" : "AlbumCoverURI", "value" : "DYNAMIK (!JSON.parse(\"$Result\").albumart.startsWith(\"http\") ? (\"http://volumio.local\" + JSON.parse(\"$Result\").albumart) : JSON.parse(\"$Result\").albumart)"}
@@ -41,7 +41,7 @@
       "AlbumCoverSmall" : {"label":"", "size" : "small", "listen":"AlbumCoverURI"}
     },
     "labels":{  
-      "CurrentStatus" : {"label":"status", "listen":"Playing", "actionlisten":"VolumePlayedDisplay"}
+      "CurrentStatus" : {"label":" ", "listen":"Playing", "actionlisten":"VolumePlayedDisplay"}
     },
     "switches":{
       "PlayMode" : {"label":"Play <=> Queue", "listen":"DirectPlay", "evaldo":[{"test":"DYNAMIK $Result", "then":"__PUTINQUEUE", "or":"__DIRECTPLAY"}]}
@@ -60,7 +60,9 @@
       "VOLUME DOWN": {"label":"", "type":"static", "command":"", "evalwrite":[{"variable":"VolumePlayed","value":"DYNAMIK (Number($VolumePlayed)>5)?Number($VolumePlayed)-5:0"}], "evaldo":[{"test":true, "then":"__VOLUMESET", "or":""}]},
       "STOP": {"label":"", "type":"http-get", "command":"http://volumio.local/api/v1/commands/?cmd=stop", "queryresult":"$.response", "evalwrite":[{"variable":"Playing","value":"Music Stopped"}]},
       "PLAY": {"label":"", "type":"http-get", "command":"http://volumio.local/api/v1/commands/?cmd=play", "queryresult":"$.response", "evalwrite":[{"variable":"Playing","value":"Music Started"}]},
-      "PLAY TOGGLE": {"label":"", "type":"http-get", "command":"http://volumio.local/api/v1/commands/?cmd=toggle", "queryresult":"$.response", "evalwrite":[{"variable":"Playing","value":""}]},
+      "PLAY TOGGLE": {"label":"", "type":"http-get", "command":"http://volumio.local/api/v1/commands/?cmd=toggle", "queryresult":"$.response", "evalwrite":[{"variable":"Playing","value":"Ready"}]},
+      "POWER ON": {"label":"", "type":"static", "command":"", "evaldo":[{"test":true,"then":"INITIALISE", "or":""}]},
+      "POWER OFF": {"label":"", "type":"static", "command":"", "evaldo":[{"test":true,"then":"CLEANUP", "or":""}]},
       "CURSOR LEFT": {"label":"", "type":"static", "command":"", "evaldo":[{"test":true,"then":"PREVIOUS", "or":""}]},
       "CURSOR RIGHT": {"label":"", "type":"static", "command":"", "evaldo":[{"test":true,"then":"NEXT", "or":""}]},
       "CURSOR ENTER": {"label":"", "type":"static", "command":"", "evaldo":[{"test":true,"then":"PLAY TOGGLE", "or":""}]},
@@ -68,7 +70,7 @@
       "NEXT": {"label":"", "type":"http-get", "command":"http://volumio.local/api/v1/commands/?cmd=next", "queryresult":"$.response", "evalwrite":[{"variable":"Playing","value":"Next Track"}]},
       "CLEAR QUEUE": {"label":"", "type":"http-get", "command":"volumio.local/api/v1/commands/?cmd=clearQueue", "queryresult":"$.response", "evalwrite":[{"variable":"Playing","value":"Queue Cleared"}]},
       "__VOLUMESET": {"label":"", "type":"http-get", "command":"http://volumio.local/api/v1/commands/?cmd=volume&volume=$VolumePlayed"},
-      "__PROGRESSSET": {"label":"", "type":"webSocket", "socket":"http://volumio.local", "command":"DYNAMIK \"{\\\"call\\\":\\\"seek\\\", \\\"message\\\":\" + Math.round(0.01*Number($Progress)*$CurrentDuration) + \"}\""}
+      "__PROGRESSSET": {"label":"", "type":"webSocket", "command":"DYNAMIK \"{\\\"call\\\":\\\"seek\\\", \\\"message\\\":\" + Math.round(0.01*Number($Progress)*$CurrentDuration) + \"}\""}
     },
     "directories":{
       "Collection": {"label":"My music", 
