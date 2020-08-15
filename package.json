@@ -1,6 +1,6 @@
 {
   "name": "@jac459/metadriver",
-  "version": "0.7.0",
+  "version": "0.7.3",
   "description": "full customizable driver to control any device with neeo (including list and device monitoring)",
   "main": "meta.js",
   "scripts": {
@@ -25,7 +25,9 @@
   "dependencies": {
     "fs": "0.0.1-security",
     "http.min": "^2.0.1",
+    "json-rpc2": "^2.0.0",
     "jsonpath": "^1.0.2",
+    "lodash": "^4.17.19",
     "neeo-sdk": "^0.53.8",
     "socket.io-client": "^2.3.0",
     "wake_on_lan": "^1.0.0",
