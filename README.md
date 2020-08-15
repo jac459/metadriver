@@ -9,31 +9,40 @@ Example of integration:
 
 #### https://www.youtube.com/watch?v=LN6M7-U_0Bk&t=12s
 
-This readme apply to metadriver Version 0.7.0 => Alpha release for advanced users.
+This readme apply to metadriver Version 0.7.3 => Alpha release for advanced users.
+Version 0.7.3 brings some minor bug fixes as well as:
+- Devices discovery (for Hub devices like Philipes Hue or Snapcast)
+- Refined device listenning with better brain resource management.
+- Improved Volumio sample device
+- Snapcast support (in progress)
+- Technical protocols: JSON over TCP
 
 ## Features
 #### Full Support
 (tested on many devices)
 
 - Control any device with HTTP-GET and JSON API (REST).
+- Control any device with Socket.IO and JSON API.
 - Create Buttons
 - Create sliders 
+- Create Brightness sliders
 - Create switches 
 - Create Images 
 - Create lists (directories) with paging and complex navigation (items and tiles)
-- Link buttons with sliders
-- Chained commands (one button has different behaviour each time pressed, example, "mute toggle" will mute ON or OFF when pressed)
-- Variable Management for complexe integrations => a button or a choice in a list, can write in a variable, this variable can be reused by other components.
+- link buttons with sliders
+- Chained commands (one button have different behaviour each time pressed, example, mute toggle will mute on or off when pressed)
+- Variables Management for complexe integrations => a button or a choice in a list, can write in a variable, this variable can be reused by other components.
+- Listen to devices through Socket or http pooling.
 
 #### Partial Support
-(tested with on device)
+(tested with one device)
 
+- Device Discovery (one implementation ==> Snapcast driver)
 - Control any device with HTTP-POST and JSON API.
 - Control any device with HTTP-GET and XML API.
 - Control any device with WebSocket and JSON API.
-- Control any device with Socket.IO and JSON API.
+- Control any device with Json over TCP.
 - Control any device with CLI.
-- Listen to devices through WebSocket or http pooling.
 - Wake On Lan
 
 #### In Progress
@@ -347,4 +356,3 @@ http://$MyTVIP:6095/controller?action=startapp&type=packagename&packagename=$Pac
 You can recognised the $PackageName we have used. It will basically start the application in my TV we have choosen.
 
   
-
