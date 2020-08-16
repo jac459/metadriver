@@ -101,6 +101,8 @@ To use the driver without creating your own device files, you just need to know 
 
 ## User Corner
 
+ TODO: add how-to for the different devices created
+
 ## Maker Corner
 
 Hey, if you plan to create your own device for the meta, you are very much welcome and encouraged to do. You can go to the folling link in roder to find plenty of information to do so.
