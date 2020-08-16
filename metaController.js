@@ -139,11 +139,18 @@ class httpgetProcessor {
 class webSocketProcessor {
   initiate (connection) {
     return new Promise(function (resolve, reject) {
-      if (connection.connector == "" || connection.connector == undefined) {
+      try {
+        if (connection.connector != "" && connection.connector != undefined) {
+          connection.connector.close();
+        } //to avoid opening multiple
         connection.connector = io.connect(connection.descriptor);
-      } //to avoid opening multiple
-      resolve(connection);
-    })
+        resolve(connection);
+      }
+      catch (err) {
+        console.log('Error while intenting connection to the target device.')
+        console.log(err)
+      }
+    })//to avoid opening multiple
   }
   process (params) {
     return new Promise(function (resolve, reject) {
@@ -608,7 +615,6 @@ module.exports = function controller(driver) {
           while (preparedResult != preparedResult.replace(token, variable.value)) {
             preparedResult = preparedResult.replace(token, variable.value);
           }
-          
         }
     })
      return preparedResult;
@@ -683,13 +689,12 @@ module.exports = function controller(driver) {
 
   this.initiateProcessor = function(commandtype) { // Initiate communication protocoles
     return new Promise(function (resolve, reject) {
-
       self.assignProcessor(commandtype); //to get the correct processing manager.
       processingManager.initiate(self.getConnection(commandtype))
         .then((result) => {
           resolve(result)
         })
-        .catch((err) => {reject (err)})
+        .catch((err) => {console.log('Error during initiation with commandtype : ' + commandtype);console.log(err);reject (err)})
     })    
   }
 
@@ -807,7 +812,6 @@ module.exports = function controller(driver) {
   
   this.onButtonPressed = function(name, deviceId) {
     console.log('[CONTROLLER]' + name + ' button pressed for device ' + deviceId);
-    let theButton = self.buttons[self.buttons.findIndex((button) => {return button.name ==  builtHelperName(name,deviceId)})].value;
     if (name == "INITIALISE") {//Device resources and connection management.
       self.sliderH.forEach((helper) => {helper.initialise(deviceId)});//No need to cleanup as double addition is protected
       self.switchH.forEach((helper) => {helper.initialise(deviceId)});//No need to cleanup as double addition is protected
@@ -832,7 +836,7 @@ module.exports = function controller(driver) {
         self.wrapUpProcessor(connection.name);
       });
     }
-
+    let theButton = self.buttons[self.buttons.findIndex((button) => {return button.name ==  builtHelperName(name,deviceId)})].value;
     if (theButton != undefined) {
       if (theButton.type != WOL) { //all the cases
         if (theButton.command != undefined){ 

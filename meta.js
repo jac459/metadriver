@@ -4,10 +4,10 @@ const neeoapi = require("neeo-sdk");
 const metacontrol = require(__dirname + '/metaController');
 const fs = require('fs')
 const activatedModule = __dirname + '/activated/';
-const { exec } = require("child_process");
-const { resolve } = require("path");
-const { get } = require("http");
-const { Discovery } = require("neeo-sdk");
+//const { exec } = require("child_process");
+//const { resolve } = require("path");
+//const { get } = require("http");
+//const { Discovery } = require("neeo-sdk");
 const { builtHelperName } = require("./helpers");
 const BUTTONHIDE = '__';
 const DEFAULT = 'default'; //NEEO SDK deviceId default value
@@ -221,7 +221,7 @@ function executeDriversCreation (drivers, hubController, deviceId) { //drivers i
             controller.addVariable(builtHelperName(prop, currentDeviceId), driver.variables[prop])
           }
         }
-        controller.addVariable('NeeoBrainIP', config.brainip); //Adding a usefull system variable giving the brain IP address.
+        controller.addVariable(builtHelperName('NeeoBrainIP', currentDeviceId), config.brainip); //Adding a usefull system variable giving the brain IP address.
 
         //CREATING LISTENERS
         for (var prop in driver.listeners) { // Initialisation of the variables
