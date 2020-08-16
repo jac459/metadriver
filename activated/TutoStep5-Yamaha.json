@@ -18,14 +18,16 @@
         "MuteSwitch" : {"label":"", "listen":"IsMuted", "evaldo":[{"test":"DYNAMIK $Result", "then":"__MUTEON", "or":"__MUTEOFF"}]}
     },
     "listeners":{
-        "YamahaStatus" : {"type":"http-get", "command":"http://192.168.1.24/YamahaExtendedControl/v1/main/getStatus", "pooltime":"1000", "poolduration":"5000", "queryresult" : "$.data", 
+        "YamahaStatus" : {"type":"http-get", "command":"http://192.168.1.24/YamahaExtendedControl/v1/main/getStatus", "pooltime":"1000", "poolduration":"60000", "queryresult" : "$.data", 
           "evalwrite" : [ 
            {"variable" : "VolumePlayed","value" : "DYNAMIK Math.round(Number(JSON.parse(\"$Result\").volume)*100/161)"}
         ]}
     },
     "buttons":{
-        "POWER ON": {"label":"", "type":"http-get", "command":"http://192.168.1.24/YamahaExtendedControl/v1/main/setPower?power=on", "queryresult":"$.response_code", "evalwrite":[{"variable":"MyStatus","value":"DYNAMIK ($Result==0)?\"Receiver On\":\"command Failed\""}]},
-        "POWER OFF": {"label":"", "type":"http-get", "command":"http://192.168.1.24/YamahaExtendedControl/v1/main/setPower?power=standby", "queryresult":"$.response_code", "evalwrite":[{"variable":"MyStatus","value":"DYNAMIK ($Result==0)?\"Receiver On\":\"Command Failed\""}]},
+        "INITIALISE": {"label": "", "type":"static", "command":""},
+        "CLEANUP": {"label": "", "type":"static", "command":""},
+        "POWER ON": {"label":"", "type":"http-get", "command":"http://192.168.1.24/YamahaExtendedControl/v1/main/setPower?power=on", "queryresult":"$.response_code", "evalwrite":[{"variable":"MyStatus","value":"DYNAMIK ($Result==0)?\"Receiver On\":\"command Failed\""}], "evaldo":[{"test":true,"then":"INITIALISE", "or":""}]},
+        "POWER OFF": {"label":"", "type":"http-get", "command":"http://192.168.1.24/YamahaExtendedControl/v1/main/setPower?power=standby", "queryresult":"$.response_code", "evalwrite":[{"variable":"MyStatus","value":"DYNAMIK ($Result==0)?\"Receiver On\":\"Command Failed\""}], "evaldo":[{"test":true,"then":"CLEANUP", "or":""}]},
         "VOLUME UP": {"label":"", "type":"static", "command":"", "evalwrite":[{"variable":"VolumePlayed","value":"DYNAMIK (Number($VolumePlayed)<95)?Number($VolumePlayed)+5:100"}]},
         "VOLUME DOWN": {"label":"", "type":"static", "command":"", "evalwrite":[{"variable":"VolumePlayed","value":"DYNAMIK (Number($VolumePlayed)>5)?Number($VolumePlayed)-5:0"}]},
         "MUTE TOGGLE": {"label":"", "type":"static", "command":"", "evalwrite":[{"variable":"IsMuted","value":"DYNAMIK ($IsMuted==false)?true:false" }]},
