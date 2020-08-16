@@ -7,13 +7,7 @@ class sliderHelper {
     this.value = 50;
     this.evaldo = evaldo;
     var self = this;
-   /* this.toDeviceValue = function (value) {
-      return Math.round(self.min + (self.max - self.min) * value / 100);
-    };
-    this.toSliderValue = function (value) {
-      return Math.round(100 * (value - self.min) / (self.max - self.min));
-    };
- */ this.get = function () {
+    this.get = function () {
       return new Promise(function (resolve, reject) {
         resolve(self.value);
       });

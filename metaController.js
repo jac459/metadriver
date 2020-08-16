@@ -7,9 +7,7 @@ const { switchHelper } = require("./switchHelper");
 const { sensorHelper } = require("./sensorHelper");
 const { sliderHelper } = require("./sliderHelper");
 const { directoryHelper } = require("./directoryHelper");
-const { builtHelperName, getBuiltNameSeparator, getNameFromBuiltName} = require("./helpers");
-
-//const { jsontcp } = require("./jsontcp");
+const { builtHelperName, getDeviceIdFromBuiltName, getBuiltNameSeparator, getNameFromBuiltName} = require("./helpers");
 
 const { cachedDataVersionTag } = require('v8'); // check if needed for discovery of neeo brain and suppress otherwise.
 const { resolve } = require("path");
@@ -33,7 +31,7 @@ const STATIC = 'static';
 const CLI = 'cli';
 const CLIInt = 'cli-i';
 const WEBSOCKET = 'webSocket';
-const JSONTCP = 'jsontcp';
+const NDJSONTCP = 'ndjsontcp';
 const WOL = 'wol';
 const DEFAULT = 'default'; //NEEO SDK deviceId default value
 const rpc = require('json-rpc2');
@@ -194,7 +192,7 @@ class webSocketProcessor {
   }
 }
 
-class jsontcpProcessor {
+class ndjsontcpProcessor {
   initiate (connection) {
     return new Promise(function (resolve, reject) {
       //if (connection.connector == "" || connection.connector == undefined) {
@@ -260,10 +258,30 @@ class jsontcpProcessor {
   }
   startListen (params, deviceId) {
     return new Promise(function (resolve, reject) {
-        console.log('Starting to listen to the device.');
-        params.socketIO.on(params.command, (result) => {params._listenCallback(result, params.listener, deviceId)});
-        resolve('');
-   })
+      let previousResult = '';
+      clearInterval(params.listener.timer);
+      params.listener.timer = setInterval(() => {
+        if (params.command.call){
+          params.connection.connector.call(params.command.call, params.command.message, function(err, result){
+            if (err) {console.log(err)}
+            if (result != previousResult) {
+              previousResult = result;
+              params._listenCallback(result, params.listener, deviceId);
+            }
+          });
+        
+        }
+       resolve('');
+      }, (params.listener.pooltime?params.listener.pooltime:1000));
+      if (params.listener.poolduration && (params.listener.poolduration != '')) {
+          setTimeout(() => {
+            clearInterval(params.listener.timer)
+          }, params.listener.poolduration);
+      }
+      console.log(params)
+      if (typeof(params.command) == 'string') {params.command = JSON.parse(params.command)}
+      
+    })
   }
   stopListen (params) {
     console.log('Stop listening to the device.')
@@ -452,7 +470,7 @@ const myCliProcessor = new cliProcessor();
 const myCliIProcessor = new cliIProcessor();
 const myStaticProcessor = new staticProcessor();
 const myWebSocketProcessor = new webSocketProcessor();
-const myJsontcpProcessor = new jsontcpProcessor();
+const myNdjsontcpProcessor = new ndjsontcpProcessor();
 
 module.exports = function controller(driver) {
   this.buttons = []; //structure keeping all buttons of the driver
@@ -487,15 +505,18 @@ module.exports = function controller(driver) {
   }
 
   this.addVariable = function(name, value) {
-    self.deviceVariables.push({'name':name, 'value':value, 'listeners': []});
+    if (self.deviceVariables.findIndex(myVar => {myVar.name == name}) < 0) {//to avoid adding multiple times a listener
+      self.deviceVariables.push({'name':name, 'value':value, 'listeners': []});
+   }
   }
 
   this.addListenerVariable = function(theVariable, theFunction, deviceId) { // who listen to variable changes.
     try {
       if (theVariable != undefined && theVariable != '' && theFunction != undefined && theFunction) {
         let listenerList = self.deviceVariables.find(elt => {return elt.name == builtHelperName(theVariable, deviceId)}).listeners; 
-        if (listenerList.findIndex(func => {func == theFunction}) < 0) {//to avoid adding multiple times a listener
-          listenerList.push(theFunction);
+        if (listenerList.findIndex(func => {func.call == theFunction}) < 0) {//to avoid adding multiple times a listener
+          
+          listenerList.push({"deviceId" : deviceId, "call" : theFunction});
           return listenerList[listenerList.length-1];
         }
       }
@@ -563,10 +584,13 @@ module.exports = function controller(driver) {
 
   this.writeVariable = function(theVariable, theValue, deviceId) {//deviceId necessary as push to components.
     let foundVar = self.deviceVariables.find(elt => {return elt.name == builtHelperName(theVariable, deviceId)});
+        
     if (foundVar.value != theValue) {// If the value changed.
       foundVar.value = theValue; //Write value here
       foundVar.listeners.forEach(element => { //invoke all listeners
-        element(deviceId, foundVar.value);
+        if (element.deviceId == deviceId) {
+          element.call(deviceId, foundVar.value);
+        }
       });
     }
   }
@@ -681,8 +705,8 @@ module.exports = function controller(driver) {
     else if (commandtype == WEBSOCKET) {
       processingManager.processor = myWebSocketProcessor;
     }
-    else if (commandtype == JSONTCP) {
-      processingManager.processor = myJsontcpProcessor;
+    else if (commandtype == NDJSONTCP) {
+      processingManager.processor = myNdjsontcpProcessor;
     }
     else {console.log('Error in meta settings: The commandtype to process is not defined.' + commandtype)};
   }
@@ -766,10 +790,10 @@ module.exports = function controller(driver) {
   this.onListenExecute = function (result, listener, deviceId) {
     process.stdout.write('.');  
     self.queryProcessor(result, listener.queryresult, listener.type, deviceId).then((result) => {
-      //result = result[0];
       if (Array.isArray(result)) {
         result = result[0];
       }
+      console.log(result)
       if (listener.evalwrite) {self.evalWrite(listener.evalwrite, result, deviceId);}
       //if (listener.evaldo) {self.evalDo(listener.evaldo, result, deviceId);}
     })
@@ -822,9 +846,11 @@ module.exports = function controller(driver) {
       self.connectionH.forEach(connection => {//open all driver connections type
         self.initiateProcessor(connection.name, deviceId)
       });
-      
       self.listeners.forEach(listener => {
-        self.listenStart(listener, deviceId);
+        if (getDeviceIdFromBuiltName(listener.name) == deviceId) {
+          console.log('Starting this listener ' + listener.name + ' for ' + deviceId)
+          self.listenStart(listener, deviceId);
+        }
       });
     }
 

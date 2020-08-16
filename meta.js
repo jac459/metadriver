@@ -189,8 +189,8 @@ function executeDriversCreation (drivers, hubController, deviceId) { //drivers i
         if (driver.webSocket) {
           controller.addConnection({"name":"webSocket", "descriptor":driver.webSocket, "connector":""})
         }
-        if (driver.jsontcp) {
-          controller.addConnection({"name":"jsontcp", "descriptor":driver.jsontcp, "connector":""})
+        if (driver.ndjsontcp) {
+          controller.addConnection({"name":"ndjsontcp", "descriptor":driver.ndjsontcp, "connector":""})
         }
   
         //DISCOVERY  
@@ -227,7 +227,7 @@ function executeDriversCreation (drivers, hubController, deviceId) { //drivers i
         for (var prop in driver.listeners) { // Initialisation of the variables
           if (Object.prototype.hasOwnProperty.call(driver.listeners, prop)) {
              controller.addListener({
-               name : prop, 
+               name : builtHelperName(prop, currentDeviceId), 
                type : driver.listeners[prop].type,
                command : driver.listeners[prop].command,
                timer : "", //prepare the the listener to save the timer here.
