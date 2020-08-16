@@ -10,7 +10,11 @@ Example of integration:
 #### https://www.youtube.com/watch?v=LN6M7-U_0Bk&t=12s
 
 This readme apply to metadriver Version 0.7.3 => Alpha release for advanced users.
+
+### Latest update
 Version 0.7.3 brings some minor bug fixes as well as:
+- By default Brain Navigator device
+- minor bug correction
 - Devices discovery (for Hub devices like Philipes Hue or Snapcast)
 - Refined device listenning with better brain resource management.
 - Improved Volumio sample device
