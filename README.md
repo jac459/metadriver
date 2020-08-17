@@ -56,10 +56,15 @@ Version 0.7.3 brings some minor bug fixes as well as:
 
 #### To Do
 (not started but planned)
+- Registration capability in order to register to external systems (Hue, spotify, ...)
+- Variable saving (dictionnary store),
 - Support of headers on HTTP calls.
 - Buttons in list
 - Additional transport and format (MQTT, TCP, ...).
 - More sample devices (including IR blaster examples).
+
+#### Known bugs
+- Variables are not working for discovered items
 
 ## Install
 
