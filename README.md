@@ -12,7 +12,7 @@ Example of integration:
 This readme apply to metadriver Version 0.7.3 => Alpha release for advanced users.
 
 #### Latest update
-Version 0.7.3 brings some minor bug fixes as well as:
+Version 0.7.0.3 brings some minor bug fixes as well as:
 - By default Brain Navigator device
 - minor bug correction
 - Devices discovery (for Hub devices like Philips Hue or Snapcast)
