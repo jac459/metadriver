@@ -68,9 +68,7 @@ Version 0.7.3 brings some minor bug fixes as well as:
 
 #### Release Plan
 
-![alt text](https://raw.githubusercontent.com/jac459/metadriver/master/pictures/alpha.jpg)
-![alt text](https://raw.githubusercontent.com/jac459/metadriver/master/pictures/beta.jpg)
-![alt text](https://raw.githubusercontent.com/jac459/metadriver/master/pictures/v1.jpg)
+![alt text](https://raw.githubusercontent.com/jac459/metadriver/master/pictures/releaseplan.jpg)
 
 ## Install
 
