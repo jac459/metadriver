@@ -15,8 +15,8 @@ This readme apply to metadriver Version 0.7.3 => Alpha release for advanced user
 Version 0.7.3 brings some minor bug fixes as well as:
 - By default Brain Navigator device
 - minor bug correction
-- Devices discovery (for Hub devices like Philipes Hue or Snapcast)
-- Refined device listenning with better brain resource management.
+- Devices discovery (for Hub devices like Philips Hue or Snapcast)
+- Refined device listening with better Brain resource management.
 - Improved Volumio sample device
 - Snapcast support (in progress)
 - Technical protocols: JSON over TCP
@@ -33,10 +33,10 @@ Version 0.7.3 brings some minor bug fixes as well as:
 - Create switches 
 - Create Images 
 - Create lists (directories) with paging and complex navigation (items and tiles)
-- link buttons with sliders
-- Chained commands (one button have different behaviour each time pressed, example, mute toggle will mute on or off when pressed)
-- Variables Management for complexe integrations => a button or a choice in a list, can write in a variable, this variable can be reused by other components.
-- Listen to devices through Socket or http pooling.
+- Link buttons with sliders
+- Chained commands (one button has different behaviour each time pressed. Example: mute toggle will mute on or off when pressed)
+- Variables Management for complex integrations => a button or a choice in a list, can write in a variable, this variable can be reused by other components.
+- Listen to devices through Socket or HTTP pooling.
 
 #### Partial Support
 (tested with one device)
@@ -56,8 +56,8 @@ Version 0.7.3 brings some minor bug fixes as well as:
 
 #### To Do
 (not started but planned)
-- Registration capability in order to register to external systems (Hue, spotify, ...)
-- Variable saving (dictionnary store),
+- Registration capability in order to register to external systems (Hue, Spotify, ...)
+- Variable saving (dictionary store),
 - Support of headers on HTTP calls.
 - Buttons in list
 - Additional transport and format (MQTT, TCP, ...).
@@ -84,7 +84,7 @@ or
 
 ## How this driver work ?
 
-This driver is dynamically using JSON setting files (device files) in order to create various drivers loaded in the neeo brain.
+This driver is dynamically using JSON setting files (device files) in order to create various drivers loaded in the Neeo brain.
 A few examples of drivers are provided in 'activated' and 'disactivated' folders.
 Any file put in the 'activated' folder will be interpreted in order to generate a new driver.
 One advantage of this approach is that resources are well centralized and are supposed to have lesser impact on the brain.
@@ -92,7 +92,7 @@ Also, if you run from a Raspberry, the max number I have been able to load is 8 
 Another advantage is that there is only one code base running all the drivers so it will be theoretically easier to track bugs.
 Simple drivers will have very simple device files but expect a bit more complexity for advanced interactions.
 
-The target for this driver is to create a set of "device files" in order to continue to support many new devices when the neeo cloud will close.
+The target for this driver is to create a set of "device files" in order to continue to support many new devices when the Neeo cloud will close.
 
 ## How to use
 
@@ -110,6 +110,6 @@ To use the driver without creating your own device files, you just need to know 
 
 ## Maker Corner
 
-Hey, if you plan to create your own device for the meta, you are very much welcome and encouraged to do. You can go to the folling link in order to find plenty of information to do so.
+Hey, if you plan to create your own device for the metadriver, you are very much welcome and encouraged to do so. You can go to the folling link in order to find plenty of information on it.
 
 https://github.com/jac459/metadriver/blob/master/TUTORIALS.md
