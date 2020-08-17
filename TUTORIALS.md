@@ -259,4 +259,59 @@ In our case you see the following command.
 http://$MyTVIP:6095/controller?action=startapp&type=packagename&packagename=$PackageName
 You can recognised the $PackageName we have used. It will basically start the application in my TV we have choosen.
 
+### Tutorial Step 5 - Advanced List component.
+
+This tutorial is essentially focuing on the list component. In order to do that, we will use a device you can actually really use yourself: the neeo brain.
+So basically the code we will look at is just a brain explorer able to trigger receipt directly.
+
+https://www.youtube.com/watch?v=76BTjlOiIHk
+
+```
+"variables":{
+        "MyStatus":"",
+        "RoomKey":"",
+        "DeviceKey":"",
+        "TriggerKey":""
+  
+},
+"directories":{
+    "recipes": {"label":"", "feeders": {
+        "Rooms":{"label":"Rooms list", "commandset": [{"type":"http-get", "command":"http://$NeeoBrainIP:3000/v1/projects/home/rooms/", "queryresult":"$.*", "itemname":"DYNAMIK JSON.parse(\"$Result\").name", "itemtype": "listitem", "itemlabel":"Recipe name", "itemimage":"https://raw.githubusercontent.com/jac459/metadriver/master/AVReceiver/rooms.jpg", "evalnext":[{"test":true, "then":"Devices", "or":"Rooms"}], "evalwrite":[{"variable":"RoomKey","value":"DYNAMIK JSON.parse(\"$Result\").key"}]}  
+                                                 ]},
+        "Devices":{"label":"Devices list", "commandset": [{"type":"http-get", "command":"http://$NeeoBrainIP:3000/v1/projects/home/rooms/$RoomKey/devices", "queryresult":"$.*", "itemname":"DYNAMIK JSON.parse(\"$Result\").name", "itemlabel":"Recipe name", "itembrowse":"DYNAMIK JSON.parse(\"$Result\").key", "itemimage":"https://raw.githubusercontent.com/jac459/metadriver/master/AVReceiver/devices.jpg", "evalnext":[{"test":true, "then":"Macros", "or":"Devices"}], "evalwrite":[{"variable":"DeviceKey","value":"DYNAMIK JSON.parse(\"$Result\").key"}]}
+                                                  ]},
+        "Macros":{"label":"Macros list", "commandset": [{"type":"http-get", "command":"http://$NeeoBrainIP:3000/v1/projects/home/rooms/$RoomKey/devices/$DeviceKey/macros", "queryresult":"$.*", "itemname":"DYNAMIK JSON.parse(\"$Result\").name", "itemlabel":"Recipe name", "itemaction":"ACTION_ActivateMacro", "itemimage":"https://raw.githubusercontent.com/jac459/metadriver/master/AVReceiver/Neeo_logo.jpg", "evalwrite":[{"variable":"TriggerKey","value":"DYNAMIK JSON.parse(\"$Result\").key"}]}]},
+        "ACTION_ActivateMacro":{"label":"", "commandset": [{"type":"http-get", "command":"http://$NeeoBrainIP:3000/v1/projects/home/rooms/$RoomKey/devices/$DeviceKey/macros/$TriggerKey/trigger", "queryresult":"$.*", "itemname":"", "itemlabel":"Recipe name", "itemaction":""}
+                                                  ]}
+        }
+    }
+}
+```
+
+Before going to the list, let's look at 2 preliminary points:
+#### $NeeoBrainIP
+This variable is a special variable. It is used but not part of the variables declared. It is becaused it is a 'system variable'. You can use it any time and it contains... (drumrolls) your discovered brain IP address. 
+#### settings
+If you look in the activated devices, you won't find any file about the brain navigator. It is because this device is considered as a 'core device' and as such is placed directly into the setting.js file. That doesn't change anything, it just ensure that even if you have an empty 'activated' folder, you have at least the brain explorer. In the future, this 'core device' feature will be enriched for example to allow direct installation of devices through an 'installer' device.
+
+Ok, going back to the list management. If you remember the previous tuto (and I hope you do remember :-)), we just learned to display a list and perform one action with it. In this tuto, we will learn how to navigate in a list.
+
+So going back to our example, the directory we are looking at in this tuto is 'recipes'. This directory have multiple feeders but let's look at the first one, Rooms.
+It basically display the list of rooms.
+#### itembrowse [DEPRECATED]
+If you look directly at the settings or my previous devices, you may find a itembrowse element. Please don't use it, it has been deprecated, advantageously replaced by the variable concept.
+#### evalnext
+Evalnext is conceptually very close to evaldo, it basically help to decide the next step. The difference is that evaldo was for buttons and triggers when evalnext is for the next step of navigation. So it starts with a test (that we leave to true in this example) and after, the usual 'then' and 'or' clauses. In this example, we will always go to the next step which is the next feeder, 'Devices'.
+At this point of time, you may think "in this case, I can only navigate to do directions, isn't it a problem?". Fear not. It is not. 
+In the volumio for example, in the first page of one of the list you have 4 choices, this is how it is done:
+```
+      "evalnext":[
+                {"test":"DYNAMIK (JSON.parse(\"$Result\").navigation == \"Artists\")", "then":"Artists", "or":""},
+                {"test":"DYNAMIK (JSON.parse(\"$Result\").navigation == \"AllAlbums\")", "then":"AllAlbums", "or":""},
+                {"test":"DYNAMIK (JSON.parse(\"$Result\").navigation == \"Playlist\")", "then":"Playlist", "or":""},
+                {"test":"DYNAMIK (JSON.parse(\"$Result\").navigation == \"Spotify\")", "then":"Spotify", "or":""}
+                ]
+```
+Yes, evalnext is a table and all conditions will be evaluated, so you can have as many choices as you want.
+
   
