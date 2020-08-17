@@ -1,5 +1,5 @@
 
-## Tutorial : Creating your own devices
+## Tutorial: Creating your own devices
 
 Note: you should have a basic understanding of JSON. JSON is an extremly simple file format, with an "Attribute" : "Value" concept. This tutorial will not explain JSON as such but you shouldn't be affraid of it, JSON really is very simple.
 
@@ -20,15 +20,15 @@ In order to create your single button device you can use the following sample fi
 }
 ```
 Let's have a look at the file and understand each field:
-- name : this is the name your device will have, you will be able to find it by this name in the remote.
-- manufacturer : put the brand of the device you will control here.
-- version : IMPORTANT /!\ /!\ Once a device is first created, its structure is set. If you add new buttons and you want the remote to notice, you will need to delete the device and recreate the device (not convenient) OR just increment the version number. In the future, if you add an item and get frustrated because the remote doesn't seem to care, remember this version field. NOTE: you can not EDIT or DELETE a button by incrementing the version, you will need to delete and reload the device-driver.
-- type : IMPORTANT /!\ /!\ This field is also important, it will drive the way your remote will interpret your device. The problem is that not all features are supported for all devices. For example, if you want to use the channel button, you can't use the device type "LIGHT", you will need a AVRECEIVER or TV type for example. As a simple way to create, I like to use the AVRECEIVER. You have to make it appear in the remote by activating it in the recipes part (choose SHOW) but it is quite flexible and supports most of the interactions. If you see warning lines when you run the device, it is because in this example you didn't declare INPUT buttons, where the AVRECEIVER-type expects some INPUT buttons. It doesn't matter but it shows you how Neeo reacts. You can dive into the Neeo SDK in order to better understand the limitations of each device (note that the documentation is incomplete).
+- name: this is the name your device will have, you will be able to find it by this name in the remote.
+- manufacturer: put the brand of the device you will control here.
+- version: IMPORTANT /!\ /!\ Once a device is first created, its structure is set. If you add new buttons and you want the remote to notice, you will need to delete the device and recreate it (not convenient) OR just increment the version number. In the future, if you add an item and get frustrated because the remote doesn't seem to care, remember this version field. NOTE: you can not EDIT or DELETE a button by incrementing the version, you will need to delete and reload the device-driver.
+- type: IMPORTANT /!\ /!\ This field is also important, it will drive the way your remote will interpret your device. The problem is that not all features are supported for all devices. For example, if you want to use the channel button, you can't use the device type "LIGHT", you will need a AVRECEIVER or TV type for example. As a simple way to create, I like to use the AVRECEIVER. You have to make it appear in the remote by activating it in the recipes part (choose SHOW) but it is quite flexible and supports most of the interactions. If you see warning lines when you run the device, it is because in this example you didn't declare INPUT buttons, where the AVRECEIVER-type expects some INPUT buttons. It doesn't matter but it shows you how Neeo reacts. You can dive into the Neeo SDK in order to better understand the limitations of each device (note that the documentation is incomplete).
 The types you can choose from are: ACCESSORY, AUDIO, AVRECEIVER, DVB (aka. satellite receiver), DVD (aka. disc player), GAMECONSOLE, HDMISWITCH, LIGHT, MEDIAPLAYER, MUSICPLAYER, PROJECTOR, TUNER, TV, VOD (aka. Video-On-Demand box like Apple TV, Fire TV...), SOUNDBAR.
-- buttons : Here you have the list of buttons. The name can be any name and you can change the display name in the "label" attribute. Some buttons are recognised by the remote control. It is specially handy if you want to map a feature to a hardware button like the cursor. In this example, you can use the cursor arrows of the remote directly.
-The list of Neeo-recognised buttons can be found here: https://github.com/NEEOInc/neeo-sdk#neeo-macro-names. Please note that this list is incomplete and you can discover other buttons by browsing planet-neeo forum or the widgets description. However, it's a good starting point.
-- type (in buttons) : This field is very important as it will drive the protocol used for your device. In this example, it is just an HTTP request (GET). The supported types are: HTTP-GRET, HTTP-POST, WebSocket (works with socket.io), static, CLI and HTTP-GET-SOAP. Examples on each type will be provided. More types will be added in the future.
-- command: Here you put the url you want to call. This is a very simple and efficient way to control a device, much faster and reliable than with Infra Red control. A lot of devices are exposing an API directly, you just have to copy paste their URL in the command field (inside the quotes). For example, here you can find an easy way to control your Xiaomi TV: https://github.com/spocky/mireco#gitv-http-api-featuresdocumentation or here , your yamaha receiver: http://habitech.s3.amazonaws.com/PDFs/YAM/MusicCast/Yamaha%20MusicCast%20HTTP%20simplified%20API%20for%20ControlSystems.pdf. You are often just a Google search away. 
+- buttons: Here you have the list of buttons. The name can be any name and you can change the display name in the "label" attribute. Some buttons are recognised by the remote control. It is specially handy if you want to map a feature to a hardware button like the cursor. In this example, you can use the cursor arrows of the remote directly.
+The list of Neeo-recognised buttons can be found here: https://github.com/NEEOInc/neeo-sdk#neeo-macro-names. Please note that this list is incomplete and you can discover other buttons by browsing planet-neeo forum or the widgets description; however, it's a good starting point.
+- type (in buttons): This field is very important as it will drive the protocol used for your device. In this example, it is just an HTTP request (GET). The supported types are: HTTP-GET, HTTP-POST, WebSocket (works with socket.io), static, CLI and HTTP-GET-SOAP. Examples on each type will be provided. More types will be added in the future.
+- command: Here you put the url you want to call. This is a very simple and efficient way to control a device, much faster and reliable than with Infra Red control. A lot of devices are exposing an API directly, you just have to copy paste their URL in the command field (between  quotes). For example, here you can find an easy way to control your Xiaomi TV: https://github.com/spocky/mireco#gitv-http-api-featuresdocumentation or here , your yamaha receiver: http://habitech.s3.amazonaws.com/PDFs/YAM/MusicCast/Yamaha%20MusicCast%20HTTP%20simplified%20API%20for%20ControlSystems.pdf. You are often just a Google search away. 
 Note: for more complexe devices, you can download an intermediary driver, exposing a REST API. So this meta driver will use this driver to remote control. I use such a driver in Python to control my Xbox One X. The resulting performance is excellent (instant reaction).
 
 ### Tutorial Step 2 - Label device
@@ -63,12 +63,12 @@ Then the label part. You see an arbitrary name (CurrentStatus, one word), a labe
 #### evalwrite
 This is a new feature that we can attach to a button (or any actionable component). 
 - evalwrite: evalwrite allows you to write a value into a variable. There are a lot of complex ways to do this, but in this simple example, we will use a very special variable:
-- $Result: $Result is a specific variable being assigned the result of the command. In this example, it is very easy because the command is of type "static". With an HTTP-GET you would get the result of the call, but with a type static, it just copies the value inserted in command. 
-- evalwrite (2) : Comming back to evalwrite, this function just copies the "value" part into the "variable". 
-  /!\ IMPORTANTE NOTE: You can have multiple evalwrites triggered; the code would look like that: "evalwrite":[{"variable":"LabelStatus","value":"$Result"}, {"variable":"anotherVariable","value":"AnotherValue"}]. Each evalwrite is between [...], indicating an array, and then as normally: {...}. So basically to have an array with 2 evalwrite, it will look like that: [{...}, [{...}].
+- $Result: $Result is a specific variable being assigned the result of the command. In this example, it is very easy because the command is of type "static". With an HTTP-GET you would get the result of the call, but with a type static it just copies the value inserted in command. 
+- evalwrite (2): Coming back to evalwrite, this function just copies the "value" part into the "variable". 
+  /!\ IMPORTANTE NOTE: You can have multiple evalwrites triggered; the code would look like that: "evalwrite":[{"variable":"LabelStatus","value":"$Result"}, {"variable":"anotherVariable","value":"AnotherValue"}]. Each evalwrite is between [...], indicating an array, and then as normally: {...}. So basically to have an array with 2 evalwrites, it will look like this: [{...}, [{...}].
 
 ### Tutorial Step 3 - Let's go to something more complex...
-Let's extend the previous example. Now we will have "UP" and "DOWN"  buttons. These buttons change the value of a switch and the switch changes the value of 2 pictures
+Let's extend the previous example. Now we will have "UP" and "DOWN"  buttons. These buttons change the value of a switch and the switch changes the value of 2 pictures:
 ```
 {"name":"Tuto Step3", 
     "manufacturer":"Your Name",
@@ -114,7 +114,7 @@ In evaldo, you have:
 - test: this test can be true or false (more on it later).
 - do: the name of the button to be triggered if the result is true. If you don't want a button to be visible but you want to be able to call it, just prefix it by "__" like in the example.
 - or: the name of the button to be triggered if the result is false. 
-- DYNAMIK. In this example, you have seen a weird expression: DYNAMIK $Result. This is because the $Result in this driver can only be a string. So here the $Result will be "true" for example if the switch is on the right. In fact we don't want it to be "true" (like the string true) but true (like the boolean value). So we ask the driver to interpret the string value and transform it in a real boolean. In the next steps, we will see a lot of powerful and more complex usage of DYNAMIK keyword.
+- DYNAMIK. In this example, you have seen a weird expression: DYNAMIK $Result. This is because the $Result in this driver can only be a string. So here the $Result will be "true" for example if the switch is on the right. In fact we don't want it to be "true" (like the string true) but true (like the boolean value). So we ask the driver to interpret the string value and transform it into a real boolean. In the next steps, we will see a lot of powerful and more complex usage of DYNAMIK keyword.
 /!\ IMPORTANTE NOTE: This DYNAMIK feature is extremely powerful and is available on many fields. It truly allows adapting to many real world situations in order to manage various different devices. The drawback is that it generates 'in theory' a security issue, because it allows to inject code into the metadriver. For this reason, you should avoid running the driver as an administrator (you don't have any reason to do that).
 Note 2: In this example, you see how variables are used in a field. It is just $ before the name of the variable so the driver knows it is a variable ($MyVariable). 
 IMPORTANT: Don't use 'nested' names for variables. For example if you have a variable MyVariable and MyVariable2, if you write in a field $MyVariable2, the driver will understand it as Myvariable and '2'. So for example if the value of $MyVariable is Hello, you will endup with Hello2.
@@ -123,7 +123,7 @@ IMPORTANT: Don't use 'nested' names for variables. For example if you have a var
 
 https://www.youtube.com/watch?v=-XNF1mSqwuo
 
-In order to have more advanced interactions, let's see how the driver analyses MiTV' answers.
+In order to have more advanced interactions, let's see how the driver analyses MiTV' answers:
 
 ```
 {"name":"MiTV", 
@@ -143,7 +143,7 @@ In order to have more advanced interactions, let's see how the driver analyses M
         "CURSOR RIGHT": {"label":"", "type":"HTTP-GET", "command":"http://$MyTVIP:6095/controller?action=keyevent&keycode=right", "queryresult":"$.msg", "evalwrite":[{"variable":"MyStatus","value":"DYNAMIK (\"$Result\"==\"success\")?\"Right pressed\":\"Command Failed\""}]},
  ```
  
- The beginning of this driver is quite boring, but the first thing you might notice is how the variable MyTVIP is used in the command: http://$MyTVIP:6095/controller?action=keyevent&keycode=left
+The beginning of this driver is quite boring, but the first thing you might notice is how the variable MyTVIP is used in the command: http://$MyTVIP:6095/controller?action=keyevent&keycode=left
 The value of the IP will be immediately modified and replaced. So if you change the IP you need to change it only in one place. You will see later that it enables quite complexe scenarios.
 But now, let's focus of the most important part of this tutorial step :
 #### queryresult
@@ -159,10 +159,8 @@ Going back to my MiTV, when I request the TV, it is answering with a weird thing
 "data":{}
 }
 ```
-Remember this format ? It is the same format used by our settings, the industry standard JSON. But it is too complex.
-We don't want to deal with that. We need only to now what is inside the msg part if it is a success. So that we can know if our command has worked.
-To simplify it we will filter using JPATH (or JSONPATH). 
-Please have a look at this: https://github.com/dchester/jsonpath, it explains how to filter using jpath.
+Remember this format? It is the same format used by our settings, the industry standard JSON. But it is too complex, we don't want to deal with that. We need only to know what is inside the msg part if it is a success, so that we know if our command has worked.
+To simplify it, we will filter using JPATH (or JSONPATH). Please have a look at this: https://github.com/dchester/jsonpath, it explains how to filter using jpath.
 In our case, the jpath is "$.msg". When applied to the JSON-string quoted before, it returns.... success, which is exactly what we want.
 In order to create a jpath yourself (it can be complex, especially for example with a complex JSON-string like the Neeo Brain), I strongly advice you to use an online evaluator: https://jsonpath.com/ (for example, there are many).
 You copy the JSON-string returned in your browser, and apply your path.
@@ -175,9 +173,9 @@ What we will assign is:
 #### DYNAMIK (\"$Result\"==\"success\")?\"Left pressed\":\"Command Failed\"
 This command looks a bit weird so let's have a closer look at it.
 We first have DYNAMIK. DYNAMIK is our friend asking the driver to interpret the string as javascript.
-Then lets have a look at the first part into brackets:
-We are comparing strings. Inside a DYNAMIK field, strings are always enclosed between '\"' (backward slash and double quote before and after the string). Why? Because we need to know the " is not a json one but part of the field, so we "exit" it as an external caracter. So as a conclusion, \"$Result\" means 'I want what is inside $Result and compare it as a string'. So we wnat to compare it to \"success\". The way to compare is '=='. It means, is it equal? As you remember the normal result of the command should be 'success' so in this case, if the command works well, it will indeed be equal.
-Going back to the global field, you can see it globally looks likes that: atest ? something : somethingelse. As you remember, on the left side of the question mark is a condition, is success equal to success. Yes it is, so the result will be true. If it is true, the something will be chosen, if the result is false, the somethingelse would be chosen. The tests you can use in comapring are ==, <=, >=, <, >, != (not equal), and many others.
+Then lets have a look at the first part within braces:
+We are comparing strings. Inside a DYNAMIK field, strings are always enclosed between '\"' (backward slash and double quote before and after the string). Why? Because we need to know the " is not a JSON one but part of the field, so we "exit" it as an external caracter. So as a conclusion, \"$Result\" means 'I want what is inside $Result and compare it as a string'. So we want to compare it to \"success\". The way to compare is '=='. It means, is it equal? As you remember the normal result of the command should be 'success' so in this case, if the command works well, it will indeed be equal.
+Going back to the global field, you can see it globally looks likes this: atest ? something : somethingelse. As you remember, on the left side of the question mark is a condition, is success equal to success. Yes it is, so the result will be true. If it is true, the something will be chosen, if the result is false, the somethingelse would be chosen. The tests you can use in comparing are ==, <=, >=, <, >, != (not equal), and many others.
 So basically as you start to understand, if the command returns 'success', we will diplay 'Left pressed', if not, 'Command failed'.
 
 OK, we are all set for the second part of this tuto step.
@@ -186,13 +184,13 @@ OK, we are all set for the second part of this tuto step.
 "__POWER ON-IR": {"label":"", "type":"HTTP-GET", "command":"http://192.168.1.26:3000/v1/projects/home/rooms/6394342251295670272/devices/6699143044186243072/macros/6699143044261740545/trigger", "queryresult":"$.msg", "evalwrite":[{"variable":"MyStatus","value":"DYNAMIK (\"$Result\"==\"success\")?\"Power Off\":\"Command Failed\""}]}
 ```
 In this example, you can see something much more interesting than displaying 'Left pressed' in the remote.
-My MiTV doesn't understand WOL (Wake On Lan). But it understands IR. Unfortunately, it is the very same command to power on or power off the TV. So basically when I power on the recipe, sometimes it is powering on the TV, sometimes it is switching off (making me very popular with my fammily :-).
-So here is the trick: on the "power on" button, the first thing I do is sending a basic command to the TV. If the TV is on, it should always be a success. If it is not, the mentioned evalwrite assigns 'Trying to switch on by IR' to the varioable MyStatus. In the evaldo, I do the same test, and then I launch another command. For your information this command is a Neeo Brain command launching an IR call through my broadlink driver (but could be any), then I throw an infra red call but being 100% sure that it never switches off the TV. 
+My MiTV doesn't understand WOL (Wake On Lan). But it understands IR. Unfortunately, it is the very same command to power on or power off the TV. So basically when I power on the recipe, sometimes it is powering on the TV, sometimes it is switching off (making me very popular with my family :-).
+So here is the trick: on the "power on" button, the first thing I do is sending a basic command to the TV. If the TV is on, it should always be a success. If it is not, the mentioned evalwrite assigns 'Trying to switch on by IR' to the varioable MyStatus. In the evaldo, I do the same test, and then I launch another command. For your information this command is a Neeo Brain command launching an IR call through my Broadlink driver (but could be any), then I throw an infra red call but being 100% sure that it never switches off the TV. 
 NOTE: in order to get the exact text of any of your recipe, you could use the Neeo Brain explorer of my meta. It is currently a bit raw but I will refine it soon.
 
 ### Tutorial Step 4b - List component.
 
-In this component we will start to learn the (by far) more complexe component of the Neeo Remote. It is also (by far) the coolest.
+In this component we will start to learn the (by far) more complex component of the Neeo Remote. It is also (by far) the coolest.
 Let's analyse these somewhat cryptic lines:
 ```
 "directories":{
@@ -205,9 +203,9 @@ Let's analyse these somewhat cryptic lines:
 }
 ```
 A Directory is basically a button calling a list. In this case, we will have one buttton: "Programs".
-Then we have feeders. A feeder basically feeds the list with data. In the feeder we decide what to feed and how to display (listitem and title for example). Finally we also have a special feeder for action to be done. Multiple feeders allow navigating among feeders, for example as you see in the volumio demo. (it's frankly quite a nightmare to code but hey!, in the meta it is done for you :-).  
-In this example we have 2 feeders, one to display the program, another to perform an action.
-The first feeder (called 'programs' also) triggers a command returning a gigantic JSON (cut here in order to save place)
+Then we have Feeders. A Feeder basically feeds the list with data. In the Feeder we decide what to feed and how to display (listitem and title for example). Finally we also have a special Feeder for action to be done. Multiple feeders allow navigating among feeders, for example as you see in the volumio demo (it's frankly quite a nightmare to code but hey!, in the meta it is done for you :-).  
+In this example we have 2 Feeders, one to display the program, another to perform an action.
+The first Feeder (called 'programs' also) triggers a command returning a gigantic JSON (cut here in order to save place)
 ```
 {
 
@@ -248,21 +246,21 @@ Again something new here, but immensely useful, JSON.parse (case sensitive). The
 #### itemlabel
 A fixed label here.
 #### itemimage
-Url for the thumbnail beign displayed, we use the IconURL given by my TV.
+Url for the thumbnail being displayed, we use the IconURL given by my TV.
 #### itemaction
-Here is the name of the next feeder performing the action, in our case, ProgramSet.
+Here is the name of the next Feeder performing the action, in our case, ProgramSet.
 #### evalwrite
 Here is our old friend evalwrite. It will be activated when we click on the line. Here it will help to persist the packagename. Because the packagename is used as an argument for the action we want to trigger.
 #### action feeder
-Action feeder is not really a feeder but the action triggered when we click on an item on the list.
+Action Feeder is not really a Feeder but the action triggered when we click on an item on the list.
 In our case you see the following command.
 http://$MyTVIP:6095/controller?action=startapp&type=packagename&packagename=$PackageName
-You can recognised the $PackageName we have used. It will basically start the application in my TV we have choosen.
+You can recognise the $PackageName we have used. It will basically start the application in my TV we have choosen.
 
 ### Tutorial Step 5 - Advanced List component.
 
-This tutorial is essentially focuing on the list component. In order to do that, we will use a device you can actually really use yourself: the neeo brain.
-So basically the code we will look at is just a brain explorer able to trigger receipt directly.
+This tutorial-step is essentially focusing on the list component. In order to do that, we will use a device you can actually really use yourself: the Neeo Brain.
+So basically the code we will look at is just a Brain explorer able to trigger a recipe directly.
 
 https://www.youtube.com/watch?v=76BTjlOiIHk
 
@@ -288,21 +286,21 @@ https://www.youtube.com/watch?v=76BTjlOiIHk
 }
 ```
 
-Before going to the list, let's look at 2 preliminary points:
+Before going through the list, let's look at 2 preliminary points:
 #### $NeeoBrainIP
-This variable is a special variable. It is used but not part of the variables declared. It is becaused it is a 'system variable'. You can use it any time and it contains... (drumrolls) your discovered brain IP address. 
+This variable is a special variable. It is used but not part of the variables declared. It is because it is a 'system variable'. You can use it any time and it contains... (drumrolls) your discovered Neeo Brain IP address. 
 #### settings
-If you look in the activated devices, you won't find any file about the brain navigator. It is because this device is considered as a 'core device' and as such is placed directly into the setting.js file. That doesn't change anything, it just ensure that even if you have an empty 'activated' folder, you have at least the brain explorer. In the future, this 'core device' feature will be enriched for example to allow direct installation of devices through an 'installer' device.
+If you look in the activated devices, you won't find any file about the Brain navigator. It is because this device is considered as a 'core device' and as such is placed directly into the setting.js file. That doesn't change anything, it just ensures that even if you have an empty 'activated' folder, you have at least the Brain explorer. In the future, this 'core device' feature will be enriched for example to allow direct installation of devices through an 'installer' device.
 
-Ok, going back to the list management. If you remember the previous tuto (and I hope you do remember :-)), we just learned to display a list and perform one action with it. In this tuto, we will learn how to navigate in a list.
+OK, going back to the list management. If you remember the previous tuto (and I hope you do remember :-)), we just learned to display a list and perform one action with it. In this tuto, we will learn how to navigate in a list.
 
-So going back to our example, the directory we are looking at in this tuto is 'recipes'. This directory have multiple feeders but let's look at the first one, Rooms.
+So going back to our example, the directory we are looking at in this tuto is 'recipes'. This directory has multiple Feeders but let's look at the first one, Rooms.
 It basically display the list of rooms.
 #### itembrowse [DEPRECATED]
-If you look directly at the settings or my previous devices, you may find a itembrowse element. Please don't use it, it has been deprecated, advantageously replaced by the variable concept.
+If you look directly at the settings or my previous devices, you may find an itembrowse element. Please don't use it, it has been deprecated, advantageously replaced by the variable concept.
 #### evalnext
-Evalnext is conceptually very close to evaldo, it basically help to decide the next step. The difference is that evaldo was for buttons and triggers when evalnext is for the next step of navigation. So it starts with a test (that we leave to true in this example) and after, the usual 'then' and 'or' clauses. In this example, we will always go to the next step which is the next feeder, 'Devices'.
-At this point of time, you may think "in this case, I can only navigate to do directions, isn't it a problem?". Fear not. It is not. 
+Evalnext is conceptually very close to evaldo, it basically helps to decide the next step. The difference is that evaldo was for Buttons and Triggers when evalnext is for the next step of navigation. So it starts with a test (that we leave to true in this example) and after, the usual 'then' and 'or' clauses. In this example, we will always go to the next step which is the next Feeder, 'Devices'.
+At this point in time, you may think "in this case, I can only navigate to do directories, isn't it a problem?". Fear not, it is not. 
 In the volumio for example, in the first page of one of the list you have 4 choices, this is how it is done:
 ```
       "evalnext":[
