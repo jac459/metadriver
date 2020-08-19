@@ -1,3 +1,5 @@
+const { getNameFromBuiltName } = require("./helpers");
+
 class sliderHelper {
   constructor(variableListened, evaldo, slidername, controller) {
     this.variableListened = variableListened;
@@ -16,20 +18,31 @@ class sliderHelper {
         resolve(self.value);
       });
     };
-    this.set = function (deviceId, theValue) {
+    this.update = function (deviceId, theValue) {
       return new Promise(function (resolve, reject) {
-        console.log(theValue)
         if (self.value != theValue) {
           self.value = theValue;
-          controller.sendComponentUpdate({ uniqueDeviceId: deviceId, component: self.name, value: theValue})
-          .catch((err) => {console.log("Error while trying to put the value : " + theValue+ " in this component : " + self.name + " => " + err); reject(err); });
+          controller.sendComponentUpdate({ uniqueDeviceId: deviceId, component: getNameFromBuiltName(self.name), value: theValue})
+          .catch((err) => {console.log("Error while trying to update the value : " + theValue+ " in this component : " + controller.name + "/" + deviceId + "/" + getNameFromBuiltName(self.name) + " => " + err); reject(err); });
+        }
+       resolve();
+      });
+    };
+    this.set = function (deviceId, theValue) {
+      return new Promise(function (resolve, reject) {
+        if (self.value != theValue) {
+          self.value = theValue;
+          controller.sendComponentUpdate({ uniqueDeviceId: deviceId, component: getNameFromBuiltName(self.name), value: theValue})
+          .catch((err) => {console.log("Error while trying to set the value : " + theValue+ " in this component : " + controller.name + "/" + deviceId + "/" + getNameFromBuiltName(self.name) + " => " + err);});
           controller.writeVariable(variableListened, Math.round(theValue), deviceId);
           controller.evalDo(evaldo, Math.round(theValue), deviceId)
         }
        resolve();
       });
     };
-    controller.addListenerVariable(self.variableListened, self.set);
-   }
+    this.initialise = function (deviceId) {
+      controller.addListenerVariable(self.variableListened, self.update, deviceId);
+    }
+  }
 }
 exports.sliderHelper = sliderHelper;
