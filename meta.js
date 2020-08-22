@@ -1,9 +1,10 @@
 //"use strict";
-const settings = require(__dirname + '/settings');
+const path = require('path');
+const settings = require(path.join(__dirname,'settings'));
 const neeoapi = require("neeo-sdk");
-const metacontrol = require(__dirname + '/metaController');
-const fs = require('fs')
-const activatedModule = __dirname + '/activated/';
+const metacontrol = require(path.join(__dirname,'metaController'));
+const fs = require('fs');
+const activatedModule = path.join(__dirname,'activated');
 const BUTTONHIDE = '__';
 const DEFAULT = 'default'; //NEEO SDK deviceId default value
 var config = {brainip : '', brainport : ''};
@@ -33,8 +34,8 @@ function getHelper (HelpTable, prop, deviceId) {
 function getIndividualActivatedDrivers(files, driverList, driverIterator) {
   return new Promise(function (resolve, reject) {
     if (driverIterator < files.length) {
-      console.log('Activating drivers :' + files[driverIterator])
-      fs.readFile(activatedModule + files[driverIterator], (err, data) => {
+      console.log(path.join('Activating drivers :', files[driverIterator]))
+      fs.readFile(path.join(activatedModule, files[driverIterator]), (err, data) => {
         if (data) {
           try {
             const driver = JSON.parse(data);

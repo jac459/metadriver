@@ -1,13 +1,13 @@
 
 'use strict';
-
-const { imageHelper } = require("./imageHelper");
-const { labelHelper } = require("./labelHelper");
-const { switchHelper } = require("./switchHelper");
-const { sensorHelper } = require("./sensorHelper");
-const { sliderHelper } = require("./sliderHelper");
-const { directoryHelper } = require("./directoryHelper");
-const { variablesVault } = require("./variablesVault")
+const path = require('path');
+const { imageHelper } = require(path.join(__dirname,"imageHelper"));
+const { labelHelper } = require(path.join(__dirname,"labelHelper"));
+const { switchHelper } = require(path.join(__dirname,"switchHelper"));
+const { sensorHelper } = require(path.join(__dirname,"sensorHelper"));
+const { sliderHelper } = require(path.join(__dirname,"sliderHelper"));
+const { directoryHelper } = require(path.join(__dirname,"directoryHelper"));
+const { variablesVault } = require(path.join(__dirname,"variablesVault"));
 
 const { cachedDataVersionTag } = require('v8'); // check if needed for discovery of neeo brain and suppress otherwise.
 const { resolve } = require("path");
