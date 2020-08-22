@@ -140,7 +140,7 @@ function instanciationHelper(controller, givenResult, jsonDriver) {
   return JSON.parse(recontructedDriver);
 }
 
-function discoveryDriverPreparator(controller, driver) {
+function discoveryDriverPreparator(controller, driver, deviceId) {
   return new Promise(function (resolve, reject) {
                       
     if (driver.discover) {
@@ -148,6 +148,7 @@ function discoveryDriverPreparator(controller, driver) {
       controller.initiateProcessor(driver.discover.command.type).then(() => {
         controller.commandProcessor(driver.discover.command.command, driver.discover.command.type).then((result)=>{
           controller.queryProcessor(result, driver.discover.command.queryresult, driver.discover.command.type).then((result) => {
+            if (driver.discover.command.evalwrite) {controller.evalWrite(driver.discover.command.evalwrite, result, deviceId)};
             if (!Array.isArray(result)) {
               let tempo = [];
               tempo.push(result);
@@ -171,7 +172,7 @@ function discoveryDriverPreparator(controller, driver) {
 function registerDevice(controller, credentials, driver, deviceId) {
   return new Promise(function (resolve, reject) {
     console.log(credentials);
-    controller.vault.addPersistedVariable("RegistrationCode", credentials.securityCode, deviceId)
+    controller.vault.addVariable("RegistrationCode", credentials.securityCode, deviceId, true)
     controller.actionManager(DEFAULT, driver.register.registrationcommand.type, driver.register.registrationcommand.command, 
                           driver.register.registrationcommand.queryresult, '', driver.register.registrationcommand.evalwrite)
     .then((result) => {
@@ -195,6 +196,7 @@ function createController(hubController, driver) {//Discovery specific
   }
   else {//normal device, controller to be created.
     const controller = new metacontrol(driver);
+    controller.vault.initialiseVault(getDataStorePath(driver.filename));
     return controller;
   }
 }
@@ -210,10 +212,9 @@ function executeDriversCreation (drivers, hubController, deviceId) { //drivers i
       let currentDeviceId = deviceId ? deviceId : DEFAULT; //to add the deviceId of the real discovered device in the Helpers
 
       let controller = createController(hubController, driver);
-      controller.vault.initialiseVault(getDataStorePath(driver.filename));
 
       //TODO check if this is still usefull
-      if (hubController) {controller.assignDiscoverHubController(hubController)}; //if the device is a discovered device.
+      //if (hubController) {controller.assignDiscoverHubController(hubController)}; //if the device is a discovered device.
       
       const theDevice = neeoapi.buildDevice("JAC MetaDriver " + driver.name) 
         .setType(driver.type) 
@@ -233,8 +234,8 @@ function executeDriversCreation (drivers, hubController, deviceId) { //drivers i
       if (driver.persistedvariables){
         for (var prop in driver.persistedvariables) { // Initialisation of the variables to be persisted
           if (Object.prototype.hasOwnProperty.call(driver.persistedvariables, prop)) {
-            controller.vault.addPersistedVariable(prop, driver.persistedvariables[prop], currentDeviceId)
-           }
+            controller.vault.addVariable(prop, driver.persistedvariables[prop], currentDeviceId, true);
+          }
         }
       }
 
@@ -270,12 +271,12 @@ function executeDriversCreation (drivers, hubController, deviceId) { //drivers i
             enableDynamicDeviceBuilder: true,
           },
           () => {
-            console.log("STARTING THE DISCOVERY PROCESSSSSSSS MOTHER FUCKER")
             return new Promise(function (resolve, reject) {
-              discoveryDriverPreparator(controller, driver).then((driverList) => {
+              discoveryDriverPreparator(controller, driver, currentDeviceId).then((driverList) => {
                 const formatedTable = [];
                 discoveredDriverListBuilder(driverList, formatedTable, 0, controller).then((outputTable) => {
                   resolve(outputTable); 
+                  controller.vault.snapshotDataStore();
                 })
               })
             })

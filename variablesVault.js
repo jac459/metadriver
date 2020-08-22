@@ -1,5 +1,6 @@
 const path = require('path');
 const fs = require('fs');
+const { templateSettings } = require('lodash');
 const INTERNALNAMESEPARATOR = '_@_';
 const variablePattern = {'pre':'$','post':''};
 
@@ -38,7 +39,22 @@ class variablesVault {
 
     }
 
-    //add a variable if not already existing
+    this.addVariable = function(name, value, deviceId, persisted) {
+      return new Promise(function (resolve, reject) {
+        let internalVariableName = toInternalName(name, deviceId);
+        persisted = persisted || false;
+        if (self.variables.findIndex((elt) => {return elt.name == internalVariableName})<0) {//the variable is new
+          self.variables.push({'name':internalVariableName, 'value':value, 'observers': [], 'persisted':persisted});
+        }
+        else {resolve();}
+      })
+    }
+
+
+
+
+
+/*    //add a variable if not already existing
     this.addVariable = function(name, value, deviceId, persisted) {
       let internalVariableName = toInternalName(name, deviceId);
       persisted = persisted || false;
@@ -52,7 +68,7 @@ class variablesVault {
         try {
           self.retrieveValueFromDataStore(name, deviceId).then((dsValue) => {
             if (dsValue != undefined) {
-              self.addVariable(name, dsValue, deviceId, true);
+              self.addVariable(name, value, deviceId, true);//in order to initialise also in memory vault.
               resolve();
             }
             else {
@@ -69,7 +85,7 @@ class variablesVault {
         }
       })
     }
-
+*/
     this.addObserver = function(name, theFunction, deviceId) { // who listen to variable changes.
       try {
         let internalVariableName = toInternalName(name, deviceId);
@@ -102,9 +118,6 @@ class variablesVault {
       let foundVar = self.variables.find(elt => {return elt.name == internalVariableName});
       if (!foundVar) {console.log("The variable you are requesting doesn\'t seems to be properly declared.")}
       if (foundVar) {
-        if (foundVar.persisted) {//if the variable is persisted, we need to save it in the datastore
-          self.persistInDataStore(name, deviceId, value);
-        }
         if (foundVar.value != value) {// If the value changed.
           foundVar.value = value; //Write value here
           foundVar.observers.forEach(element => { //invoke all observers
@@ -177,40 +190,25 @@ class variablesVault {
       })
     }
 
-    this.persistInDataStore = function(name, deviceId, value) {
+    this.snapshotDataStore = function() {
       return new Promise(function (resolve, reject) {
-        let internalVariableName = toInternalName(name, deviceId);
-        let dataStoreEntry = {'name':internalVariableName,'value':value};
-        self.getDataFromDataStore (self.dataStore).then((result) => {
-          if (result) {//There is a datastore.
-            let keyIndex = result.findIndex((key) => {return key.name == internalVariableName});
-            if (keyIndex>=0) {//the entry already exists
-              result[keyIndex].value = value;
+        fs.unlink(self.dataStore,function(err){
+          let tempDS = [];
+          self.variables.forEach((varI) => {
+            if (varI.persisted) {
+              tempDS.push({"name":varI.name, "value":varI.value})
             }
-            else {// New entry to be created
-              result.push(dataStoreEntry)
+          });
+          fs.writeFile(self.dataStore, JSON.stringify(tempDS), err => {
+            if (err) {
+              console.log('Error writing in the datastore');
+              console.log(err);
+            } else {
+              console.log("DataStore persisted");
             }
-          }
-          else {//new datastore to be created
-              result = [];
-              result.push(dataStoreEntry)
-          }
-          //now we need to save the datastore
-          
-          fs.unlink(self.dataStore,function(err){
-            console.log('datastore' + JSON.stringify(result))
-            fs.writeFile(self.dataStore, JSON.stringify(result), err => {
-              if (err) {
-                  console.log('Error writing in the datastore');
-                  console.log(err);
-              } else {
-                  console.log('New value ' + value + ' saved in the datastore entry ' + name);
-              }
-              resolve(dataStoreEntry);
+              resolve();
             })
           });  
-   
-        })
       })
     }
   }  
