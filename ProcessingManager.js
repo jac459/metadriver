@@ -6,6 +6,8 @@ const io = require('socket.io-client');
 const rpc = require('json-rpc2');
 const lodash = require('lodash');
 const { parserXMLString, xmldom } = require("./metaController");
+const mqtt = require('mqtt');
+const mqttClient; // Always connect to the local mqtt broker
 
 //STRATEGY FOR THE COMMAND TO BE USED (HTTPGET, post, websocket, ...) New processor to be added here. This strategy mix both transport and data format (json, soap, ...)
 class ProcessingManager {
@@ -417,3 +419,41 @@ class cliIProcessor {
   }
 }
 exports.cliIProcessor = cliIProcessor;
+
+class mqttProcessor {
+  initiate(connection) {
+    return new Promise(function (resolve, reject) {
+      mqttClient.on('connect', function() {
+        console.log('MQTT connected');
+      })
+    }); 
+  }
+  process (params) {
+    return new Promise(function (resolve, reject) {
+      params.command = JSON.parse(params.command)
+      console.log('MQTT publishing ' + params.command.Message + ' to ' + params.command.Topic);
+      try {
+        mqttClient.publish(params.command.Topic, params.command.Message);
+        resolve('');
+      }
+      catch {
+        console.log('MQTT not connected!');
+      }
+    })
+  }
+  query (data, query) {
+    return new Promise(function (resolve, reject) {
+      try {
+        //let resultArray = new [];
+        resolve(data.split(query));
+      }
+      catch {
+        console.log('error in string.search regex :' + query + ' processing of :' + data)
+      }
+    })
+  }
+  listen (command, listener, _listenCallback) {
+    return '';
+  }
+}
+exports.mqttProcessor = mqttProcessor;

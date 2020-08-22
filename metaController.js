@@ -26,6 +26,8 @@ const CLI = 'cli';
 const CLIInt = 'cli-i';
 const WEBSOCKET = 'webSocket';
 const JSONTCP = 'jsontcp';
+const MQTT = 'mqtt';
+
 const WOL = 'wol';
 const DEFAULT = 'default'; //NEEO SDK deviceId default value
 const { ProcessingManager, httpgetProcessor, httpgetSoapProcessor, httppostProcessor, cliProcessor, cliIProcessor, staticProcessor, webSocketProcessor, jsontcpProcessor } = require("./ProcessingManager");
@@ -39,6 +41,7 @@ const myCliIProcessor = new cliIProcessor();
 const myStaticProcessor = new staticProcessor();
 const myWebSocketProcessor = new webSocketProcessor();
 const myJsontcpProcessor = new jsontcpProcessor();
+const myMqttProcessor = new mqttProcessor();
 
 module.exports = function controller(driver) {
   this.buttons = []; //structure keeping all buttons of the driver
@@ -230,6 +233,9 @@ module.exports = function controller(driver) {
     }
     else if (commandtype == JSONTCP) {
       processingManager.processor = myJsontcpProcessor;
+    }
+    else if (commandtype == MQTT) {
+      processingManager.processor = myMqttProcessor;
     }
     else {console.log('Error in meta settings: The commandtype to process is not defined.' + commandtype)};
   }
