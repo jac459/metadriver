@@ -38,8 +38,8 @@ class labelHelper {
       });
     };
     this.initialise = function (deviceId) {
-      controller.vault.addObserver(variableListened, self.update, deviceId);
-      controller.vault.addObserver(actionVariableListened, self.updateAction, deviceId);
+      controller.vault.addObserver(self.variableListened, self.update, deviceId);
+      controller.vault.addObserver(self.actionVariableListened, self.updateAction, deviceId);
     }
   }
 }

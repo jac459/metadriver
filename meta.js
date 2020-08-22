@@ -6,8 +6,10 @@ const metacontrol = require(path.join(__dirname,'metaController'));
 const fs = require('fs');
 const activatedModule = path.join(__dirname,'activated');
 const BUTTONHIDE = '__';
+const DATASTOREEXTENSION = 'DataStore.json';
 const DEFAULT = 'default'; //NEEO SDK deviceId default value
 var config = {brainip : '', brainport : ''};
+var brainDiscovered = false;
 var brainDiscovered = false;
 const driverTable = [];
 
@@ -34,24 +36,28 @@ function getHelper (HelpTable, prop, deviceId) {
 function getIndividualActivatedDrivers(files, driverList, driverIterator) {
   return new Promise(function (resolve, reject) {
     if (driverIterator < files.length) {
-      console.log(path.join('Activating drivers :', files[driverIterator]))
-      fs.readFile(path.join(activatedModule, files[driverIterator]), (err, data) => {
-        if (data) {
-          try {
-            const driver = JSON.parse(data);
-            driverList.push(driver);
+      if (!files[driverIterator].endsWith(DATASTOREEXTENSION)){ //To separate from datastore
+        console.log('Activating drivers :' + files[driverIterator])
+        fs.readFile(path.join(activatedModule,files[driverIterator]), (err, data) => {
+          if (data) {
+            try {
+              const driver = JSON.parse(data);
+              driver.filename = files[driverIterator];
+              driverList.push(driver);
+            }
+            catch (err) {
+              console.log('Error while parsing driver : ' + files[driverIterator]);
+              console.log(err);
+            }
           }
-          catch (err) {
-            console.log('Error while parsing driver : ' + files[driverIterator]);
-            console.log(err);
+          if (err) {
+            console.log('Error while loading the driver file : ' + files[driverIterator]);
+            console.log(err);        
           }
-        }
-        if (err) {
-          console.log('Error while loading the driver file : ' + files[driverIterator]);
-          console.log(err);        
-        }
-        resolve(getIndividualActivatedDrivers(files, driverList, driverIterator+1));
-      })
+          resolve(getIndividualActivatedDrivers(files, driverList, driverIterator+1));
+        })
+      }
+      else {resolve(getIndividualActivatedDrivers(files, driverList, driverIterator+1));}
     } 
     else { 
       resolve(driverList) }
@@ -69,6 +75,19 @@ function getActivatedDrivers() {
       })
     })
   })
+}
+
+function getDataStorePath(filename) {
+  try {
+    if (filename) {
+      return path.join(activatedModule, filename.split('.json')[0] + '-DataStore.json');
+    }
+    else {return null;}
+  }
+  catch (err) {
+    console.log('META error, your path (' + filename + ') given seems to be wrong :');
+    console.log(err);
+  }
 }
 
 function createDevices () {
@@ -165,10 +184,12 @@ function executeDriversCreation (drivers, hubController, deviceId) { //drivers i
     driverTable.length = 0; //Reset the table without cleaning the previous reference (to avoid destructing other devices when running Discovery).
     drivers.forEach(driver => {
       console.log(driver.name);
+      console.log(driver.filename);
 
       let currentDeviceId = deviceId ? deviceId : DEFAULT; //to add the deviceId of the real discovered device in the Helpers
 
-      let controller = createController(hubController, driver)
+      let controller = createController(hubController, driver);
+      controller.vault.initialiseVault(getDataStorePath(driver.filename));
 
       //TODO check if this is still usefull
       if (hubController) {controller.assignDiscoverHubController(hubController)}; //if the device is a discovered device.
@@ -181,6 +202,21 @@ function executeDriversCreation (drivers, hubController, deviceId) { //drivers i
             theDevice.setIcon(driver.icon)
         }
         
+       //CREATING VARIABLES
+       for (var prop in driver.variables) { // Initialisation of the variables
+        if (Object.prototype.hasOwnProperty.call(driver.variables, prop)) {
+          controller.vault.addVariable(prop, driver.variables[prop], currentDeviceId)
+        }
+      }
+      controller.vault.addVariable('NeeoBrainIP', config.brainip, currentDeviceId); //Adding a usefull system variable giving the brain IP address.
+      if (driver.persistedvariables){
+        for (var prop in driver.persistedvariables) { // Initialisation of the variables to be persisted
+          if (Object.prototype.hasOwnProperty.call(driver.persistedvariables, prop)) {
+            controller.vault.addPersistedVariable(prop, driver.persistedvariables[prop], currentDeviceId)
+           }
+        }
+      }
+
         //GET ALL CONNEXIONS
         if (driver.webSocket) {
           controller.addConnection({"name":"webSocket", "descriptor":driver.webSocket, "connector":""})
@@ -211,13 +247,8 @@ function executeDriversCreation (drivers, hubController, deviceId) { //drivers i
           )
         }
        
-        //CREATING VARIABLES
-        for (var prop in driver.variables) { // Initialisation of the variables
-          if (Object.prototype.hasOwnProperty.call(driver.variables, prop)) {
-            controller.vault.addVariable(prop, driver.variables[prop], currentDeviceId)
-          }
-        }
-        controller.vault.addVariable('NeeoBrainIP', config.brainip, currentDeviceId); //Adding a usefull system variable giving the brain IP address.
+ 
+
 
         //CREATING LISTENERS
         for (var prop in driver.listeners) { // Initialisation of the variables

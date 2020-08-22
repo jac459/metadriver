@@ -1,11 +1,17 @@
+const path = require('path');
+const fs = require('fs');
 const INTERNALNAMESEPARATOR = '_@_';
 const variablePattern = {'pre':'$','post':''};
+
 
 function toInternalName(name, deviceId) {
   return (deviceId + INTERNALNAMESEPARATOR + name);
 }
 function getExternalName(name) {
     return name.split(INTERNALNAMESEPARATOR)[1];
+}
+function getDeviceId(name) {
+  return name.split(INTERNALNAMESEPARATOR)[0];
 }
 function getBuiltNameSeparator(name) {
   return INTERNALNAMESEPARATOR;
@@ -17,26 +23,41 @@ class variablesVault {
     this.dataStore;
     var self = this;
 
+    this.initialiseVault= function(filename) {
+      self.dataStore = filename;
+        //Initialise the variable to datastore value.
+       // self.variables = []; can't do that for multiple discovered devices
+
+        self.getDataFromDataStore().then((DS) => {
+          if (DS) {
+            DS.forEach(element => {
+                self.addVariable(getExternalName(element.name), element.value, getDeviceId(element.name), true);
+            });
+          }
+        })
+
+    }
+
     //add a variable if not already existing
-    this.addVariable = function(name, value, deviceId) {
+    this.addVariable = function(name, value, deviceId, persisted) {
       let internalVariableName = toInternalName(name, deviceId);
-      if (self.variables.findIndex((elt) => {elt.name == internalVariableName})<0) {//the variable is new
-        self.variables.push({'name':toInternalName(name, deviceId), 'value':value, 'observers': []});
+      persisted = persisted || false;
+      if (self.variables.findIndex((elt) => {return elt.name == internalVariableName})<0) {//the variable is new
+        self.variables.push({'name':internalVariableName, 'value':value, 'observers': [], 'persisted':persisted});
       }
     }
 
-    this.addPersistedVariable = function(name, value, dataStore, deviceId) {
+    this.addPersistedVariable = function(name, value, deviceId) {
       return new Promise(function (resolve, reject) {
-        self.dataStore = dataStore;
         try {
-          self.retrieveValueFromDataStore(name, deviceId, dataStore).then((dsValue) => {
+          self.retrieveValueFromDataStore(name, deviceId).then((dsValue) => {
             if (dsValue != undefined) {
-              self.addVariable(name, dsValue, true);
+              self.addVariable(name, dsValue, deviceId, true);
               resolve();
             }
             else {
-              self.persistInDataStore(name, deviceId, value, dataStore).then (()=>{
-                self.addVariable(name, value, true, deviceId);
+              self.persistInDataStore(name, deviceId, value).then (()=>{
+                self.addVariable(name, value, deviceId, true);
                 resolve();
               })
             }
@@ -54,7 +75,7 @@ class variablesVault {
         let internalVariableName = toInternalName(name, deviceId);
         if (name != undefined && name != '' && theFunction != undefined && theFunction) {
           let observersList = self.variables.find(elt => {return elt.name == internalVariableName}).observers; 
-          if (observersList.findIndex(func => {func == theFunction}) < 0) {//to avoid adding multiple times an oberver
+          if (observersList.findIndex(func => {return func == theFunction}) < 0) {//to avoid adding multiple times an oberver
             observersList.push(theFunction);
            }
         }
@@ -68,12 +89,19 @@ class variablesVault {
     this.writeVariable = function(name, value, deviceId) {//deviceId necessary as push to components.
       let internalVariableName = toInternalName(name, deviceId);
       let foundVar = self.variables.find(elt => {return elt.name == internalVariableName});
-      if (foundVar.value != value) {// If the value changed.
-        foundVar.value = value; //Write value here
-        foundVar.observers.forEach(element => { //invoke all observers
-          element(deviceId, foundVar.value);
-        });
+      if (!foundVar) {console.log("The variable you are requesting doesn\'t seems to be properly declared.")}
+      if (foundVar) {
+        if (foundVar.persisted) {//if the variable is persisted, we need to save it in the datastore
+          self.persistInDataStore(name, deviceId, value);
+        }
+        if (foundVar.value != value) {// If the value changed.
+          foundVar.value = value; //Write value here
+          foundVar.observers.forEach(element => { //invoke all observers
+            element(deviceId, foundVar.value);
+          });
+        }
       }
+      else {console.log("Variable " + name + " with device " + deviceId + " not found. Can't assign value.")}
     }
 
     this.readVariables = function(inputChain, deviceId) { //replace in the input chain, all the variables found of the same deviceId
@@ -93,10 +121,10 @@ class variablesVault {
       return preparedResult;
     }
 
-    this.retrieveValueFromDataStore = function (name, deviceId, dataStore) {
+    this.retrieveValueFromDataStore = function (name, deviceId) {
       return new Promise(function (resolve, reject) {
         let internalVariableName = toInternalName(name, deviceId);
-        self.getDataFromDataStore(dataStore).then((store) => {
+        self.getDataFromDataStore().then((store) => {
           if (store) {
             let valueIndex = store.findIndex((key) => {return key.name == internalVariableName});
             if (valueIndex>=0) {
@@ -109,21 +137,23 @@ class variablesVault {
       })
     } 
 
-    this.getDataFromDataStore = function (dataStore) {
+    this.getDataFromDataStore = function () {
       return new Promise(function (resolve, reject) {
         try {
-          fs.readFile(dataStore, (err, data) => {
-            if (data) {
-              try {
-                resolve(JSON.parse(data));
+          if (self.dataStore) {
+            fs.readFile(self.dataStore, (err, data) => {
+              if (data) {
+                try {
+                  resolve(JSON.parse(data));
+                }
+                catch (err) {
+                  console.log('Your Datastore ' + self.dataStore + ' doesn\'t seems to have a good JSON format')
+                  console.log(err);
+                }
               }
-              catch (err) {
-                console.log('Your Datastore ' + dataStore + ' doesn\'t seems to have a good JSON format')
-                console.log(err);
-              }
-            }
-            else {resolve(undefined);}
-          })
+              else {resolve(undefined);}
+            })
+          }
         }
         catch (err) {
           console.log("Could not access the datastore.")
@@ -132,11 +162,11 @@ class variablesVault {
       })
     }
 
-    this.persistInDataStore = function(name, deviceId, value, dataStore) {
+    this.persistInDataStore = function(name, deviceId, value) {
       return new Promise(function (resolve, reject) {
         let internalVariableName = toInternalName(name, deviceId);
         let dataStoreEntry = {'name':internalVariableName,'value':value};
-        self.getDataFromDataStore (dataStore).then((result) => {
+        self.getDataFromDataStore (self.dataStore).then((result) => {
           if (result) {//There is a datastore.
             let keyIndex = result.findIndex((key) => {return key.name == internalVariableName});
             if (keyIndex>=0) {//the entry already exists
@@ -152,8 +182,8 @@ class variablesVault {
           }
           //now we need to save the datastore
           
-          fs.unlink(dataStore,function(err){
-            fs.writeFile(dataStore, JSON.stringify(result), err => {
+          fs.unlink(self.dataStore,function(err){
+            fs.writeFile(self.dataStore, JSON.stringify(result), err => {
               if (err) {
                   console.log('Error writing in the datastore');
                   console.log(err);

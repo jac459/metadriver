@@ -351,7 +351,8 @@ class staticProcessor {
         }
       }
       catch {
-        console.log('error in JSONPATH ' + params.query + ' processing of :' + params.data);
+        console.log('Value is not JSON after processed by query: ' + params.query + ' returning as text:' + params.data);
+        resolve(params.data)
       }
     });
   }

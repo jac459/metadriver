@@ -362,6 +362,9 @@ module.exports = function controller(driver) {
       self.listeners.forEach(listener => {
         self.listenStart(listener, deviceId);
       });
+
+      
+
     }
 
     if (name == "CLEANUP") {//listener management to listen to other devices. Stop listening on power off.

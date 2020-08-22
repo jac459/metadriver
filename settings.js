@@ -5,6 +5,7 @@ var settings =
     "manufacturer":"JAC",
     "version":10,
     "type":"AVRECEIVER",
+    "filename":"meta-core.json",
     "variables":{
         "MyStatus":"",
         "RoomKey":"",
