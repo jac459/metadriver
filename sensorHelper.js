@@ -1,9 +1,8 @@
 
-const { getNameFromBuiltName } = require("./helpers");
-
 class sensorHelper {
-  constructor(name, variableListened, controller) {
+  constructor(deviceId, name, variableListened, controller) {
     this.name = name;
+    this.deviceId = deviceId;
     this.variableListened = variableListened;
     this.value = '';
     var self = this;
@@ -15,14 +14,14 @@ class sensorHelper {
       return new Promise(function (resolve, reject) {
         if (self.value != theValue) {
           self.value = theValue;
-          controller.sendComponentUpdate({ uniqueDeviceId: deviceId, component: getNameFromBuiltName(self.name), value: theValue })
+          controller.sendComponentUpdate({ uniqueDeviceId: deviceId, component: self.name, value: theValue })
             .catch((err) => {console.log('SENSOR ERROR' + err); });
         }
         resolve();
       });
     };
     this.initialise = function (deviceId) {
-      controller.addListenerVariable(self.variableListened, self.update, deviceId);
+      controller.vault.addObserver(self.variableListened, self.update, deviceId);
     }
   }
 }

@@ -6,8 +6,9 @@ const RESULT = variablePattern.pre + 'Result' + variablePattern.post;
 const BROWSEID = variablePattern.pre + 'NavigationIdentifier' + variablePattern.post;
 
 class directoryHelper {
-  constructor(dirname, controller) {
+  constructor(deviceId, dirname, controller) {
     this.name = dirname;
+    this.deviceId = deviceId;
     this.feederH = [];
     this.browseHistory = [];
     this.currentFeederIndex = 0;
@@ -26,7 +27,7 @@ class directoryHelper {
       if (evalnext) { //case we want to go to another feeder
         evalnext.forEach(evalN => {
           //if (evalN.test == '') {evalN.test = true}; //in case of no test, go to the do function TODO: correction, not working.
-          let finalNextTest = self.controller.readVariables(evalN.test, deviceId);// prepare the test to assign variable and be evaluated.
+          let finalNextTest = self.controller.vault.readVariables(evalN.test, deviceId);// prepare the test to assign variable and be evaluated.
           finalNextTest = self.controller.assignTo(RESULT, finalNextTest, result);
           if (browseIdentifierValue) {
             finalNextTest = self.controller.assignTo(BROWSEID, finalNextTest, browseIdentifierValue);
@@ -157,16 +158,16 @@ class directoryHelper {
             cacheList, allconfigs, params, indentCommand
             let commandSet = allconfigs.commandset[indentCommand];
             let processedCommand = self.controller.assignTo(BROWSEID, commandSet.command, params.browseIdentifier);
-            processedCommand = self.controller.readVariables(processedCommand, deviceId);
+            processedCommand = self.controller.vault.readVariables(processedCommand, deviceId);
             console.log('Final processed Command:' + processedCommand);
             self.controller.commandProcessor(processedCommand, commandSet.type, deviceId)
               .then((result) => {
-                rName = self.controller.readVariables(commandSet.itemname, deviceId); //ensure that the item name chain has the variable interpreted (except $Result)
-                rImage = self.controller.readVariables(commandSet.itemimage, deviceId); 
-                rItemType = self.controller.readVariables(commandSet.itemtype, deviceId); 
-                rLabel = self.controller.readVariables(commandSet.itemlabel, deviceId); 
-                rAction = self.controller.readVariables(commandSet.itemaction, deviceId); 
-                rBrowse = self.controller.readVariables(commandSet.itembrowse, deviceId); 
+                rName = self.controller.vault.readVariables(commandSet.itemname, deviceId); //ensure that the item name chain has the variable interpreted (except $Result)
+                rImage = self.controller.vault.readVariables(commandSet.itemimage, deviceId); 
+                rItemType = self.controller.vault.readVariables(commandSet.itemtype, deviceId); 
+                rLabel = self.controller.vault.readVariables(commandSet.itemlabel, deviceId); 
+                rAction = self.controller.vault.readVariables(commandSet.itemaction, deviceId); 
+                rBrowse = self.controller.vault.readVariables(commandSet.itembrowse, deviceId); 
                 self.controller.queryProcessor(result, commandSet.queryresult, commandSet.type, deviceId).then ((tempResultList) => {
                   let resultList = [];
                   if (!Array.isArray(tempResultList)) {//must be an array so make it an array if not
@@ -234,7 +235,7 @@ class directoryHelper {
         if (indexCommand < allCommandSet.length){
           let commandSet = allCommandSet[indexCommand]; 
           let processedCommand = commandSet.command;
-          processedCommand = self.controller.readVariables(processedCommand, deviceId);
+          processedCommand = self.controller.vault.readVariables(processedCommand, deviceId);
           processedCommand = self.controller.assignTo(RESULT, processedCommand, PastQueryValue);
           while (processedCommand != processedCommand.replace("$ListIndex", ListIndex)) { // Manage Index values
             processedCommand = processedCommand.replace("$ListIndex", ListIndex);

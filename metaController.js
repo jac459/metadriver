@@ -7,21 +7,13 @@ const { switchHelper } = require("./switchHelper");
 const { sensorHelper } = require("./sensorHelper");
 const { sliderHelper } = require("./sliderHelper");
 const { directoryHelper } = require("./directoryHelper");
-const { builtHelperName, getBuiltNameSeparator, getNameFromBuiltName} = require("./helpers");
-
-//const { jsontcp } = require("./jsontcp");
+const { variablesVault } = require("./variablesVault")
 
 const { cachedDataVersionTag } = require('v8'); // check if needed for discovery of neeo brain and suppress otherwise.
 const { resolve } = require("path");
 
-const { exec } = require("child_process");
 const { spawn } = require("child_process").spawn;
-const xpath = require('xpath');
-const xmldom = require('xmldom').DOMParser;
-const parserXMLString = require('xml2js').Parser({explicitArray:false, mergeAttrs : true});
-const http = require('http.min');
-const jpath = require('jsonpath');
-const io = require('socket.io-client');
+
 const wol = require('wake_on_lan');
 const { isArray } = require("util");
 const variablePattern = {'pre':'$','post':''};
@@ -36,413 +28,7 @@ const WEBSOCKET = 'webSocket';
 const JSONTCP = 'jsontcp';
 const WOL = 'wol';
 const DEFAULT = 'default'; //NEEO SDK deviceId default value
-const rpc = require('json-rpc2');
-const lodash = require('lodash');
-
-
-
-//STRATEGY DESIGN PATTERN FOR THE COMMAND TO BE USED (HTTPGET, post, websocket, ...) New processor to be added here. This strategy mix both transport and data format (json, soap, ...)
-class ProcessingManager {
-  constructor() {
-    this._processor = null;
-  }; 
-  set processor(processor) {
-    this._processor = processor;
-  };
-  get processor() {
-    return this._processor;
-  }
-  initiate(connection) {
-    return new Promise( (resolve, reject) => {
-      this._processor.initiate(connection)
-      .then((result) => {resolve(result)})
-      .catch((err) => reject (err))
-    })
-  }
-  process(params) {
-    return new Promise( (resolve, reject) => {
-      this._processor.process(params)
-      .then((result) => {resolve(result)})
-      .catch((err) => reject (err))
-    })
-  }
-  query(params) {
-    return this._processor.query(params)
-  }
-  startListen (params, deviceId) {
-    return this._processor.startListen(params, deviceId)
-  }
-  stopListen (params) {
-    return this._processor.stopListen(params)
-  }
-  wrapUp(connection) {
-    return new Promise( (resolve, reject) => {
-      this._processor.wrapUp(connection)
-      .then((result) => {resolve(result)})
-      .catch((err) => reject (err))
-    })
-  }
-}
-class httpgetProcessor {
-  constructor() {
-  }; 
-  process (params) {
-    return new Promise(function (resolve, reject) {
-      http(params.command) 
-      .then(function(result) { 
-        resolve(result.data)
-      })
-      .catch((err) => {
-        reject (err)})
-    })
-  }
-  query (params) {
-    return new Promise(function (resolve, reject) {
-      if (params.query) {
-        try {
-          if (typeof(params.data) == 'string') {params.data = JSON.parse(params.data)}
-          resolve(jpath.query(params.data, params.query));
-        }
-        catch (err) {
-          console.log('error ' + err + ' in JSONPATH ' + params.query + ' processing of :' + params.data)
-        }
-      }
-      else {resolve(params.data)}
-    })
-  }
-  startListen (params, deviceId) {
-    return new Promise(function (resolve, reject) {
-        let previousResult = '';
-        clearInterval(params.listener.timer);
-        params.listener.timer = setInterval(() => {
-          http(params.command) 
-          .then(function(result) { 
-            if (result != previousResult) {
-              previousResult = result;
-              params._listenCallback(result, params.listener, deviceId);
-            }
-            resolve('');
-          })
-          .catch((err) => {console.log(err)})
-        }, (params.listener.pooltime?params.listener.pooltime:1000));
-        if (params.listener.poolduration && (params.listener.poolduration != '')) {
-            setTimeout(() => {
-              clearInterval(params.listener.timer)
-            }, params.listener.poolduration);
-        }
-    })
-  }
-  stopListen (params) {
-    clearInterval(params.timer);
-  }
-}
-class webSocketProcessor {
-  initiate (connection) {
-    return new Promise(function (resolve, reject) {
-      try {
-        if (connection.connector != "" && connection.connector != undefined) {
-          connection.connector.close();
-        } //to avoid opening multiple
-        connection.connector = io.connect(connection.descriptor);
-        resolve(connection);
-      }
-      catch (err) {
-        console.log('Error while intenting connection to the target device.')
-        console.log(err)
-      }
-    })//to avoid opening multiple
-  }
-  process (params) {
-    return new Promise(function (resolve, reject) {
-      if (typeof(params.command) == 'string') {params.command = JSON.parse(params.command)}
-      if (params.command.call){
-        params.connection.connector.emit(params.command.call, params.command.message);
-        resolve('');
-      }
-    })
-  }
-  query (params) {
-    return new Promise(function (resolve, reject) {
-      try {
-        if (params.query) {
-          resolve(jpath.query(params.data, params.query));
-        }
-        else {
-          resolve(params.data);
-        }
-      }
-      catch (err) {
-        console.log('error ' + err + ' in JSONPATH ' + params.query + ' processing of :' + params.data)
-      }
-    })
-  }
-  startListen (params, deviceId) {
-    return new Promise(function (resolve, reject) {
-        params.connection.connector.on(params.command, (result) => {params._listenCallback(result, params.listener, deviceId)});
-        resolve('');
-   })
-  }
-  stopListen (params) {
-  }
-  wrapUp (connection) {
-    return new Promise(function (resolve, reject) {
-      if (connection.connector != "" && connection.connector != undefined) {
-        connection.connector.close();
-      } 
-      resolve(connection);
-    })
-  }
-}
-
-class jsontcpProcessor {
-  initiate (connection) {
-    return new Promise(function (resolve, reject) {
-      //if (connection.connector == "" || connection.connector == undefined) {
-        rpc.SocketConnection.$include({
-          write: function($super, data) {
-            return $super(data + "\r\n");
-          },
-          call: function($super, method, params, callback) {
-            if (!lodash.isArray(params) && !lodash.isObject(params)) {
-              params = [params];
-            }
-            `A`
-            var id = null;
-            if (lodash.isFunction(callback)) {
-              id = ++this.latestId;
-              this.callbacks[id] = callback;
-            }
-        
-            var data = JSON.stringify({jsonrpc: '2.0', method : method, params : params, id : id});
-            this.write(data);
-          }
-       });
-      let mySocket = rpc.Client.$create(1705, connection.descriptor, null, null);
-      mySocket.connectSocket(function (err, conn){
-        if (err) {
-          console.log('Error connecting to the target device.');
-          console.log(err); 
-        }
-        if (conn) {connection.connector = conn; console.log('connection to the device successful')
-          resolve(connection)
-        }
-      })
-      //} //to avoid opening multiple
-    })
-  }
-  process (params) {
-    return new Promise(function (resolve, reject) {
-      if (typeof(params.command) == 'string') {params.command = JSON.parse(params.command)}
-      
-      if (params.command.call){
-        params.connection.connector.call(params.command.call, params.command.message, function(err, result){
-          if (err) {console.log(err)}
-          resolve(result);
-        });
-      
-      }
-    })
-  }
-  query (params) {
-    return new Promise(function (resolve, reject) {
-      try {
-        if (params.query) {
-          resolve(jpath.query(params.data, params.query));
-        }
-        else {
-          resolve(params.data);
-        }
-      }
-      catch (err) {
-        console.log('error ' + err + ' in JSONPATH ' + params.query + ' processing of :' + params.data)
-      }
-    })
-  }
-  startListen (params, deviceId) {
-    return new Promise(function (resolve, reject) {
-        console.log('Starting to listen to the device.');
-        params.socketIO.on(params.command, (result) => {params._listenCallback(result, params.listener, deviceId)});
-        resolve('');
-   })
-  }
-  stopListen (params) {
-    console.log('Stop listening to the device.')
-//    TODO stop listening
-//    listener.io.disconnect(listener.socket);
-  }
-}
-
-function convertXMLTable2JSON (TableXML, indent, TableJSON) {
-  return new Promise(function (resolve, reject) {
-      parserXMLString.parseStringPromise(TableXML[indent]).then((result) => {
-      if (result) {
-        TableJSON.push(result)
-        indent = indent + 1;
-        if (indent < TableXML.length) {
-          resolve(convertXMLTable2JSON(TableXML,indent,TableJSON))
-        }
-        else 
-        {
-          resolve(TableJSON);
-        }
-        
-      }
-      else {
-        console.log(err);
-      }
-    });
-  })
-}
-
-class httpgetSoapProcessor {
-  process (params) {
-    return new Promise(function (resolve, reject) {
-      http(params.command) 
-      .then(function(result) { 
-        resolve(result.data)
-      })
-      .catch((err) => {reject (err)})
-    })
-  }
-  query (params) {
-    return new Promise(function (resolve, reject) {
-      if (params.query) {
-        try {
-          //console.log('RAW XPATH Return elt 0: ' + data);
-          var doc = new xmldom().parseFromString(params.data);
-          //console.log('RAW XPATH Return elt 0.1: ' + doc);
-          //console.log('RAW XPATH Return elt 0.1: ' + query);
-          var nodes = xpath.select(params.query, doc);
-          //console.log('RAW XPATH Return elt : ' + nodes);
-          //console.log('RAW XPATH Return elt 2: ' + nodes.toString());
-          let JSonResult = [];
-          convertXMLTable2JSON(nodes, 0, JSonResult).then((result) => {
-            console.log('Result of conversion +> ');
-            console.log(result);
-            resolve(result)
-          })
-        }
-        catch (err) {
-          console.log('error ' + err + ' in XPATH ' + params.query + ' processing of :' + params.data)
-        }
-      }
-      else {resolve(params.data)}
-    })
-  }
-  listen (params) {
-    return '';
-  }
-}
-class httppostProcessor {
-  process (params) {
-    return new Promise(function (resolve, reject) {
-      if (typeof(params.command) == 'string') {params.command = JSON.parse(params.command)}
-      if (params.command.call){
-        http.post(params.command.call, params.command.message) 
-        .then(function(result) { 
-          resolve(result.data)
-        })
-        .catch((err) => {console.log("Error in the post command: "); console.log(err);reject (err)})
-      }
-      else {reject('no post command provided or improper format')}
-    })
-  }
-  query (params) {
-    return new Promise(function (resolve, reject) {
-      try {
-        resolve(jpath.query(JSON.parse(params.data), params.query));
-      }
-      catch (err) {
-        console.log('error ' + err + ' in JSONPATH ' + params.query + ' processing of :' + params.data)
-      }
-    })
-  }
-  listen (params) {
-    return '';
-  }
-}
-class staticProcessor {
-  process (params) {
-    return new Promise(function (resolve, reject) {
-      resolve(params.command);
-    })
-  }
-  query (params) {
-    return new Promise(function (resolve, reject) {
-        try {
-          if (params.query && params.query != '') {
-            resolve(jpath.query(JSON.parse(params.data), params.query));
-          }
-          else {
-            if (params.data != '') {
-              resolve(JSON.parse(params.data))
-            }
-            else {resolve()}
-          }
-        }
-        catch {
-          console.log('error in JSONPATH ' + params.query + ' processing of :' + params.data)
-        }
-    })
-  }
-  listen (params) {
-    return '';
-  }
-}
-class cliProcessor {
-  process (params) {
-    return new Promise(function (resolve, reject) {
-        exec(params.command, (stdout, stderr) => {
-          if (stdout) {
-            resolve(stdout);
-          }
-          else {
-            resolve(stderr);
-          }
-        })
-    })
-  }
-  query (params) {
-    return new Promise(function (resolve, reject) {
-      try {
-        //let resultArray = new [];
-        resolve(params.data.split(params.query));
-      }
-      catch {
-        console.log('error in string.search regex :' + params.query + ' processing of :' + params.data)
-      }
-    })
-  }
-  listen (params) {
-    return '';
-  }
-}
-class cliIProcessor {
-  process (params) {
-    return new Promise(function (resolve, reject) {
-      if (params.interactiveCLIProcess) {
-        console.log('call interactive')
-        params.interactiveCLIProcess.stdin.write(params.command + '\n');
-        console.log('call interactive done');
-        resolve('Finished ' + params.command)
-      }
-    })
-  }
-  query (params) {
-    return new Promise(function (resolve, reject) {
-      try {
-        //let resultArray = new [];
-        resolve(params.data.split(params.query));
-      }
-      catch {
-        console.log('error in string.search regex :' + params.query + ' processing of :' + params.data)
-      }
-    })
-  }
-  listen (params) {
-    return '';
-  }
-}
+const { ProcessingManager, httpgetProcessor, httpgetSoapProcessor, httppostProcessor, cliProcessor, cliIProcessor, staticProcessor, webSocketProcessor, jsontcpProcessor } = require("./ProcessingManager");
 
 const processingManager = new ProcessingManager();
 const myHttpgetProcessor = new httpgetProcessor();
@@ -458,7 +44,7 @@ module.exports = function controller(driver) {
   this.buttons = []; //structure keeping all buttons of the driver
   this.sendComponentUpdate;
   this.name = driver.name;
-  this.deviceVariables = []; //container for all device variables.
+  this.vault = new variablesVault();
   this.listeners = []; //container for all device listeners.
   this.connectionH = []; //helper for all connections.
   this.imageH = []; //image helper to store all the getter of the dynamically created images.
@@ -482,63 +68,42 @@ module.exports = function controller(driver) {
     self.connectionH.push(params);
   }
 
-  this.addButton = function(name, value) {
-    self.buttons.push({"name":name,"value":value});
+  this.addButton = function(deviceId, name, value) {
+    self.buttons.push({"deviceId":deviceId, "name":name,"value":value});
   }
 
-  this.addVariable = function(name, value) {
-    self.deviceVariables.push({'name':name, 'value':value, 'listeners': []});
-  }
-
-  this.addListenerVariable = function(theVariable, theFunction, deviceId) { // who listen to variable changes.
-    try {
-      if (theVariable != undefined && theVariable != '' && theFunction != undefined && theFunction) {
-        let listenerList = self.deviceVariables.find(elt => {return elt.name == builtHelperName(theVariable, deviceId)}).listeners; 
-        if (listenerList.findIndex(func => {func == theFunction}) < 0) {//to avoid adding multiple times a listener
-          listenerList.push(theFunction);
-          return listenerList[listenerList.length-1];
-        }
-      }
-      else {return undefined};
-    }
-    catch (err) {
-      console.log("It seems that you haven\'t created the variable yet");
-      console.log(err)
-    }
-  }
-
-  this.addImageHelper = function(imageName, listened) {//function called by the MetaDriver to store 
-    const newImageH = new imageHelper(imageName, listened, self)
+  this.addImageHelper = function(deviceId, imageName, listened) {//function called by the MetaDriver to store 
+    const newImageH = new imageHelper(deviceId, imageName, listened, self)
     self.imageH.push(newImageH);
     return newImageH;
   }
   
-  this.addLabelHelper = function(labelName, listened, actionListened) {//function called by the MetaDriver to store 
-    const newLabelH = new labelHelper(labelName, listened, self, actionListened)
+  this.addLabelHelper = function(deviceId, labelName, listened, actionListened) {//function called by the MetaDriver to store 
+    const newLabelH = new labelHelper(deviceId, labelName, listened, self, actionListened)
     self.labelH.push(newLabelH);
     return newLabelH;
   }
 
-  this.addSensorHelper = function(sensorName, listened) {//function called by the MetaDriver to store 
-    const newSensorH = new sensorHelper(sensorName, listened, self)
+  this.addSensorHelper = function(deviceId, sensorName, listened) {//function called by the MetaDriver to store 
+    const newSensorH = new sensorHelper(deviceId, sensorName, listened, self)
     self.sensorH.push(newSensorH);
     return newSensorH;
   }
 
-  this.addSwitchHelper = function(switchName, listen, evaldo) {//function called by the MetaDriver to store 
-    const newSwitchH = new switchHelper(switchName, listen, evaldo, self)
+  this.addSwitchHelper = function(deviceId, switchName, listen, evaldo) {//function called by the MetaDriver to store 
+    const newSwitchH = new switchHelper(deviceId, switchName, listen, evaldo, self)
     self.switchH.push(newSwitchH);
     return newSwitchH;
   }
 
-  this.addSliderHelper = function(listen, evaldo, slidername) {//function called by the MetaDriver to store 
-    const newSliderH = new sliderHelper(listen, evaldo, slidername, self)
+  this.addSliderHelper = function(deviceId, listen, evaldo, slidername) {//function called by the MetaDriver to store 
+    const newSliderH = new sliderHelper(deviceId, listen, evaldo, slidername, self)
     self.sliderH.push(newSliderH);
     return newSliderH;
   }
 
-  this.addDirectoryHelper = function(dirname) {//function called by the MetaDriver to store the features of the list 
-    const newDirectoryH = new directoryHelper(dirname, self)
+  this.addDirectoryHelper = function(deviceId, dirname) {//function called by the MetaDriver to store the features of the list 
+    const newDirectoryH = new directoryHelper(deviceId, dirname, self)
     self.directoryH.push(newDirectoryH);
     return newDirectoryH;
   }
@@ -559,18 +124,7 @@ module.exports = function controller(driver) {
     console.log('registerInitiationCallback')
   
   }
-  
-
-  this.writeVariable = function(theVariable, theValue, deviceId) {//deviceId necessary as push to components.
-    let foundVar = self.deviceVariables.find(elt => {return elt.name == builtHelperName(theVariable, deviceId)});
-    if (foundVar.value != theValue) {// If the value changed.
-      foundVar.value = theValue; //Write value here
-      foundVar.listeners.forEach(element => { //invoke all listeners
-        element(deviceId, foundVar.value);
-      });
-    }
-  }
-
+ 
   this.assignTo = function(Pattern, inputChain, givenResult) //Assign a value to the input chain. Pattern found is replaced by given value
   {
    try {
@@ -602,32 +156,14 @@ module.exports = function controller(driver) {
     }
   }
 
-
-  this.readVariables = function(inputChain, deviceId) { //replace in the input chain, all the variables found.
-    let preparedResult = inputChain;
-    if (typeof(preparedResult) == 'object') {
-      preparedResult = JSON.stringify(preparedResult);
-    }
-    if (typeof(preparedResult) == 'string')
-      self.deviceVariables.forEach(variable => {
-        if (variable.name.startsWith(deviceId+getBuiltNameSeparator())) {//we get the full name including the deviceId
-          let token = variablePattern.pre + getNameFromBuiltName(variable.name);//get only the name variable
-          while (preparedResult != preparedResult.replace(token, variable.value)) {
-            preparedResult = preparedResult.replace(token, variable.value);
-          }
-        }
-    })
-     return preparedResult;
-  }
-
-   
+  
   this.evalWrite = function (evalwrite, result, deviceId) {
     if (evalwrite) { //case we want to write inside a variable
       evalwrite.forEach(evalW => {
         //process the value
-        let finalValue = self.readVariables(evalW.value, deviceId);
+        let finalValue = self.vault.readVariables(evalW.value, deviceId);
         finalValue = self.assignTo(RESULT, finalValue, result);
-        self.writeVariable(evalW.variable, finalValue, deviceId); 
+        self.vault.writeVariable(evalW.variable, finalValue, deviceId); 
       });
     }
   }
@@ -636,7 +172,7 @@ module.exports = function controller(driver) {
     if (evaldo) { //case we want to trigger a button
       evaldo.forEach(evalD => {
         if (evalD.test == '' || evalD.test == true) {evalD.test = true}; //in case of no test, go to the do function
-        let finalDoTest = self.readVariables(evalD.test, deviceId);// prepare the test to assign variable and be evaluated.
+        let finalDoTest = self.vault.readVariables(evalD.test, deviceId);// prepare the test to assign variable and be evaluated.
         finalDoTest = self.assignTo(RESULT, finalDoTest, result);
         if (finalDoTest) {
           if (evalD.then && evalD.then != '')
@@ -716,7 +252,7 @@ module.exports = function controller(driver) {
      
       self.assignProcessor(commandtype);
       let connection = self.getConnection(commandtype);
-      command = self.readVariables(command, deviceId);
+      command = self.vault.readVariables(command, deviceId);
       command = self.assignTo(RESULT, command, "");
       let params = {'command' : command, 'connection' : connection};
       processingManager.process(params)
@@ -733,7 +269,7 @@ module.exports = function controller(driver) {
       self.assignProcessor(commandtype);
       let connection = self.getConnection(commandtype);
       
-      command = self.readVariables(command, deviceId);
+      command = self.vault.readVariables(command, deviceId);
       let params = {'command' : command, 'listener' : listener, '_listenCallback' : self.onListenExecute, 'connection' : connection};
       processingManager.startListen(params, deviceId)
         .then((result) => {
@@ -755,7 +291,7 @@ module.exports = function controller(driver) {
      
       self.assignProcessor(commandtype);
       //console.log('Query Processor : ' + query)
-      query = self.readVariables(query, deviceId);
+      query = self.vault.readVariables(query, deviceId);
       let params = {'query' : query, 'data' : data}
       processingManager.query(params).then((data) => {
           resolve(data)
@@ -836,7 +372,7 @@ module.exports = function controller(driver) {
         self.wrapUpProcessor(connection.name);
       });
     }
-    let theButton = self.buttons[self.buttons.findIndex((button) => {return button.name ==  builtHelperName(name,deviceId)})].value;
+    let theButton = self.buttons[self.buttons.findIndex((button) => {return button.name ==  name && button.deviceId == deviceId})].value;
     if (theButton != undefined) {
       if (theButton.type != WOL) { //all the cases
         if (theButton.command != undefined){ 

@@ -4,11 +4,6 @@ const neeoapi = require("neeo-sdk");
 const metacontrol = require(__dirname + '/metaController');
 const fs = require('fs')
 const activatedModule = __dirname + '/activated/';
-//const { exec } = require("child_process");
-//const { resolve } = require("path");
-//const { get } = require("http");
-//const { Discovery } = require("neeo-sdk");
-const { builtHelperName } = require("./helpers");
 const BUTTONHIDE = '__';
 const DEFAULT = 'default'; //NEEO SDK deviceId default value
 var config = {brainip : '', brainport : ''};
@@ -31,8 +26,8 @@ function getConfig() {
   })
 }
 
-function getHelper (HelpTable, prop) {
-  return HelpTable[HelpTable.findIndex((item) => { return (item.name==prop) })];
+function getHelper (HelpTable, prop, deviceId) {
+  return HelpTable[HelpTable.findIndex((item) => { return (item.name==prop && item.deviceId==deviceId) })];
 }
 
 function getIndividualActivatedDrivers(files, driverList, driverIterator) {
@@ -218,10 +213,10 @@ function executeDriversCreation (drivers, hubController, deviceId) { //drivers i
         //CREATING VARIABLES
         for (var prop in driver.variables) { // Initialisation of the variables
           if (Object.prototype.hasOwnProperty.call(driver.variables, prop)) {
-            controller.addVariable(builtHelperName(prop, currentDeviceId), driver.variables[prop])
+            controller.vault.addVariable(prop, driver.variables[prop], currentDeviceId)
           }
         }
-        controller.addVariable(builtHelperName('NeeoBrainIP', currentDeviceId), config.brainip); //Adding a usefull system variable giving the brain IP address.
+        controller.vault.addVariable('NeeoBrainIP', config.brainip, currentDeviceId); //Adding a usefull system variable giving the brain IP address.
 
         //CREATING LISTENERS
         for (var prop in driver.listeners) { // Initialisation of the variables
@@ -243,43 +238,43 @@ function executeDriversCreation (drivers, hubController, deviceId) { //drivers i
         
         for (var prop in driver.buttons) { // Dynamic creation of all buttons
           if (Object.prototype.hasOwnProperty.call(driver.buttons, prop)) {
-            controller.addButton(builtHelperName(prop, currentDeviceId), driver.buttons[prop])
+            controller.addButton(currentDeviceId, prop, driver.buttons[prop])
           }
         } 
 
         for (var prop in driver.images) { // Dynamic creation of all images
           if (Object.prototype.hasOwnProperty.call(driver.images, prop)) {
-            controller.addImageHelper(builtHelperName(prop, currentDeviceId), driver.images[prop].listen)
+            controller.addImageHelper(currentDeviceId, prop, driver.images[prop].listen)
           }
         }
      
         for (var prop in driver.labels) { // Dynamic creation of all labels
           if (Object.prototype.hasOwnProperty.call(driver.labels, prop)) {
-            controller.addLabelHelper(builtHelperName(prop, currentDeviceId), driver.labels[prop].listen, driver.labels[prop].actionlisten)
+            controller.addLabelHelper(currentDeviceId, prop, driver.labels[prop].listen, driver.labels[prop].actionlisten)
           }
         }
 
         for (var prop in driver.sensors) { // Dynamic creation of all sensors
           if (Object.prototype.hasOwnProperty.call(driver.sensors, prop)) {
-            controller.addSensorHelper(builtHelperName(prop, currentDeviceId), driver.sensors[prop].listen)
+            controller.addSensorHelper(currentDeviceId, prop, driver.sensors[prop].listen)
           }
         }
 
         for (var prop in driver.switches) { // Dynamic creation of all sliders
           if (Object.prototype.hasOwnProperty.call(driver.switches, prop)) {
-           controller.addSwitchHelper(builtHelperName(prop, currentDeviceId), driver.switches[prop].listen, driver.switches[prop].evaldo);
+           controller.addSwitchHelper(currentDeviceId, prop, driver.switches[prop].listen, driver.switches[prop].evaldo);
           }
         }
 
         for (var prop in driver.sliders) { // Dynamic creation of all sliders
           if (Object.prototype.hasOwnProperty.call(driver.sliders, prop)) {
-            controller.addSliderHelper(driver.sliders[prop].listen, driver.sliders[prop].evaldo, builtHelperName(prop, currentDeviceId));
+            controller.addSliderHelper(currentDeviceId, driver.sliders[prop].listen, driver.sliders[prop].evaldo, prop);
           }
         }
 
         for (var prop in driver.directories) { // Dynamic creation of directories
           if (Object.prototype.hasOwnProperty.call(driver.directories, prop)) {
-            const theHelper = controller.addDirectoryHelper(builtHelperName(prop, currentDeviceId));
+            const theHelper = controller.addDirectoryHelper(currentDeviceId, prop);
             for (var feed in driver.directories[prop].feeders) {
               let feedConfig = {"name":feed, 
                                 "label":driver.directories[prop].feeders[feed].label, 
@@ -374,7 +369,7 @@ function executeDriversCreation (drivers, hubController, deviceId) { //drivers i
              if (theDevice.imageUrls.findIndex((item) => {return (item.param.name == prop)})<0) {//not image of same name (in case included in a widget)
                 theDevice.addImageUrl({name: prop, label: (driver.images[prop].label == '') ? (prop) : (driver.images[prop].label),
                     size : driver.images[prop].size},
-              (deviceId) => getHelper(controller.imageH, builtHelperName(prop, currentDeviceId)).get(deviceId))
+              (deviceId) => getHelper(controller.imageH, prop, currentDeviceId).get(deviceId))
             }
           }
         }
@@ -383,7 +378,7 @@ function executeDriversCreation (drivers, hubController, deviceId) { //drivers i
           if (Object.prototype.hasOwnProperty.call(driver.labels, prop)) {
             if (theDevice.textLabels.findIndex((item) => {return (item.param.name == prop)})<0) {//not item of same name (in case included in a widget)
               theDevice.addTextLabel({name: prop, label: (driver.labels[prop].label == '') ? (prop) : (driver.labels[prop].label)},
-              getHelper(controller.labelH, builtHelperName(prop, currentDeviceId)).get);
+              getHelper(controller.labelH, prop, currentDeviceId).get);
             }
           }
         }
@@ -394,7 +389,7 @@ function executeDriversCreation (drivers, hubController, deviceId) { //drivers i
               theDevice.addSensor({name: prop, label: (driver.sensors[prop].label == '') ? (prop) : (driver.sensors[prop].label),
               type:driver.sensors[prop].type},
               {
-                getter: getHelper(controller.sensorH, builtHelperName(prop, currentDeviceId)).get
+                getter: getHelper(controller.sensorH, prop, currentDeviceId).get
               });
             }
           }
@@ -408,7 +403,7 @@ function executeDriversCreation (drivers, hubController, deviceId) { //drivers i
               label: (driver.switches[prop].label == '') ? (prop) : (driver.switches[prop].label),
             },
             {
-              setter: getHelper(controller.switchH, builtHelperName(prop, currentDeviceId)).set, getter: getHelper(controller.switchH, builtHelperName(prop, currentDeviceId)).get
+              setter: getHelper(controller.switchH, prop, currentDeviceId).set, getter: getHelper(controller.switchH, prop, currentDeviceId).get
             })
           }
          }
@@ -423,7 +418,7 @@ function executeDriversCreation (drivers, hubController, deviceId) { //drivers i
                 range: [0,100], unit: driver.sliders[prop].unit 
               },
               {
-                setter: getHelper(controller.sliderH, builtHelperName(prop, currentDeviceId)).set, getter: getHelper(controller.sliderH, builtHelperName(prop, currentDeviceId)).get
+                setter: getHelper(controller.sliderH, prop, currentDeviceId).set, getter: getHelper(controller.sliderH, prop, currentDeviceId).get
               })
             }
           }
@@ -435,7 +430,7 @@ function executeDriversCreation (drivers, hubController, deviceId) { //drivers i
               theDevice.addDirectory({
                 name: prop, 
                 label: (driver.directories[prop].label == '') ? (prop) : (driver.directories[prop].label),
-              }, getHelper(controller.directoryH, builtHelperName(prop, currentDeviceId)).browse)
+              }, getHelper(controller.directoryH, prop, currentDeviceId).browse)
             }
           }
         }
@@ -501,7 +496,7 @@ function runNeeo () {
       const neeoSettings = {
       brain: config.brainip.toString(),
       port: config.brainport.toString(),
-      name: "Meta Driver 1.4",
+      name: "Meta Driver 0.8.1 Alpha",
       devices: driverTable
     };
     console.log(neeoSettings)

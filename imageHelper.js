@@ -1,8 +1,8 @@
-const { getNameFromBuiltName } = require("./helpers");
 
 class imageHelper {
-  constructor(name, variableListened, controller) {
+  constructor(deviceId, name, variableListened, controller) {
     this.name = name;
+    this.deviceId = deviceId;
     this.variableListened = variableListened;
     this.value = '';
     var self = this;
@@ -16,14 +16,14 @@ class imageHelper {
       return new Promise(function (resolve, reject) {
         if (self.value != theValue) {
           self.value = theValue;
-          controller.sendComponentUpdate({ uniqueDeviceId: deviceId, component: getNameFromBuiltName(self.name), value: self.value})
+          controller.sendComponentUpdate({ uniqueDeviceId: deviceId, component: self.name, value: self.value})
             .catch((err) => { console.log("Image Update Error : " + err); });
         }
         resolve();
       });
     };
     this.initialise = function (deviceId) {
-      controller.addListenerVariable(self.variableListened, self.update, deviceId);
+      controller.vault.addObserver(self.variableListened, self.update, deviceId);
     }
   }
 }
