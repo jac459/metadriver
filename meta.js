@@ -126,9 +126,9 @@ function discoveryDriverPreparator(controller, driver) {
                       
     if (driver.discover) {
       let instanciationTable = []
-      controller.initiateProcessor(driver.discoverycommand.type).then(() => {
-        controller.commandProcessor(driver.discoverycommand.command, driver.discoverycommand.type).then((result)=>{
-          controller.queryProcessor(result, driver.discoverycommand.queryresult, driver.discoverycommand.type).then((result) => {
+      controller.initiateProcessor(driver.discover.command.type).then(() => {
+        controller.commandProcessor(driver.discover.command.command, driver.discover.command.type).then((result)=>{
+          controller.queryProcessor(result, driver.discover.command.queryresult, driver.discover.command.type).then((result) => {
             if (!Array.isArray(result)) {
               let tempo = [];
               tempo.push(result);
@@ -181,7 +181,7 @@ function executeDriversCreation (drivers, hubController, deviceId) { //drivers i
             theDevice.setIcon(driver.icon)
         }
         
-          //GET ALL CONNEXIONS
+        //GET ALL CONNEXIONS
         if (driver.webSocket) {
           controller.addConnection({"name":"webSocket", "descriptor":driver.webSocket, "connector":""})
         }
@@ -194,8 +194,8 @@ function executeDriversCreation (drivers, hubController, deviceId) { //drivers i
 
           theDevice.enableDiscovery(
             {
-              headerText: driver.welcomeheadertext,
-              description: driver.welcomedescription,
+              headerText: driver.discover.welcomeheadertext,
+              description: driver.discover.welcomedescription,
               enableDynamicDeviceBuilder: true,
             },
             () => {

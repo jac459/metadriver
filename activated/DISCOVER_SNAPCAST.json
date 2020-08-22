@@ -2,10 +2,11 @@
   "type":"LIGHT",
   "jsontcp":"192.168.1.2", 
   "version":1,
-  "discover":true,
-  "welcomeheadertext":"SNAPCAST Driver",
-  "welcomedescription":"powered by meta\nby JAC459",
-  "discoverycommand":{"type":"jsontcp", "command":"{\"call\":\"Server.GetStatus\", \"message\":\"\"}", "queryresult":"$.server.groups[0].clients[*]", "evalwrite":[{"variable":"SnapCastId","value":"$Result"}]},
+  "discover":{
+    "welcomeheadertext":"SNAPCAST Driver",
+    "welcomedescription":"powered by meta\nby JAC459",
+    "command":{"type":"jsontcp", "command":"{\"call\":\"Server.GetStatus\", \"message\":\"\"}", "queryresult":"$.server.groups[0].clients[*]", "evalwrite":[{"variable":"SnapCastId","value":"$Result"}]}
+  },
   "template" : {
     "name":"Snapcast", 
     "dynamicname":"DYNAMIK_INST_START DYNAMIK JSON.parse(\"$Result\").config.name DYNAMIK_INST_END",
