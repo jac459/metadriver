@@ -168,6 +168,27 @@ function discoveryDriverPreparator(controller, driver) {
   })
 }
 
+function registerDevice(controller, credentials, driver, deviceId) {
+  return new Promise(function (resolve, reject) {
+    console.log(credentials);
+    controller.vault.addPersistedVariable("RegistrationCode", credentials.securityCode, deviceId)
+    controller.actionManager(DEFAULT, driver.register.registrationcommand.type, driver.register.registrationcommand.command, 
+                          driver.register.registrationcommand.queryresult, '', driver.register.registrationcommand.evalwrite)
+    .then((result) => {
+      controller.reInitVariablesValues(deviceId);
+      controller.reInitConnectionsValues(deviceId);
+      resolve();
+    })
+  })
+}
+
+function isDeviceRegistered(controller, deviceId) {
+  let retValue = controller.vault.getValue("IsRegistered", deviceId);
+  if (retValue) {return retValue}
+  else {return false;}
+}
+
+ 
 function createController(hubController, driver) {//Discovery specific
   if (hubController) {//We are inside a discovered item no new controller to be created.
     return hubController;
@@ -217,172 +238,184 @@ function executeDriversCreation (drivers, hubController, deviceId) { //drivers i
         }
       }
 
-        //GET ALL CONNEXIONS
-        if (driver.webSocket) {
-          controller.addConnection({"name":"webSocket", "descriptor":driver.webSocket, "connector":""})
-        }
-        if (driver.jsontcp) {
-          controller.addConnection({"name":"jsontcp", "descriptor":driver.jsontcp, "connector":""})
-        }
-  
-        //DISCOVERY  
-        if (driver.discover) {
+      //Registration
+      if (driver.register) {
+        theDevice.enableRegistration(
+        {
+          type: 'SECURITY_CODE',
+          headerText: driver.register.registerheaderText,
+          description: driver.register.registerdescription,
+        },
+        {
+          register: (credentials) => registerDevice(controller, credentials, driver, currentDeviceId),
+          isRegistered: () => {return isDeviceRegistered(controller, currentDeviceId);},
+        })
+      }
 
-          theDevice.enableDiscovery(
-            {
-              headerText: driver.discover.welcomeheadertext,
-              description: driver.discover.welcomedescription,
-              enableDynamicDeviceBuilder: true,
-            },
-            () => {
-              return new Promise(function (resolve, reject) {
-                discoveryDriverPreparator(controller, driver).then((driverList) => {
-                  const formatedTable = [];
-                  discoveredDriverListBuilder(driverList, formatedTable, 0, controller).then((outputTable) => {
-                    resolve(outputTable); 
-                  })
+      //GET ALL CONNEXIONS
+      if (driver.webSocket) {
+        controller.addConnection({"name":"webSocket", "descriptor":driver.webSocket, "connector":""})
+      }
+      if (driver.jsontcp) {
+        controller.addConnection({"name":"jsontcp", "descriptor":driver.jsontcp, "connector":""})
+      }
+
+      //DISCOVERY  
+      if (driver.discover) {
+
+        theDevice.enableDiscovery(
+          {
+            headerText: driver.discover.welcomeheadertext,
+            description: driver.discover.welcomedescription,
+            enableDynamicDeviceBuilder: true,
+          },
+          () => {
+            console.log("STARTING THE DISCOVERY PROCESSSSSSSS MOTHER FUCKER")
+            return new Promise(function (resolve, reject) {
+              discoveryDriverPreparator(controller, driver).then((driverList) => {
+                const formatedTable = [];
+                discoveredDriverListBuilder(driverList, formatedTable, 0, controller).then((outputTable) => {
+                  resolve(outputTable); 
                 })
               })
-            }
-          )
-        }
-       
- 
-
-
-        //CREATING LISTENERS
-        for (var prop in driver.listeners) { // Initialisation of the variables
-          if (Object.prototype.hasOwnProperty.call(driver.listeners, prop)) {
-             controller.addListener({
-               name : prop, 
-               type : driver.listeners[prop].type,
-               command : driver.listeners[prop].command,
-               timer : "", //prepare the the listener to save the timer here.
-               pooltime : driver.listeners[prop].pooltime,
-               poolduration : driver.listeners[prop].poolduration,
-               queryresult : driver.listeners[prop].queryresult,
-               evalwrite : driver.listeners[prop].evalwrite,
-              })
-          }
-        }
-      
-        //CREATING CONTROLLERS
-        
-        for (var prop in driver.buttons) { // Dynamic creation of all buttons
-          if (Object.prototype.hasOwnProperty.call(driver.buttons, prop)) {
-            controller.addButton(currentDeviceId, prop, driver.buttons[prop])
-          }
-        } 
-
-        for (var prop in driver.images) { // Dynamic creation of all images
-          if (Object.prototype.hasOwnProperty.call(driver.images, prop)) {
-            controller.addImageHelper(currentDeviceId, prop, driver.images[prop].listen)
-          }
-        }
-     
-        for (var prop in driver.labels) { // Dynamic creation of all labels
-          if (Object.prototype.hasOwnProperty.call(driver.labels, prop)) {
-            controller.addLabelHelper(currentDeviceId, prop, driver.labels[prop].listen, driver.labels[prop].actionlisten)
-          }
-        }
-
-        for (var prop in driver.sensors) { // Dynamic creation of all sensors
-          if (Object.prototype.hasOwnProperty.call(driver.sensors, prop)) {
-            controller.addSensorHelper(currentDeviceId, prop, driver.sensors[prop].listen)
-          }
-        }
-
-        for (var prop in driver.switches) { // Dynamic creation of all sliders
-          if (Object.prototype.hasOwnProperty.call(driver.switches, prop)) {
-           controller.addSwitchHelper(currentDeviceId, prop, driver.switches[prop].listen, driver.switches[prop].evaldo);
-          }
-        }
-
-        for (var prop in driver.sliders) { // Dynamic creation of all sliders
-          if (Object.prototype.hasOwnProperty.call(driver.sliders, prop)) {
-            controller.addSliderHelper(currentDeviceId, driver.sliders[prop].listen, driver.sliders[prop].evaldo, prop);
-          }
-        }
-
-        for (var prop in driver.directories) { // Dynamic creation of directories
-          if (Object.prototype.hasOwnProperty.call(driver.directories, prop)) {
-            const theHelper = controller.addDirectoryHelper(currentDeviceId, prop);
-            for (var feed in driver.directories[prop].feeders) {
-              let feedConfig = {"name":feed, 
-                                "label":driver.directories[prop].feeders[feed].label, 
-                                "commandset":driver.directories[prop].feeders[feed].commandset, 
-                              };
-              theHelper.addFeederHelper(feedConfig);
-            }
-          }
-        }
-
-        //CREATING WIDGETS
-/*
-        for (var prop in driver.players) { // Dynamic creation of players
-          if (Object.prototype.hasOwnProperty.call(driver.players, prop)) {
-            const myDirectory = controller.directoryH[controller.directoryH.findIndex((helper) => {return (helper.name == driver.players[prop].rootdirectory)})];
-            const myQueueDirectory = controller.directoryH[controller.directoryH.findIndex((helper) => {return (helper.name == driver.players[prop].queuedirectory)})];
-            const myVolume = controller.sliderH[controller.sliderH.findIndex((helper) => {return (helper.name == driver.players[prop].volume)})];
-            const myCoverArt = controller.sensorH[controller.sensorH.findIndex((helper) => {return (helper.name == driver.players[prop].cover)})];
-            const myTitle = controller.sensorH[controller.sensorH.findIndex((helper) => {return (helper.name == driver.players[prop].title)})]
-            const myDescription = controller.sensorH[controller.sensorH.findIndex((helper) => {return (helper.name == driver.players[prop].description)})]
-            const myPlayingSwitch = controller.switchH[controller.directoryH.findIndex((helper) => {return (helper.name == driver.players[prop].IsPlaying)})]
-            const myMuteSwitch = controller.switchH[controller.directoryH.findIndex((helper) => {return (helper.name == driver.players[prop].IsMuted)})]
-            const myShuffleSwitch = controller.switchH[controller.directoryH.findIndex((helper) => {return (helper.name == driver.players[prop].IsShuffle)})]
-            const myRepeatSwitch = controller.switchH[controller.directoryH.findIndex((helper) => {return (helper.name == driver.players[prop].IsRepeat)})]
-
-            theDevice.addPlayerWidget({
-              rootDirectory: {
-                name: 'Collection', 
-                label: 'My Collection', 
-                controller: { 
-                  getter: (deviceId, params) => {return new Promise(function (resolve, reject) { resolve(myDirectory.fetchList(deviceId, params))})},
-                  action:(deviceId, params) => {myDirectory.handleAction(deviceId,params)},
-                }
-              },
-
-              queueDirectory: {
-                name: 'Queue', 
-                label: 'Playing Queue', 
-                controller: { 
-                  getter: (deviceId, params) => {return new Promise(function (resolve, reject) { resolve(myQueueDirectory.fetchList(deviceId, params))})},
-                  action:(deviceId, params) => {myQueueDirectory.handleAction(deviceId,params)},
-                }
-              },
-
-              volumeController: { 
-                getter:(deviceId) => {myVolume.get(deviceId)},
-                setter:(deviceId, params) => {myVolume.set(deviceId,params)},
-              },
-              coverArtController: {
-                getter:(deviceId) => {myCoverArt.get(deviceId)},
-              },
-              titleController: { 
-                getter:(deviceId) => {myTitle.get(deviceId)},
-              },
-              descriptionController: { 
-                getter:(deviceId) => {myDescription.get(deviceId)},
-              },
-              playingController: { 
-                getter:(deviceId) => {myPlayingSwitch.get(deviceId)},
-                setter:(deviceId, params) => {myPlayingSwitch.set(deviceId,params)},
-              },
-              muteController: { 
-                getter:(deviceId) => {myMuteSwitch.get(deviceId)},
-                setter:(deviceId, params) => {myMuteSwitch.set(deviceId,params)},
-              },
-              shuffleController: { 
-                getter:(deviceId) => {myShuffleSwitch.get(deviceId)},
-                setter:(deviceId, params) => {myShuffleSwitch.set(deviceId,params)},
-              },
-              repeatController: { 
-                getter:(deviceId) => {myRepeatSwitch.get(deviceId)},
-                setter:(deviceId, params) => {myRepeatSwitch.set(deviceId,params)},
-              },
             })
           }
+        )
+      }
+ 
+      //CREATING LISTENERS
+      for (var prop in driver.listeners) { // Initialisation of the variables
+        if (Object.prototype.hasOwnProperty.call(driver.listeners, prop)) {
+            controller.addListener({
+              name : prop, 
+              type : driver.listeners[prop].type,
+              command : driver.listeners[prop].command,
+              timer : "", //prepare the the listener to save the timer here.
+              pooltime : driver.listeners[prop].pooltime,
+              poolduration : driver.listeners[prop].poolduration,
+              queryresult : driver.listeners[prop].queryresult,
+              evalwrite : driver.listeners[prop].evalwrite,
+            })
         }
+      }
+    
+      //CREATING CONTROLLERS
+      
+      for (var prop in driver.buttons) { // Dynamic creation of all buttons
+        if (Object.prototype.hasOwnProperty.call(driver.buttons, prop)) {
+          controller.addButton(currentDeviceId, prop, driver.buttons[prop])
+        }
+      } 
+
+      for (var prop in driver.images) { // Dynamic creation of all images
+        if (Object.prototype.hasOwnProperty.call(driver.images, prop)) {
+          controller.addImageHelper(currentDeviceId, prop, driver.images[prop].listen)
+        }
+      }
+    
+      for (var prop in driver.labels) { // Dynamic creation of all labels
+        if (Object.prototype.hasOwnProperty.call(driver.labels, prop)) {
+          controller.addLabelHelper(currentDeviceId, prop, driver.labels[prop].listen, driver.labels[prop].actionlisten)
+        }
+      }
+
+      for (var prop in driver.sensors) { // Dynamic creation of all sensors
+        if (Object.prototype.hasOwnProperty.call(driver.sensors, prop)) {
+          controller.addSensorHelper(currentDeviceId, prop, driver.sensors[prop].listen)
+        }
+      }
+
+      for (var prop in driver.switches) { // Dynamic creation of all sliders
+        if (Object.prototype.hasOwnProperty.call(driver.switches, prop)) {
+          controller.addSwitchHelper(currentDeviceId, prop, driver.switches[prop].listen, driver.switches[prop].evaldo);
+        }
+      }
+
+      for (var prop in driver.sliders) { // Dynamic creation of all sliders
+        if (Object.prototype.hasOwnProperty.call(driver.sliders, prop)) {
+          controller.addSliderHelper(currentDeviceId, driver.sliders[prop].listen, driver.sliders[prop].evaldo, prop);
+        }
+      }
+
+      for (var prop in driver.directories) { // Dynamic creation of directories
+        if (Object.prototype.hasOwnProperty.call(driver.directories, prop)) {
+          const theHelper = controller.addDirectoryHelper(currentDeviceId, prop);
+          for (var feed in driver.directories[prop].feeders) {
+            let feedConfig = {"name":feed, 
+                              "label":driver.directories[prop].feeders[feed].label, 
+                              "commandset":driver.directories[prop].feeders[feed].commandset, 
+                            };
+            theHelper.addFeederHelper(feedConfig);
+          }
+        }
+      }
+
+      //CREATING WIDGETS
+/*
+      for (var prop in driver.players) { // Dynamic creation of players
+        if (Object.prototype.hasOwnProperty.call(driver.players, prop)) {
+          const myDirectory = controller.directoryH[controller.directoryH.findIndex((helper) => {return (helper.name == driver.players[prop].rootdirectory)})];
+          const myQueueDirectory = controller.directoryH[controller.directoryH.findIndex((helper) => {return (helper.name == driver.players[prop].queuedirectory)})];
+          const myVolume = controller.sliderH[controller.sliderH.findIndex((helper) => {return (helper.name == driver.players[prop].volume)})];
+          const myCoverArt = controller.sensorH[controller.sensorH.findIndex((helper) => {return (helper.name == driver.players[prop].cover)})];
+          const myTitle = controller.sensorH[controller.sensorH.findIndex((helper) => {return (helper.name == driver.players[prop].title)})]
+          const myDescription = controller.sensorH[controller.sensorH.findIndex((helper) => {return (helper.name == driver.players[prop].description)})]
+          const myPlayingSwitch = controller.switchH[controller.directoryH.findIndex((helper) => {return (helper.name == driver.players[prop].IsPlaying)})]
+          const myMuteSwitch = controller.switchH[controller.directoryH.findIndex((helper) => {return (helper.name == driver.players[prop].IsMuted)})]
+          const myShuffleSwitch = controller.switchH[controller.directoryH.findIndex((helper) => {return (helper.name == driver.players[prop].IsShuffle)})]
+          const myRepeatSwitch = controller.switchH[controller.directoryH.findIndex((helper) => {return (helper.name == driver.players[prop].IsRepeat)})]
+
+          theDevice.addPlayerWidget({
+            rootDirectory: {
+              name: 'Collection', 
+              label: 'My Collection', 
+              controller: { 
+                getter: (deviceId, params) => {return new Promise(function (resolve, reject) { resolve(myDirectory.fetchList(deviceId, params))})},
+                action:(deviceId, params) => {myDirectory.handleAction(deviceId,params)},
+              }
+            },
+
+            queueDirectory: {
+              name: 'Queue', 
+              label: 'Playing Queue', 
+              controller: { 
+                getter: (deviceId, params) => {return new Promise(function (resolve, reject) { resolve(myQueueDirectory.fetchList(deviceId, params))})},
+                action:(deviceId, params) => {myQueueDirectory.handleAction(deviceId,params)},
+              }
+            },
+
+            volumeController: { 
+              getter:(deviceId) => {myVolume.get(deviceId)},
+              setter:(deviceId, params) => {myVolume.set(deviceId,params)},
+            },
+            coverArtController: {
+              getter:(deviceId) => {myCoverArt.get(deviceId)},
+            },
+            titleController: { 
+              getter:(deviceId) => {myTitle.get(deviceId)},
+            },
+            descriptionController: { 
+              getter:(deviceId) => {myDescription.get(deviceId)},
+            },
+            playingController: { 
+              getter:(deviceId) => {myPlayingSwitch.get(deviceId)},
+              setter:(deviceId, params) => {myPlayingSwitch.set(deviceId,params)},
+            },
+            muteController: { 
+              getter:(deviceId) => {myMuteSwitch.get(deviceId)},
+              setter:(deviceId, params) => {myMuteSwitch.set(deviceId,params)},
+            },
+            shuffleController: { 
+              getter:(deviceId) => {myShuffleSwitch.get(deviceId)},
+              setter:(deviceId, params) => {myShuffleSwitch.set(deviceId,params)},
+            },
+            repeatController: { 
+              getter:(deviceId) => {myRepeatSwitch.get(deviceId)},
+              setter:(deviceId, params) => {myRepeatSwitch.set(deviceId,params)},
+            },
+          })
+        }
+      }
 */
         //CREATING INDIVIDUAL SHORTCUTS
 

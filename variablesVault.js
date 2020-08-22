@@ -86,6 +86,17 @@ class variablesVault {
       }
     }
 
+    this.getValue = function(name, deviceId) {
+      let internalVariableName = toInternalName(name, deviceId);
+      let indexRes = self.variables.findIndex(elt => {return elt.name == internalVariableName});
+      if (indexRes<0) {
+        return undefined
+      } 
+      else {
+        return self.variables[indexRes].value;
+      }
+    }
+
     this.writeVariable = function(name, value, deviceId) {//deviceId necessary as push to components.
       let internalVariableName = toInternalName(name, deviceId);
       let foundVar = self.variables.find(elt => {return elt.name == internalVariableName});
@@ -152,6 +163,10 @@ class variablesVault {
                 }
               }
               else {resolve(undefined);}
+              if (err) {
+                console.log('Error accessing the datastore file.')
+                console.log(err)
+              }
             })
           }
         }
@@ -183,6 +198,7 @@ class variablesVault {
           //now we need to save the datastore
           
           fs.unlink(self.dataStore,function(err){
+            console.log('datastore' + JSON.stringify(result))
             fs.writeFile(self.dataStore, JSON.stringify(result), err => {
               if (err) {
                   console.log('Error writing in the datastore');

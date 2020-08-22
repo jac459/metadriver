@@ -10,8 +10,8 @@
         "MyPersistedStatus":""
     },
     "labels":{
-        "CurrentHDMI" : {"label":"MyPersistedStatus", "listen":"MyPersistedStatus"},
-        "CurrentAV" : {"label":"MyOtherStatus", "listen":"MyStatus"}
+        "CurrentHDMI" : {"label":"CurrentHDMI", "listen":"MyPersistedStatus"},
+        "CurrentAV" : {"label":"CurrentAV", "listen":"MyOtherStatus"}
     },
     
     "buttons":{

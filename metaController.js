@@ -190,6 +190,17 @@ module.exports = function controller(driver) {
     }
   }
 
+  this.reInitVariablesValues = function(deviceId) {//it is to make sure that all variable have been interpreted after the register process
+    self.vault.variables.forEach(element => {
+      element.value = self.vault.readVariables(element.value, deviceId); 
+    });
+  }
+
+  this.reInitConnectionsValues = function(deviceId) {//it is to make sure that all variable have been interpreted after the register process
+    self.connectionH.forEach(element => {
+      element.descriptor = self.vault.readVariables(element.descriptor, deviceId); 
+     });
+  }
 
   this.getConnection = function(commandtype) {
     return self.connectionH[self.connectionH.findIndex((item) => { return (item.name==commandtype) })];
@@ -320,7 +331,7 @@ module.exports = function controller(driver) {
     })
   }
   
-  this.actionManager = function (name, deviceId, commandtype, command, queryresult, evaldo, evalwrite) {
+  this.actionManager = function (deviceId, commandtype, command, queryresult, evaldo, evalwrite) {
     return new Promise(function (resolve, reject) {
       try {
         console.log(command+ ' - ' + commandtype)
@@ -363,7 +374,7 @@ module.exports = function controller(driver) {
         self.listenStart(listener, deviceId);
       });
 
-      
+
 
     }
 
