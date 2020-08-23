@@ -7,7 +7,6 @@ const rpc = require('json-rpc2');
 const lodash = require('lodash');
 const { parserXMLString, xmldom } = require("./metaController");
 const mqtt = require('mqtt');
-const mqttClient; // Always connect to the local mqtt broker
 
 //STRATEGY FOR THE COMMAND TO BE USED (HTTPGET, post, websocket, ...) New processor to be added here. This strategy mix both transport and data format (json, soap, ...)
 class ProcessingManager {
@@ -423,8 +422,10 @@ exports.cliIProcessor = cliIProcessor;
 class mqttProcessor {
   initiate(connection) {
     return new Promise(function (resolve, reject) {
-      mqttClient.on('connect', function() {
+      connection.connector = mqtt.connect('mqtt://' + connection.descriptor, {clientId:"NeeoBrain"}); // Always connect to the local mqtt broker
+      connection.connector.on('connect', function() {
         console.log('MQTT connected');
+        resolve(connection);
       })
     }); 
   }

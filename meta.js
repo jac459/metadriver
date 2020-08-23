@@ -260,6 +260,9 @@ function executeDriversCreation (drivers, hubController, deviceId) { //drivers i
       if (driver.jsontcp) {
         controller.addConnection({"name":"jsontcp", "descriptor":driver.jsontcp, "connector":""})
       }
+      if (driver.mqtt) {
+        controller.addConnection({"name":"mqtt", "descriptor":driver.mqtt, "connector":""})
+      }
 
       //DISCOVERY  
       if (driver.discover) {

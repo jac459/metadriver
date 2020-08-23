@@ -28,6 +28,8 @@
     "json-rpc2": "^2.0.0",
     "jsonpath": "^1.0.2",
     "lodash": "^4.17.19",
+    "meta": "^2.2.13",
+    "mqtt": "^4.2.0",
     "neeo-sdk": "^0.53.8",
     "socket.io-client": "^2.3.0",
     "wake_on_lan": "^1.0.0",
