@@ -253,7 +253,7 @@ function executeDriversCreation (drivers, hubController, deviceId) { //drivers i
         })
       }
 
-      //GET ALL CONNEXIONS
+      //GET ALL CONNECTIONS
       if (driver.webSocket) {
         controller.addConnection({"name":"webSocket", "descriptor":driver.webSocket, "connector":""})
       }
