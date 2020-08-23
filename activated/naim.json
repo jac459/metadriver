@@ -1,0 +1,28 @@
+{"name":"UNITI", 
+    "manufacturer":"NAIM",
+    "version":1,
+    "type":"AVRECEIVER", 
+    "variables":{
+        "NaimIp":"192.168.1.110",
+        "VolumePlayed":"",
+        "MyStatus":"",
+        "ActionStatus":""
+    },
+    "labels":{
+        "CurrentStatus" : {"label":" ", "listen":"MyStatus", "actionlisten":"ActionStatus"}
+    },
+    "buttons":{
+       "STATUS": {"label":"", "type":"http-get", "command":"http://$NaimIp:15081/levels/room", "queryresult":"$.volume", "evalwrite":[{"variable":"MyStatus","value":"$Result"}]},
+       "__VOLUMESET": {"label":"", "type":"http-get", "command":"http://$NaimIp:15081/levels/room?volume=$VolumePlayed"}
+    },
+    "sliders":{
+        "VOLUME": {"label":"", "unit" : "db", "listen" : "VolumePlayed", "evaldo":[{"test":true, "then":"__VOLUMESET", "or":""}]}
+    },
+    "directories":{
+        "INPUT": {"label":"", "feeders": {
+            "Inputs":{"label":"", "commandset": [{"type":"http-get", "command":"http://$NaimIp:15081/inputs", "queryresult":"$..name", "itemname":"$Result", "itemlabel":"Naim input", "itemaction":"InputSet", "itemimage":"https://raw.githubusercontent.com/jac459/metadriver/master/AVReceiver/Input/ThemeStandard/input_av1.jpg", "evalwrite":[{"variable":"InputName","value":"DYNAMIK JSON.parse(\"$Result\").id"}]}]},
+            "InputSet":{"label":"", "commandset": [{"type":"http-get", "command":"http://192.168.1.24/YamahaExtendedControl/v1/main/setInput?input=$InputName"}]}
+              }
+        }
+    }
+}
