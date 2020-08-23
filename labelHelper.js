@@ -2,6 +2,7 @@
 class labelHelper {
   constructor(deviceId, name, variableListened, controller, actionVariableListened) {
     this.name = name;
+    this.controller = controller;
     this.deviceId = deviceId;
     this.variableListened = variableListened;
     this.actionVariableListened = actionVariableListened;
@@ -16,11 +17,11 @@ class labelHelper {
       return new Promise(function (resolve, reject) {
         if (self.actionValue != theValue) {
           self.actionValue = theValue;
-          controller.sendComponentUpdate({ uniqueDeviceId: deviceId, component: self.name, value: theValue })
-          .catch((err) => {console.log("Label Update Action Error : " + err) });
+          self.controller.sendComponentUpdate({ uniqueDeviceId: deviceId, component: self.name, value: theValue })
+          .catch((err) => {console.log("Label Update Action Error : " + deviceId + " / " + err) });
           setTimeout(() => {
-          controller.sendComponentUpdate({ uniqueDeviceId: deviceId, component: self.name, value: self.value })
-          .catch((err) => {console.log("Label Update Action Error : " + err); });
+          self.controller.sendComponentUpdate({ uniqueDeviceId: deviceId, component: self.name, value: self.value })
+          .catch((err) => {console.log("Label Update Action Error : " + deviceId + " / " + err); });
           }, 2000)
         }
         resolve();
@@ -31,16 +32,18 @@ class labelHelper {
       return new Promise(function (resolve, reject) {
         if (self.value != theValue) {
           self.value = theValue;
-          controller.sendComponentUpdate({ uniqueDeviceId: deviceId, component: self.name, value: theValue })
-          .catch((err) => {console.log("Label Update Error : " + err) });
+          self.controller.sendComponentUpdate({ uniqueDeviceId: deviceId, component: self.name, value: theValue })
+          .catch((err) => {console.log("Label Update Error : " + deviceId + " / " + err) });
         }
         resolve();
       });
     };
+
     this.initialise = function (deviceId) {
-      controller.vault.addObserver(self.variableListened, self.update, deviceId);
-      controller.vault.addObserver(self.actionVariableListened, self.updateAction, deviceId);
+      self.controller.vault.addObserver(self.variableListened, self.update, deviceId);
+      self.controller.vault.addObserver(self.actionVariableListened, self.updateAction, deviceId);
     }
+
   }
 }
 exports.labelHelper = labelHelper;

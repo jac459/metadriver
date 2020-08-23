@@ -5,6 +5,7 @@ class switchHelper {
     this.deviceId = deviceId;
     this.variableListened = variableListened;
     this.evaldo = evaldo;
+    this.controller = controller;
     this.value = false;
     var self = this;
  
@@ -16,8 +17,8 @@ class switchHelper {
       return new Promise(function (resolve, reject) {
         if (self.value != theValue) {
           self.value = theValue;
-          controller.sendComponentUpdate({ uniqueDeviceId: deviceId, component: self.name, value: theValue })
-          .catch((err) => {console.log("Error while trying to put the value : " + theValue+ " in this component : " + self.name + " => " + err); reject(err); });
+          self.controller.sendComponentUpdate({ uniqueDeviceId: deviceId, component: self.name, value: theValue })
+          .catch((err) => {console.log("Error while trying to put the value : " + theValue+ " in this component : " + deviceId + " / " + self.name + " => " + err); reject(err); });
         }
         resolve();
       });
@@ -27,7 +28,7 @@ class switchHelper {
       return new Promise(function (resolve, reject) {
         if (self.value != theValue) {
           self.value = theValue;
-          controller.sendComponentUpdate({ uniqueDeviceId: deviceId, component: self.name, value: theValue })
+          self.controller.sendComponentUpdate({ uniqueDeviceId: deviceId, component: self.name, value: theValue })
           .catch((err) => {console.log("Error while trying to put the value : " + theValue+ " in this component : " + self.name + " => " + err); reject(err); });
         }
         controller.vault.writeVariable(variableListened, theValue, deviceId);

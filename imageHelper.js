@@ -5,6 +5,7 @@ class imageHelper {
     this.deviceId = deviceId;
     this.variableListened = variableListened;
     this.value = '';
+    this.controller = controller;
     var self = this;
     this.get = function (deviceId) {
       return new Promise(function (resolve, reject) {
@@ -16,14 +17,14 @@ class imageHelper {
       return new Promise(function (resolve, reject) {
         if (self.value != theValue) {
           self.value = theValue;
-          controller.sendComponentUpdate({ uniqueDeviceId: deviceId, component: self.name, value: self.value})
-            .catch((err) => { console.log("Image Update Error : " + err); });
+          self.controller.sendComponentUpdate({ uniqueDeviceId: deviceId, component: self.name, value: self.value})
+            .catch((err) => { console.log("Image Update Error : " + deviceId + " / " + err); });
         }
         resolve();
       });
     };
     this.initialise = function (deviceId) {
-      controller.vault.addObserver(self.variableListened, self.update, deviceId);
+      self.controller.vault.addObserver(self.variableListened, self.update, deviceId);
     }
   }
 }

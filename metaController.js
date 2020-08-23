@@ -30,7 +30,7 @@ const MQTT = 'mqtt';
 
 const WOL = 'wol';
 const DEFAULT = 'default'; //NEEO SDK deviceId default value
-const { ProcessingManager, httpgetProcessor, httpgetSoapProcessor, httppostProcessor, cliProcessor, cliIProcessor, staticProcessor, webSocketProcessor, jsontcpProcessor } = require("./ProcessingManager");
+const { ProcessingManager, httpgetProcessor, httpgetSoapProcessor, httppostProcessor, cliProcessor, cliIProcessor, staticProcessor, webSocketProcessor, jsontcpProcessor, mqttProcessor } = require("./ProcessingManager");
 
 const processingManager = new ProcessingManager();
 const myHttpgetProcessor = new httpgetProcessor();
@@ -123,9 +123,9 @@ module.exports = function controller(driver) {
     
   }
 
-   this.registerInitiationCallback = function() {//technical function called at device initiation to start some listeners
-    console.log('registerInitiationCallback')
-  
+   this.registerInitiationCallback = function(deviceId) {//technical function called at device initiation to start some listeners
+    console.log('Initialisation process.');
+    self.initialise(deviceId);
   }
  
   this.assignTo = function(Pattern, inputChain, givenResult) //Assign a value to the input chain. Pattern found is replaced by given value
@@ -237,7 +237,7 @@ module.exports = function controller(driver) {
     else if (commandtype == MQTT) {
       processingManager.processor = myMqttProcessor;
     }
-    else {console.log('Error in meta settings: The commandtype to process is not defined.' + commandtype)};
+    else {console.log('Error in meta settings: The commandtype to process is not defined: ' + commandtype)};
   }
 
   this.initiateProcessor = function(commandtype) { // Initiate communication protocoles
@@ -362,26 +362,27 @@ module.exports = function controller(driver) {
       catch {reject('Error while processing the command.')}
     })
   }
+
+  this.initialise = function(deviceId) {
+    self.sliderH.forEach((helper) => {helper.initialise(deviceId)});//No need to cleanup as double addition is protected
+    self.switchH.forEach((helper) => {helper.initialise(deviceId)});//No need to cleanup as double addition is protected
+    self.imageH.forEach((helper) => {helper.initialise(deviceId)});//No need to cleanup as double addition is protected
+    self.labelH.forEach((helper) => {helper.initialise(deviceId)});//No need to cleanup as double addition is protected
+    self.sensorH.forEach((helper) => {helper.initialise(deviceId)});//No need to cleanup as double addition is protected
+
+    self.connectionH.forEach(connection => {//open all driver connections type
+      self.initiateProcessor(connection.name, deviceId)
+    });
+    
+    self.listeners.forEach(listener => {
+      self.listenStart(listener, deviceId);
+    });
+  }
   
   this.onButtonPressed = function(name, deviceId) {
     console.log('[CONTROLLER]' + name + ' button pressed for device ' + deviceId);
     if (name == "INITIALISE") {//Device resources and connection management.
-      self.sliderH.forEach((helper) => {helper.initialise(deviceId)});//No need to cleanup as double addition is protected
-      self.switchH.forEach((helper) => {helper.initialise(deviceId)});//No need to cleanup as double addition is protected
-      self.imageH.forEach((helper) => {helper.initialise(deviceId)});//No need to cleanup as double addition is protected
-      self.labelH.forEach((helper) => {helper.initialise(deviceId)});//No need to cleanup as double addition is protected
-      self.sensorH.forEach((helper) => {helper.initialise(deviceId)});//No need to cleanup as double addition is protected
- 
-      self.connectionH.forEach(connection => {//open all driver connections type
-        self.initiateProcessor(connection.name, deviceId)
-      });
-      
-      self.listeners.forEach(listener => {
-        self.listenStart(listener, deviceId);
-      });
-
-
-
+      self.initialise(deviceId);
     }
 
     if (name == "CLEANUP") {//listener management to listen to other devices. Stop listening on power off.
@@ -396,7 +397,7 @@ module.exports = function controller(driver) {
     if (theButton != undefined) {
       if (theButton.type != WOL) { //all the cases
         if (theButton.command != undefined){ 
-          self.actionManager(name, deviceId, theButton.type, theButton.command, theButton.queryresult, theButton.evaldo, theButton.evalwrite)
+          self.actionManager(deviceId, theButton.type, theButton.command, theButton.queryresult, theButton.evaldo, theButton.evalwrite)
           .then(()=>{
             console.log('Action done.')
           })

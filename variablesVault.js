@@ -177,8 +177,13 @@ class variablesVault {
               }
               else {resolve(undefined);}
               if (err) {
-                console.log('Error accessing the datastore file.')
-                console.log(err)
+                if (err.code == 'ENOENT') {
+                  console.log('This device has no dataStore.')
+                }
+                else {
+                  console.log('Error accessing the datastore file.')
+                  console.log(err)
+                }
               }
             })
           }

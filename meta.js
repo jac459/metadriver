@@ -30,6 +30,8 @@ function getConfig() {
 }
 
 function getHelper (HelpTable, prop, deviceId) {
+  console.log(HelpTable.findIndex((item) => { return (item.name==prop && item.deviceId==deviceId) }))
+  console.log(HelpTable[HelpTable.findIndex((item) => { return (item.name==prop && item.deviceId==deviceId) })])
   return HelpTable[HelpTable.findIndex((item) => { return (item.name==prop && item.deviceId==deviceId) })];
 }
 
@@ -436,9 +438,10 @@ function executeDriversCreation (drivers, hubController, deviceId) { //drivers i
         for (var prop in driver.images) { // Dynamic creation of all images
           if (Object.prototype.hasOwnProperty.call(driver.images, prop)) {
              if (theDevice.imageUrls.findIndex((item) => {return (item.param.name == prop)})<0) {//not image of same name (in case included in a widget)
-                theDevice.addImageUrl({name: prop, label: (driver.images[prop].label == '') ? (prop) : (driver.images[prop].label),
+              const helperI = getHelper(controller.imageH, prop, currentDeviceId);
+              theDevice.addImageUrl({name: prop, label: (driver.images[prop].label == '') ? (prop) : (driver.images[prop].label),
                     size : driver.images[prop].size},
-              (deviceId) => getHelper(controller.imageH, prop, currentDeviceId).get(deviceId))
+              (deviceId) => helperI.get(deviceId))
             }
           }
         }
@@ -446,8 +449,9 @@ function executeDriversCreation (drivers, hubController, deviceId) { //drivers i
         for (var prop in driver.labels) { // Dynamic creation of all labels
           if (Object.prototype.hasOwnProperty.call(driver.labels, prop)) {
             if (theDevice.textLabels.findIndex((item) => {return (item.param.name == prop)})<0) {//not item of same name (in case included in a widget)
+              const helperL = getHelper(controller.labelH, prop, currentDeviceId);
               theDevice.addTextLabel({name: prop, label: (driver.labels[prop].label == '') ? (prop) : (driver.labels[prop].label)},
-              getHelper(controller.labelH, prop, currentDeviceId).get);
+              helperL.get);
             }
           }
         }
@@ -455,10 +459,11 @@ function executeDriversCreation (drivers, hubController, deviceId) { //drivers i
         for (var prop in driver.sensors) { // Dynamic creation of all sensors
           if (Object.prototype.hasOwnProperty.call(driver.sensors, prop)) {
             if (theDevice.sensors.findIndex((item) => {return (item.param.name == prop)})<0) {//not item of same name (in case included in a widget)
+              const helperSe = getHelper(controller.sensorH, prop, currentDeviceId);
               theDevice.addSensor({name: prop, label: (driver.sensors[prop].label == '') ? (prop) : (driver.sensors[prop].label),
               type:driver.sensors[prop].type},
               {
-                getter: getHelper(controller.sensorH, prop, currentDeviceId).get
+                getter: helperSe.get
               });
             }
           }
@@ -467,12 +472,13 @@ function executeDriversCreation (drivers, hubController, deviceId) { //drivers i
         for (var prop in driver.switches) { // Dynamic creation of all sliders
           if (Object.prototype.hasOwnProperty.call(driver.switches, prop)) {
             if (theDevice.switches.findIndex((item) => {return (item.param.name == prop)})<0) {//not item of same name (in case included in a widget)
+            const helperSw = getHelper(controller.switchH, prop, currentDeviceId);
             theDevice.addSwitch({
               name: prop, 
               label: (driver.switches[prop].label == '') ? (prop) : (driver.switches[prop].label),
             },
             {
-              setter: getHelper(controller.switchH, prop, currentDeviceId).set, getter: getHelper(controller.switchH, prop, currentDeviceId).get
+              setter: helperSw.set, getter: helperSw.get
             })
           }
          }
@@ -481,13 +487,14 @@ function executeDriversCreation (drivers, hubController, deviceId) { //drivers i
         for (var prop in driver.sliders) { // Dynamic creation of all sliders
           if (Object.prototype.hasOwnProperty.call(driver.sliders, prop)) {
             if (theDevice.sliders.findIndex((item) => {return (item.param.name == prop)})<0) {//not slider of same name (in case included in a widget)
+              const helperS = getHelper(controller.sliderH, prop, currentDeviceId);
               theDevice.addSlider({
                 name: prop, 
                 label: (driver.sliders[prop].label == '') ? (prop) : (driver.sliders[prop].label),
                 range: [0,100], unit: driver.sliders[prop].unit 
               },
               {
-                setter: getHelper(controller.sliderH, prop, currentDeviceId).set, getter: getHelper(controller.sliderH, prop, currentDeviceId).get
+                setter: helperS.set, getter: helperS.get
               })
             }
           }
@@ -496,21 +503,22 @@ function executeDriversCreation (drivers, hubController, deviceId) { //drivers i
         for (var prop in driver.directories) { // Dynamic creation of directories
           if (Object.prototype.hasOwnProperty.call(driver.directories, prop)) {
             if (theDevice.directories.findIndex((item) => {return (item.param.name == prop)})<0) {//not directory of same name (in case included in a widget)
+              const helperD = getHelper(controller.directoryH, prop, currentDeviceId);
               theDevice.addDirectory({
                 name: prop, 
                 label: (driver.directories[prop].label == '') ? (prop) : (driver.directories[prop].label),
-              }, getHelper(controller.directoryH, prop, currentDeviceId).browse)
+              }, helperD.browse)
             }
           }
         }
 
         theDevice.addButtonHandler((name, deviceId) => controller.onButtonPressed(name, deviceId))
         theDevice.registerSubscriptionFunction(controller.registerStateUpdateCallback);
-        theDevice.registerInitialiseFunction(controller.registerInitiationCallback);
+        theDevice.registerInitialiseFunction(() => {controller.registerInitiationCallback(currentDeviceId)});
         theDevice.registerDeviceSubscriptionHandler(
           {
-            deviceAdded: (deviceId) => {console.log('device added/////////////////////////////////' + deviceId);controller.dynamicallyAssignSubscription(deviceId)},
-            deviceRemoved: (deviceId) => {console.log('device removed/////////////////////' + deviceId);},
+            deviceAdded: (deviceId) => {console.log('device added :' + deviceId);controller.dynamicallyAssignSubscription(deviceId)},
+            deviceRemoved: (deviceId) => {console.log('device removed: ' + deviceId);},
             initializeDeviceList: (deviceIds) => {debug('existing devices' + deviceIds)},
           }
         )
