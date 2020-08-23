@@ -1,6 +1,6 @@
 {
   "name": "@jac459/metadriver",
-  "version": "0.8.3",
+  "version": "0.8.5",
   "description": "full customizable driver to control any device with neeo (including list and device monitoring)",
   "main": "meta.js",
   "scripts": {
