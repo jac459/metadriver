@@ -434,7 +434,7 @@ class mqttProcessor {
         resolve(connection);
       })
     }); 
-  }
+  } 
   process (params) {
     return new Promise(function (resolve, reject) {
       params.command = JSON.parse(params.command)
