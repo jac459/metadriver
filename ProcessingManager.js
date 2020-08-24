@@ -341,12 +341,18 @@ class staticProcessor {
   query(params) {
     return new Promise(function (resolve, reject) {
       try {
-        if (params.query && params.query != '') {
+        if (params.query != undefined  && params.query != '') {
           resolve(jpath.query(JSON.parse(params.data), params.query));
         }
         else {
-          if (params.data != '') {
-            resolve(JSON.parse(params.data));
+          if (params.data != undefined) {
+            if (typeof(params.data) == string){
+              resolve(JSON.parse(params.data));
+            }
+            else 
+            {
+              resolve(params.data)
+            }
           }
           else { resolve(); }
         }

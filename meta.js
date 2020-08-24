@@ -513,7 +513,7 @@ function executeDriversCreation (drivers, hubController, deviceId) { //drivers i
         }
 
         theDevice.addButtonHandler((name, deviceId) => controller.onButtonPressed(name, deviceId))
-        theDevice.registerSubscriptionFunction(controller.registerStateUpdateCallback);
+        theDevice.registerSubscriptionFunction((updateCallback) => {controller.sendComponentUpdate = updateCallback});
         theDevice.registerInitialiseFunction(() => {controller.registerInitiationCallback(currentDeviceId)});
         theDevice.registerDeviceSubscriptionHandler(
           {

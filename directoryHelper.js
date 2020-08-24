@@ -182,7 +182,8 @@ class directoryHelper {
                       'itemtype' : rItemType,
                       'label' : self.controller.assignTo(RESULT, rLabel, oneItemResult),
                       'action' : rAction ? self.controller.assignTo(RESULT, rAction, oneItemResult)+"$CommandSet="+indentCommand+"$PastQueryValue=" + ((typeof(oneItemResult) == 'string')?oneItemResult:JSON.stringify(oneItemResult)) : rAction,
-                      'browse' : rBrowse ? self.controller.assignTo(RESULT, rBrowse, oneItemResult)+"$CommandSet="+indentCommand+"$PastQueryValue=" + ((typeof(oneItemResult) == 'string')?oneItemResult:JSON.stringify(oneItemResult)) : rBrowse
+//                      'browse' : rBrowse ? self.controller.assignTo(RESULT, rBrowse, oneItemResult)+"$CommandSet="+indentCommand+"$PastQueryValue=" + ((typeof(oneItemResult) == 'string')?oneItemResult:JSON.stringify(oneItemResult)) : rBrowse
+                      'browse' : "$CommandSet="+indentCommand+"$PastQueryValue=" + ((typeof(oneItemResult) == 'string')?oneItemResult:JSON.stringify(oneItemResult))
                     });
                   });
                   resolve(self.fillTheList(deviceId, cacheList, allconfigs, params, indentCommand + 1));

@@ -110,12 +110,12 @@ module.exports = function controller(driver) {
     self.directoryH.push(newDirectoryH);
     return newDirectoryH;
   }
-
+/*
   this.registerStateUpdateCallback = function(updateFunction) {//technical function to send event to the remote.
     console.log('Component update registered for ' + self.name)
     self.sendComponentUpdate = updateFunction;
   };
-
+*/
   this.dynamicallyAssignSubscription = function(deviceId) {
     console.log('dynamicallyAssignSubscription')
     //  self.registerInitiationCallback(self.discoverHubController.updateFunction);
