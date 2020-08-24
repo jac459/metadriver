@@ -440,11 +440,12 @@ class mqttProcessor {
       params.command = JSON.parse(params.command)
       console.log('MQTT publishing ' + params.command.Message + ' to ' + params.command.Topic);
       try {
-        mqttClient.publish(params.command.Topic, params.command.Message);
+        connection.connector.publish(params.command.Topic, params.command.Message);
         resolve('');
       }
-      catch {
+      catch (err) {
         console.log('MQTT not connected!');
+        console.log(err);
       }
     })
   }
