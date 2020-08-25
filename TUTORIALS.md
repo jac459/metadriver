@@ -295,12 +295,12 @@ If you look in the activated devices, you won't find any file about the Brain na
 OK, going back to the list management. If you remember the previous tuto (and I hope you do remember :-)), we just learned to display a list and perform one action with it. In this tuto, we will learn how to navigate in a list.
 
 So going back to our example, the directory we are looking at in this tuto is 'recipes'. This directory has multiple Feeders but let's look at the first one, Rooms.
-It basically display the list of rooms.
+It basically displays the list of rooms.
 #### itembrowse [DEPRECATED]
 If you look directly at the settings or my previous devices, you may find an itembrowse element. Please don't use it, it has been deprecated, advantageously replaced by the variable concept.
-/!\ MY APOLOGIES ON THIS ONE: on the version 0.7.3 of the driver, while itembrowse was deprecated, the item needed to be there for the list to work even if the value was not used. Sorry if you struggled because of that, it is fixed now.
+/!\ MY APOLOGIES ON THIS ONE: on the version 0.7.3 of the driver, while itembrowse was deprecated, the item needs to be there for the list to work even if the value was not used. Sorry if you struggled because of that, it is fixed now.
 #### evalnext
-Evalnext is conceptually very close to evaldo, it basically helps to decide the next step. The difference is that evaldo was for Buttons and Triggers when evalnext is for the next step of navigation. So it starts with a test (that we leave to true in this example) and after, the usual 'then' and 'or' clauses. In this example, we will always go to the next step which is the next Feeder, 'Devices'.
+Evalnext is conceptually very close to evaldo, it basically helps to decide the next step. The difference is that evaldo was for Buttons and Triggers when evalnext is for the next step of navigation. So it starts with a test (that we leave to true in this example) and after that, the usual 'then' and 'or' clauses. In this example, we will always go to the next step which is the next Feeder, 'Devices'.
 At this point in time, you may think "in this case, I can only navigate to do directories, isn't it a problem?". Fear not, it is not. 
 In the volumio for example, in the first page of one of the list you have 4 choices, this is how it is done:
 ```
@@ -315,19 +315,20 @@ Yes, evalnext is a table and all conditions will be evaluated, so you can have a
 
 ### Tutorial Step 6 - Listeners.
 
-Ok, in this tutorial we continue to push the complexity (and the fun) to see the nice behavior you can see on the volumio driver when the remote actually reacts to the control we are doing to the volumio and not to the remote itself.
+Ok, in this tutorial we continue to push the complexity (and the fun) . We'll watch the nice behavior you can see on the Volumio driver when the remote actually reacts to the control we are making to the Volumio and not to the remote itself.
 
 ##### A little bit of theory...
 
 ###### Observation patterns:
-Ok, here I need to explain a bit the way it is working. When you are monitoring something (in life like in computer science), you have basically 2 choices. 
-Event based or polling. Event base is what as a parent we would like to do with our kids when they go out: ('you tell me if you got a problem'). Polling is what we do as parents if the trust is limited (calling every 5 minutes: "Do you have a problem?").
+OK, here I need to explain a bit the way it is working. When you are monitoring something (in life like in computer science), you basically have 2 choices: Event based or polling. 
+Event based is what a parent likes to do with his kids when they go out: 'You tell me if you got a problem'. 
+Polling is what as parent does if the trust is limited; calling every 5 minutes: "Do you have a problem?".
 In IT like in real life, we need to use absolutely as much as possible Event based. Polling is a fallback method.
 
 ###### Implementation in meta and neeo:
-A part from trying to use events as much as possible, the 2nd thing that the meta tries to do is keep the work on the "brain/computer running the driver" side. We don't care if the brain works a little bit, even a few request per second is very little load for such a device. On the other hand, on the remote part, we don't want to use battery so we want to keep it to work too much. For this reason, the remote is called only if a value as effectively changed and it is only called through the neeo optimized API (wich is very slow). That's why if you use your phone app with the volumio driver, the app will react instantly but the remote will take a few seconds. It is not a problem, remember that it is a remote, not a phone and it needs to spare battery.
+Apart from trying to use events as much as possible, the 2nd thing that the metadriver tries to do is keep the work on the "brain/computer running the driver" side. We don't care if the brain works a little bit, even a few request per second is very little load for such a device. On the other hand, on the remote part, we don't want to use battery so we don't want to keep it to work too much. For this reason, the remote is called only if a value is actually changed and it is only called through the Neeo optimized API (which is very slow). That's why if you use your phone app with the Volumio driver, the app will react instantly but the remote will take a few seconds. It is not a problem, remember that it is a remote, not a phone and it needs to save battery.
 
-So with that it mind, let's go to the volumio implementation:
+So with that it mind, let's go to the Volumio implementation:
 
 ```
     "webSocket":"http://volumio.local", 
@@ -348,22 +349,22 @@ So with that it mind, let's go to the volumio implementation:
         }
     },
 ```
-The first thing we see is websocket. Websocket is part of the new connections provided by the meta v0.7.3. This connection is very interresting because it allows event based monitoring. And it is compatible with volumio (through socket.IO) so why not using it ?
-Then you have the listeners, 2 actually : VolumioStatus and VolumioProgress.
-Let's go for volumioprogress first as it is the less sophisticated (polling).
+The first thing we see is Websocket. Websocket is part of the new connections provided by v0.7.3 of the metadriver. This connection is very interesting because it allows event based monitoring. And it is compatible with Volumio (through socket.IO) so why not use it?
+Then you have the listeners, 2 actually: VolumioStatus and VolumioProgress.
+Let's go for VolumioProgress first as it is less sophisticated (polling).
 So this listener looks like a usual command with 2 differences:
 
 #### pooltime (I should change the name as it is polling and not pooling (English is not my first language as you have surely already noticed).
-The default value if not provided is 1000 (=1000ms = 1 second). In general, I would advice 3 seconds. It is the best compromise between speed and battery. Anyway if you go for a fast pooling, the remote will lose count and start to be even slower. So as you understood, if your polling is 3000, that means that every 3 seconds, the device hosting the driver (brain, raspberry, NUC, whatever) will send a request to the observed device and ask him the status of what it is observing. In the case of the volumio, it asks for the current progress of the music. Unfortunately the volumio doens't answer with a percentage but a time, so the complexe calculation you see is just to go back to a number between 0 and 100 as it is the way the slider wants it.
+The default value if not provided is 1000 (=1000ms = 1 second). In general, I would advice 3000 (3 seconds). It is the best compromise between speed and battery. Anyway if you go for a fast polling, the remote will loose count and starts to be even slower. So as you understood, if your polling is 3000, that means that every 3 seconds, the device hosting the driver (brain, raspberry, NUC, whatever) will send a request to the observed device and ask him the status of what it is observing. In the case of the Volumio, it asks for the current progress of the music. Unfortunately the Volumio doens't answer with a percentage but a time, so the complexe calculation you see is just to go back to a number between 0 and 100 as it is the way the slider wants it.
 #### poolduration
 It is the time you are authorised to swim.
-Just jocking, it is the duration for which the device will poll the observed device (volumio for example). This is not much used as since this time I have implemented a way to stop the polling more elegantly. Yet it can be useful so I kept it. 
-Why do I use polling when volumio provide event based monitoring? It is just because this specific value is not provided (as anyway it changes all the time, it doens't make sense).
+Just kidding, it is the duration for which the device will poll the observed device (Volumio for example). This is not much used since I have implemented a way to stop the polling more elegantly. Yet it can be useful so I kept it. 
+Why do I use polling when Volumio provides event based monitoring? It is just because this specific value is not provided (as the value changes all the time, that doesn't make sense).
 
 #### socket
 Now we can move to the socket.
-It is a new type of command, based on the event. Generally sockets deal with 2 actions: "emit" and "on". Emit is to send a message. On is to be wake-up when a specific event is triggered. Guess what, in this case I am just saying to the volumio, I want to be warned if a state change so i register on("pushState"). "pushState" is the particular event triggered by volumio if its state change. Then it is very handy because volumio send back is global state, so as you can see in the different evalwrite, I use it to refress the album art, the labels, the volume...  
-Then in the DYNAMIK part, you can see that I added some fancy javascript stuff in order to have a better display. I let you google or ping me on the telegram should you have any curiosity on it. 
+It is a new type of command, based on the event. Generally sockets deal with 2 actions: "emit" and "on". "Emit" is to send a message, "On" is to wake-up when a specific event is triggered. Guess what, in this case I am just saying to the Volumio "I want to be warned if a state changes" so i register on("pushState"). "pushState" is the particular event triggered by Volumio if its state changes. This is very handy because Volumio sends back its global state. So as you can see in the different Evalwrites, I use it to refresh the album art, the labels, the volume...  
+Then in the DYNAMIK part, you can see that I added some fancy javascript stuff in order to have a better display. I let you google or ping me on the telegram should you have any interest on it. 
 
 #### actionListen
 ```
@@ -371,6 +372,6 @@ Then in the DYNAMIK part, you can see that I added some fancy javascript stuff i
       "CurrentStatus" : {"label":" ", "listen":"Playing", "actionlisten":"VolumePlayedDisplay"}
     },
 ```
-One fancy stuff that is done with the volumio and is easy to di is a label displaying something for a shortwhile before returning back to its default value.
-this is achieved by the actionListen. In listen you will put a variable showing the state of the label, on actionLIsten you will show the value of a variable, only when it changes and only for a short while.
+One fancy thing that is done with the Volumio and is easy to do, is a label displaying something for a shortwhile before returning back to its default value.
+This is achieved by the actionListen. In listen you will put a variable showing the state of the label, on actionLIsten you will show the value of a variable, only when it changes and only for a short while.
 
