@@ -99,7 +99,7 @@ or
 ## How this driver work ?
 
 This driver is dynamically using JSON setting files (device files) in order to create various drivers loaded in the Neeo brain.
-A few examples of drivers are provided in 'activated' and 'disactivated' folders.
+A few examples of drivers are provided in 'activated' and 'deactivated' folders.
 Any file put in the 'activated' folder will be interpreted in order to generate a new driver.
 One advantage of this approach is that resources are well centralized and are supposed to have lesser impact on the brain.
 Also, if you run from a Raspberry, the max number I have been able to load is 8 devices. Using this driver you can load as many drivers as you need.
