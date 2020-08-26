@@ -11,7 +11,7 @@ Example of integration:
 
 #### https://www.youtube.com/watch?v=LN6M7-U_0Bk&t=12s
 
-This readme apply to metadriver Version 0.7.3 => Alpha release for advanced users.
+This readme apply to metadriver Version 0.8.1 => Alpha release for advanced users.
 
 #### Latest update
 Version 0.8.1 brings some bug fixes as well as:
@@ -114,6 +114,12 @@ Another advantage is that there is only one code base running all the drivers so
 Simple drivers will have very simple device files but expect a bit more complexity for advanced interactions.
 
 The target for this driver is to create a set of "device files" in order to continue to support many new devices when the Neeo cloud will close.
+
+In terms of architecture, this driver is based on 4 main parts:
+Meta.js:constitutes the glue with neeo api to create the graphical side (kind of MVC). 
+Metacontroller.js: It is the main engine including a basic syntaxique engine interpreting the device.json file in order to create the desired behaviors 
+Processingmanager.js: This is the glue to the outside world. Depending of the device maker choice it will trigger different techniques in order to interact with the actual device to be controlled. It contains both the communication protocole and the data retrieval strategy (xpath, jsonpath, regex). It is a kind of strategy pattern. 
+Variables Vault.js: this vault contains all the data manipulated by the devuces created as well as the callback to be called when a value is changed (kind of observer pattern). It also contains the persistency logic. 
 
 ## How to use
 
