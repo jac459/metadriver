@@ -7,6 +7,7 @@ const rpc = require('json-rpc2');
 const lodash = require('lodash');
 const { parserXMLString, xmldom } = require("./metaController");
 const mqtt = require('mqtt');
+const got = require('got');
 
 //STRATEGY FOR THE COMMAND TO BE USED (HTTPGET, post, websocket, ...) New processor to be added here. This strategy mix both transport and data format (json, soap, ...)
 class ProcessingManager {
@@ -51,6 +52,89 @@ class ProcessingManager {
   }
 }
 exports.ProcessingManager = ProcessingManager;
+
+class httprestProcessor {
+  constructor() {
+  };
+  process(params) {
+    return new Promise(function (resolve, reject) {
+      try {
+        if (typeof (params.command) == 'string') { params.command = JSON.parse(params.command); }
+        if (params.command.verb == 'post') {
+          got.post(params.command.call, {json:params.command.message, responseType: 'json'})
+          .then((response) => {
+            if (response.body[0].error) {console.log(response.body[0].error)}
+            resolve(response.body[0]);
+          })
+          .catch((err) => {
+            console.log('Post request didn\'t work : ')
+            console.log(params);
+            console.log(err);
+            reject(err);
+          });
+        }
+        if (params.command.verb == 'put') {
+          got.put(params.command.call, {json:params.command.message, responseType: 'json'})
+          .then((response) => {
+            if (response.body[0].error) {console.log(response.body[0].error)}
+            resolve(response.body[0]);
+          })
+          .catch((err) => {
+            console.log('Put request didn\'t work : ')
+            console.log(params);
+            console.log(err);
+            reject(err);
+          });
+        }
+      }
+      catch (err) {
+        console.log('Meta Error during rest command processing.')
+        console.log(err)
+      }
+      });
+    }
+    query(params) {
+      return new Promise(function (resolve, reject) {
+        if (params.query) {
+          try {
+            if (typeof (params.data) == 'string') { params.data = JSON.parse(params.data); }
+            resolve(jpath.query(params.data, params.query));
+          }
+          catch (err) {
+            console.log('error ' + err + ' in JSONPATH ' + params.query + ' processing of :' + params.data);
+          }
+        }
+        else { resolve(params.data); }
+    });
+  }
+  startListen(params, deviceId) {
+    return new Promise(function (resolve, reject) {
+      let previousResult = '';
+      clearInterval(params.listener.timer);
+      params.listener.timer = setInterval(() => {
+        http(params.command)
+          .then(function (result) {
+            if (result != previousResult) {
+              previousResult = result;
+              params._listenCallback(result, params.listener, deviceId);
+            }
+            resolve('');
+          })
+          .catch((err) => { console.log(err); });
+      }, (params.listener.pooltime ? params.listener.pooltime : 1000));
+      if (params.listener.poolduration && (params.listener.poolduration != '')) {
+        setTimeout(() => {
+          clearInterval(params.listener.timer);
+        }, params.listener.poolduration);
+      }
+    });
+  }
+  stopListen(params) {
+    clearInterval(params.timer);
+  }
+}
+exports.httprestProcessor = httprestProcessor;
+
 class httpgetProcessor {
   constructor() {
   };

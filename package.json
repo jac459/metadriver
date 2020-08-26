@@ -24,6 +24,7 @@
   "homepage": "https://github.com/jac459/metadriver#readme",
   "dependencies": {
     "fs": "0.0.1-security",
+    "got": "^11.5.2",
     "http.min": "^2.0.1",
     "json-rpc2": "^2.0.0",
     "jsonpath": "^1.0.2",

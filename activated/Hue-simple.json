@@ -1,0 +1,25 @@
+{ "name":"Hue",
+  "manufacturer":"jac",
+  "type":"LIGHT",
+  "version":2,
+  "variables":{
+    "HueBridgeIp":"192.168.1.191",
+    "HueUserName":"3ExF2hW3tZNVUN5jLR-77WoYHjTxjcbwxy2duPBq",
+    "LightNumber":"1",
+    "Brightness":"",
+    "SwitchedOn":""
+  },
+  "switches":{
+    "POWER" : {"label":"Mute", "listen":"SwitchedOn", "evaldo":[{"test":"DYNAMIK $Result", "then":"SWITCHON", "or":"SWITCHOFF"}]}
+  },
+  "sliders":{
+      "BRIGHTNESS": {"label":"Brightness", "unit" : "db", "listen" : "Brightness", "evaldo":[{"test":true, "then":"BRIGHTNESSCHANGE", "or":""}]}
+  },
+  "buttons":{
+      "POWER ON": {"label":"", "type":"static", "command":"", "evaldo":[{"test":true,"then":"INITIALISE", "or":""}]},
+      "POWER OFF": {"label":"", "type":"static", "command":"", "evaldo":[{"test":true,"then":"CLEANUP", "or":""}]},
+      "SWITCHON": {"label":"", "type":"http-rest", "command":"{\"verb\":\"put\",\"call\":\"http://$HueBridgeIp/api/$HueUserName/lights/$LightNumber/state\", \"message\":{\"on\": true}}"},
+      "SWITCHOFF": {"label":"", "type":"http-rest", "command":"{\"verb\":\"put\",\"call\":\"http://$HueBridgeIp/api/$HueUserName/lights/$LightNumber/state\", \"message\":{\"on\": false}}"},
+      "BRIGHTNESSCHANGE": {"label":"", "type":"http-rest", "command":"DYNAMIK \"{\\\"verb\\\":\\\"put\\\",\\\"call\\\":\\\"http://$HueBridgeIp/api/$HueUserName/lights/$LightNumber/state\\\", \\\"message\\\":{\\\"bri\\\": \" + Math.round(254/100*$Brightness) + \"}}\""}
+  }
+}

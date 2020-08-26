@@ -19,6 +19,7 @@ const { isArray } = require("util");
 const variablePattern = {'pre':'$','post':''};
 const RESULT = variablePattern.pre + 'Result' + variablePattern.post;
 const HTTPGET = 'http-get';
+const HTTPREST = 'http-rest';
 const HTTPGETSOAP = 'http-get-soap';
 const HTTPPOST = 'http-post';
 const STATIC = 'static';
@@ -30,7 +31,7 @@ const MQTT = 'mqtt';
 
 const WOL = 'wol';
 const DEFAULT = 'default'; //NEEO SDK deviceId default value
-const { ProcessingManager, httpgetProcessor, httpgetSoapProcessor, httppostProcessor, cliProcessor, cliIProcessor, staticProcessor, webSocketProcessor, jsontcpProcessor, mqttProcessor } = require("./ProcessingManager");
+const { ProcessingManager, httpgetProcessor, httprestProcessor, httpgetSoapProcessor, httppostProcessor, cliProcessor, cliIProcessor, staticProcessor, webSocketProcessor, jsontcpProcessor, mqttProcessor } = require("./ProcessingManager");
 
 const processingManager = new ProcessingManager();
 const myHttpgetProcessor = new httpgetProcessor();
@@ -42,6 +43,7 @@ const myStaticProcessor = new staticProcessor();
 const myWebSocketProcessor = new webSocketProcessor();
 const myJsontcpProcessor = new jsontcpProcessor();
 const myMqttProcessor = new mqttProcessor();
+const myHttprestProcessor = new httprestProcessor();
 
 module.exports = function controller(driver) {
   this.buttons = []; //structure keeping all buttons of the driver
@@ -212,6 +214,9 @@ module.exports = function controller(driver) {
   this.assignProcessor = function(commandtype) {
     if (commandtype == HTTPGET) {
       processingManager.processor = myHttpgetProcessor;
+    } 
+    else if (commandtype == HTTPREST) {
+      processingManager.processor = myHttprestProcessor;
     } 
     else if (commandtype == HTTPGETSOAP) {
       processingManager.processor = myHttpgetSoapProcessor;
