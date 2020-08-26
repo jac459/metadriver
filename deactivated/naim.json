@@ -6,8 +6,12 @@
         "NaimIp":"192.168.1.110",
         "VolumePlayed":"",
         "MyStatus":"",
+        "SwitchedOn":"",
         "ActionStatus":""
     },
+    "switches":{
+        "POWER" : {"label":"Mute", "listen":"SwitchedOn", "evaldo":[{"test":"DYNAMIK $Result", "then":"SWITCHON", "or":"SWITCHOFF"}]}
+      },
     "labels":{
         "CurrentStatus" : {"label":" ", "listen":"MyStatus", "actionlisten":"ActionStatus"}
     },
@@ -20,8 +24,8 @@
     },
     "directories":{
         "INPUT": {"label":"", "feeders": {
-            "Inputs":{"label":"", "commandset": [{"type":"http-get", "command":"http://$NaimIp:15081/inputs", "queryresult":"$..name", "itemname":"$Result", "itemlabel":"Naim input", "itemaction":"InputSet", "itemimage":"https://raw.githubusercontent.com/jac459/metadriver/master/AVReceiver/Input/ThemeStandard/input_av1.jpg", "evalwrite":[{"variable":"InputName","value":"DYNAMIK JSON.parse(\"$Result\").id"}]}]},
-            "InputSet":{"label":"", "commandset": [{"type":"http-get", "command":"http://192.168.1.24/YamahaExtendedControl/v1/main/setInput?input=$InputName"}]}
+            "Inputs":{"label":"", "commandset": [{"type":"http-get", "command":"http://$NaimIp:15081/inputs", "queryresult":"$.children", "itemname":"DYNAMIK JSON.parse(\"$Result\").name", "itemlabel":"Naim input", "itemaction":"InputSet", "itemimage":"https://raw.githubusercontent.com/jac459/metadriver/master/AVReceiver/Input/ThemeStandard/input_av1.jpg", "evalwrite":[{"variable":"InputName","value":"DYNAMIK JSON.parse(\"$Result\").ussi"}]}]},
+            "InputSet":{"label":"", "commandset": [{"type":"http-get", "command":"http://$NaimIp:15081/inputs/$InputName?cmd=select"}]}
               }
         }
     }
