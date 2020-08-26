@@ -62,7 +62,7 @@ class httprestProcessor {
         if (typeof (params.command) == 'string') { params.command = JSON.parse(params.command); }
         if (params.command.verb == 'post') {
           got.post(params.command.call, {json:params.command.message, responseType: 'json'})
-          .then((response) => {
+         .then((response) => {
             if (response.body[0].error) {console.log(response.body[0].error)}
             resolve(response.body[0]);
           })
