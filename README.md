@@ -36,6 +36,7 @@ Version 0.7.3 brings some minor bug fixes as well as:
 (tested on many devices)
 
 - Control any device with HTTP-GET and JSON API (REST).
+- Control any device with HTTP-POST and JSON API.
 - Control any device with Socket.IO and JSON API.
 - Create Buttons
 - Create sliders 
@@ -52,29 +53,32 @@ Version 0.7.3 brings some minor bug fixes as well as:
 (tested with one device)
 
 - Device Discovery (one implementation ==> Snapcast driver)
-- Control any device with HTTP-POST and JSON API.
 - Control any device with HTTP-GET and XML API.
 - Control any device with WebSocket and JSON API.
 - Control any device with Json over TCP.
 - Control any device with CLI.
 - Wake On Lan
 
+
 #### In Progress
 (being developed)
 - Device activation detection (in order to stop pooling when the device is not activated.
 - Player widget.
+- Full rest protocole (PUT, DELETE,...). 
+- Basic registration with security code. 
 
 #### To Do
 (not started but planned)
-- Registration capability in order to register to external systems (Hue, Spotify, ...)
+- Registration capability improvement in order to register to external systems (Hue, Spotify, ...)
 - Variable saving (dictionary store),
 - Support of headers on HTTP calls.
 - Buttons in list
 - Additional transport and format (MQTT, TCP, ...).
 - More sample devices (including IR blaster examples).
+- Persist Variables on drive. 
 
 #### Known Bugs
-- Variables are not working for discovered items
+- [should be fixed] Variables are not working for discovered items
 
 #### Release Plan
 
@@ -82,7 +86,7 @@ Version 0.7.3 brings some minor bug fixes as well as:
 
 ## Install
 
-This driver is based on Node.js technology, you thus need to install node.js first in your computer: https://nodejs.org/en/download/
+This driver is based on Node.js technology, you thus need to install node.js first in your computer: https://nodejs.org/en/download/. At time of writing this article (Q3 - 2020) this driver support the latest version of node.js. 
 Note: this driver can be directly installed on the Neeo brain provided that you root it first. Please consult the following repository to get more information: https://github.com/jac459/NeeoDriversInBrain.
 Note that installing the driver in the brain is more complex overall and it is recommended to start by using a computer or a raspberry ideally.
 
@@ -90,6 +94,9 @@ In order to install, download the zip of the repository (by clicking the green "
 unzip it and run:
 ```npm install```
 This command will install the driver and all the dependencies. You need to have an internet access in order to download the dependencies.
+#### What am I installing? 
+The main dependency you are installing is obviously the neeo libraries. Itbis automatically installed so you don't need to go to neeo's github. 
+Other than that you install an hand full of connections libraries in order to connect to the various potential devices you own and speaking all slightly different languages. 
 
 To run the driver, you can either type:
 ```npm start```
@@ -97,8 +104,8 @@ or
 ```node meta```
 
 ## How this driver work ?
-
-This driver is dynamically using JSON setting files (device files) in order to create various drivers loaded in the Neeo brain.
+This driver is a Meta driver. That means that in fact it is not really a driver but an engine in order to create dynamically drivers. 
+It dynamically uses JSON setting files (device files) in order to create various drivers loaded in the Neeo brain.
 A few examples of drivers are provided in 'activated' and 'deactivated' folders.
 Any file put in the 'activated' folder will be interpreted in order to generate a new driver.
 One advantage of this approach is that resources are well centralized and are supposed to have lesser impact on the brain.
