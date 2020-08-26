@@ -133,7 +133,10 @@ To use the driver without creating your own device files, you just need to know 
 
 ## User Corner
 
- TODO: add how-to for the different devices created
+As of today, the majority of devices created are based on AV Receiver type of device as it is the most versatile. This device doesn't appear by default in the remote interface and you need to go to the recipe part in the app in order to make it visible. 
+Also, you will probably need to add your own shortcuts in order to compose the interface you like the way you want. 
+When running the device through the remote it will bring you to the shortcut slide. You can generally remove other slides as not useful. 
+TODO: add how-to for the different devices created
 
 ## Maker Corner
 
