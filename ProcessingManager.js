@@ -56,6 +56,11 @@ exports.ProcessingManager = ProcessingManager;
 class httprestProcessor {
   constructor() {
   };
+  initiate(connection) {
+    return new Promise(function (resolve, reject) {
+      resolve();
+    });
+  }
   process(params) {
     return new Promise(function (resolve, reject) {
       try {
@@ -138,6 +143,11 @@ exports.httprestProcessor = httprestProcessor;
 class httpgetProcessor {
   constructor() {
   };
+  initiate(connection) {
+    return new Promise(function (resolve, reject) {
+      resolve();
+    });
+  }
   process(params) {
     return new Promise(function (resolve, reject) {
       http(params.command)
@@ -348,6 +358,11 @@ function convertXMLTable2JSON(TableXML, indent, TableJSON) {
   });
 }
 class httpgetSoapProcessor {
+  initiate(connection) {
+    return new Promise(function (resolve, reject) {
+      resolve();
+    });
+  }  
   process(params) {
     return new Promise(function (resolve, reject) {
       http(params.command)
@@ -388,6 +403,11 @@ class httpgetSoapProcessor {
 }
 exports.httpgetSoapProcessor = httpgetSoapProcessor;
 class httppostProcessor {
+  initiate(connection) {
+    return new Promise(function (resolve, reject) {
+      resolve();
+    });
+  }
   process(params) {
     return new Promise(function (resolve, reject) {
       if (typeof (params.command) == 'string') { params.command = JSON.parse(params.command); }
@@ -417,6 +437,11 @@ class httppostProcessor {
 }
 exports.httppostProcessor = httppostProcessor;
 class staticProcessor {
+  initiate(connection) {
+    return new Promise(function (resolve, reject) {
+      resolve();
+    });
+  }
   process(params) {
     return new Promise(function (resolve, reject) {
       resolve(params.command);
@@ -453,6 +478,11 @@ class staticProcessor {
 }
 exports.staticProcessor = staticProcessor;
 class cliProcessor {
+  initiate(connection) {
+    return new Promise(function (resolve, reject) {
+      resolve();
+    });
+  }
   process(params) {
     return new Promise(function (resolve, reject) {
       exec(params.command, (stdout, stderr) => {
@@ -482,6 +512,11 @@ class cliProcessor {
 }
 exports.cliProcessor = cliProcessor;
 class cliIProcessor {
+  initiate(connection) {
+    return new Promise(function (resolve, reject) {
+      resolve();
+    });
+  }
   process(params) {
     return new Promise(function (resolve, reject) {
       if (params.interactiveCLIProcess) {

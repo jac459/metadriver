@@ -18,8 +18,8 @@
     "buttons":{
        "POWER ON": {"label":"", "type":"static", "command":"", "evaldo":[{"test":true,"then":"INITIALISE", "or":""}]},
        "POWER OFF": {"label":"", "type":"static", "command":"", "evaldo":[{"test":true,"then":"CLEANUP", "or":""}]},
-       "SWITCHON": {"label":"", "type":"http-rest", "command":"{\"verb\":\"put\",\"call\":\"http://$NaimIp:15081/power?system=on\", \"message\":{}}",
-       "SWITCHOFF": {"label":"", "type":"http-rest", "command":"{\"verb\":\"put\",\"call\":\"http://$NaimIp:15081/power?system=lona\", \"message\":{}}",
+       "SWITCHON": {"label":"", "type":"http-rest", "command":"{\"verb\":\"put\",\"call\":\"http://$NaimIp:15081/power?system=on\", \"message\":{}}"},
+       "SWITCHOFF": {"label":"", "type":"http-rest", "command":"{\"verb\":\"put\",\"call\":\"http://$NaimIp:15081/power?system=lona\", \"message\":{}}"},
        "STATUS": {"label":"", "type":"http-get", "command":"http://$NaimIp:15081/levels/room", "queryresult":"$.volume", "evalwrite":[{"variable":"MyStatus","value":"$Result"}]},
        "__VOLUMESET": {"label":"", "type":"http-rest", "command":"{\"verb\":\"put\",\"call\":\"http://$NaimIp:15081/levels/room?volume=$VolumePlayed\", \"message\":{}}"}
     },
