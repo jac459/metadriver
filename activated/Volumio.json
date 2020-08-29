@@ -1,6 +1,6 @@
 {"name":"Volumio", 
     "manufacturer":"Volumio",
-    "version":26,
+    "version":27,
     "type":"AUDIO", 
     "webSocket":"http://volumio.local", 
     "listeners" : {
@@ -131,7 +131,8 @@
           "ACTION_Play":{"label":"", "commandset": [
             {"type":"http-get", "command":"http://volumio.local/api/v1/commands/?cmd=clearQueue"},
             {"type":"http-get", "command":"http://volumio.local/api/v1/browse?uri=$MyURI", "queryresult":"$.navigation.lists[0].items[*]"},
-            {"type":"http-post", "command":"{\"call\":\"http://volumio.local/api/v1/addToQueue\", \"message\":$Result}"}
+            {"type":"http-post", "command":"{\"call\":\"http://volumio.local/api/v1/addToQueue\", \"message\":$Result}", "queryresult":"$.response"},
+            {"type":"http-get", "command":"http://volumio.local/api/v1/commands/?cmd=play", "queryresult":"$.response", "evalwrite":[{"variable":"Playing","value":"Music Started"}]}
             ]},
           "ACTION_Queue":{"label":"", "commandset": [
             {"type":"http-get", "command":"http://volumio.local/api/v1/browse?uri=$MyURI", "queryresult":"$.navigation.lists[0].items[*]"},
