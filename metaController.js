@@ -328,7 +328,15 @@ module.exports = function controller(driver) {
       if (Array.isArray(result)) {
         result = result[0];
       }
+      console.log('Test Tolga 1 : ')
+      console.log(listener.evalwrite)
+      console.log('Test Tolga 2 : ')
+      console.log(result)
+      console.log('Test Tolga 3 : ')
+      console.log(deviceId)
       if (listener.evalwrite) {self.evalWrite(listener.evalwrite, result, deviceId);}
+      console.log('Test Tolga 4 : ')
+      console.log(result)
       //if (listener.evaldo) {self.evalDo(listener.evaldo, result, deviceId);}
     })
   }
