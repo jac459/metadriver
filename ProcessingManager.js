@@ -1,13 +1,14 @@
 const { exec } = require("child_process");
 const xpath = require('xpath');
 const http = require('http.min');
-const jpath = require('jsonpath');
+const { JSONPath } = require ('jsonpath-plus');
 const io = require('socket.io-client');
 const rpc = require('json-rpc2');
 const lodash = require('lodash');
 const { parserXMLString, xmldom } = require("./metaController");
 const mqtt = require('mqtt');
 const got = require('got');
+const { resolveCname } = require("dns");
 
 //STRATEGY FOR THE COMMAND TO BE USED (HTTPGET, post, websocket, ...) New processor to be added here. This strategy mix both transport and data format (json, soap, ...)
 class ProcessingManager {
@@ -103,7 +104,7 @@ class httprestProcessor {
         if (params.query) {
           try {
             if (typeof (params.data) == 'string') { params.data = JSON.parse(params.data); }
-            resolve(jpath.query(params.data, params.query));
+            resolve(JSONPath(params.query, params.data));
           }
           catch (err) {
             console.log('error ' + err + ' in JSONPATH ' + params.query + ' processing of :' + params.data);
@@ -163,8 +164,9 @@ class httpgetProcessor {
     return new Promise(function (resolve, reject) {
       if (params.query) {
         try {
-          if (typeof (params.data) == 'string') { params.data = JSON.parse(params.data); }
-          resolve(jpath.query(params.data, params.query));
+          if (typeof (params.data) == 'string') { params.data = JSON.parse(params.data); };
+          //resolve(jpath.query(params.data, params.query));
+          resolve(JSONPath(params.query, params.data));
         }
         catch (err) {
           console.log('error ' + err + ' in JSONPATH ' + params.query + ' processing of :' + params.data);
@@ -229,7 +231,7 @@ class webSocketProcessor {
     return new Promise(function (resolve, reject) {
       try {
         if (params.query) {
-          resolve(jpath.query(params.data, params.query));
+          resolve(JSONPath(params.query, params.data));
         }
         else {
           resolve(params.data);
@@ -312,7 +314,7 @@ class jsontcpProcessor {
     return new Promise(function (resolve, reject) {
       try {
         if (params.query) {
-          resolve(jpath.query(params.data, params.query));
+          resolve(JSONPath(params.query, params.data));
         }
         else {
           resolve(params.data);
@@ -424,7 +426,7 @@ class httppostProcessor {
   query(params) {
     return new Promise(function (resolve, reject) {
       try {
-        resolve(jpath.query(JSON.parse(params.data), params.query));
+        resolve(JSONPath(params.query, JSON.parse(params.data)));
       }
       catch (err) {
         console.log('error ' + err + ' in JSONPATH ' + params.query + ' processing of :' + params.data);
@@ -451,7 +453,7 @@ class staticProcessor {
     return new Promise(function (resolve, reject) {
       try {
         if (params.query != undefined  && params.query != '') {
-          resolve(jpath.query(JSON.parse(params.data), params.query));
+          resolve(JSONPath(params.query, JSON.parse(params.data)));
         }
         else {
           if (params.data != undefined) {

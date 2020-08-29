@@ -573,7 +573,7 @@ function runNeeo () {
       const neeoSettings = {
       brain: config.brainip.toString(),
       port: config.brainport.toString(),
-      name: "Meta Driver Alpha Version",
+      name: "Meta Driver Alpha Version 2",
       devices: driverTable
     };
     console.log(neeoSettings)

@@ -1,6 +1,4 @@
 const neeoapi = require('neeo-sdk');
-const { JSONPath } = require('jsonpath/lib');
-const jpath = require('jsonpath');
 const variablePattern = {'pre':'$','post':''};
 const RESULT = variablePattern.pre + 'Result' + variablePattern.post;
 const BROWSEID = variablePattern.pre + 'NavigationIdentifier' + variablePattern.post;
