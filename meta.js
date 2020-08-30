@@ -582,7 +582,7 @@ function runNeeo () {
       .then(() => {
         console.log('Driver running, you can search it on the remote control.');
         if (brainDiscovered) {
-            fs.writeFile('./config.js', JSON.stringify(config), err => {
+            fs.writeFile(__dirname + '/config.js', JSON.stringify(config), err => {
               if (err) {
                   console.log('Error writing file', err);
               } else {
