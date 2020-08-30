@@ -46,7 +46,10 @@ class variablesVault {
         if (self.variables.findIndex((elt) => {return elt.name == internalVariableName})<0) {//the variable is new
           self.variables.push({'name':internalVariableName, 'value':value, 'observers': [], 'persisted':persisted});
         }
-        else {resolve();}
+        else {
+          self.writeVariable(name, value, deviceId);
+        }
+        resolve();
       })
     }
 
@@ -118,7 +121,7 @@ class variablesVault {
       let foundVar = self.variables.find(elt => {return elt.name == internalVariableName});
       if (!foundVar) {console.log("The variable you are requesting doesn\'t seems to be properly declared.")}
       if (foundVar) {
-        if (foundVar.value != value) {// If the value changed.
+        if (!(foundVar.value === value)) {// If the value changed.
           foundVar.value = value; //Write value here
           foundVar.observers.forEach(element => { //invoke all observers
             element(deviceId, foundVar.value);

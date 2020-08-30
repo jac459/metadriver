@@ -147,6 +147,7 @@ module.exports = function controller(driver) {
           while (inputChain != inputChain.replace(Pattern, givenResult)) {
             inputChain = inputChain.replace(Pattern, givenResult);
           }
+          console.log(inputChain);
           return eval(inputChain.split('DYNAMIK ')[1]);
         }
         else {
@@ -329,16 +330,8 @@ module.exports = function controller(driver) {
       if (Array.isArray(result)) {
         result = result[0];
       }
-      console.log('Test Tolga 1 : ')
-      console.log(listener.evalwrite)
-      console.log('Test Tolga 2 : ')
-      console.log(result)
-      console.log('Test Tolga 3 : ')
-      console.log(deviceId)
-      if (listener.evalwrite) {self.evalWrite(listener.evalwrite, result, deviceId);}
-      console.log('Test Tolga 4 : ')
-      console.log(result)
-      //if (listener.evaldo) {self.evalDo(listener.evaldo, result, deviceId);}
+       if (listener.evalwrite) {self.evalWrite(listener.evalwrite, result, deviceId);}
+       //if (listener.evaldo) {self.evalDo(listener.evaldo, result, deviceId);}
     })
   }
 

@@ -148,8 +148,8 @@ function discoveryDriverPreparator(controller, driver, deviceId) {
     if (driver.discover) {
       let instanciationTable = []
       controller.initiateProcessor(driver.discover.command.type).then(() => {
-        controller.commandProcessor(driver.discover.command.command, driver.discover.command.type).then((result)=>{
-          controller.queryProcessor(result, driver.discover.command.queryresult, driver.discover.command.type).then((result) => {
+        controller.commandProcessor(driver.discover.command.command, driver.discover.command.type, deviceId).then((result)=>{
+          controller.queryProcessor(result, driver.discover.command.queryresult, driver.discover.command.type, deviceId).then((result) => {
             if (driver.discover.command.evalwrite) {controller.evalWrite(driver.discover.command.evalwrite, result, deviceId)};
             if (!Array.isArray(result)) {
               let tempo = [];
@@ -178,15 +178,27 @@ function registerDevice(controller, credentials, driver, deviceId) {
     controller.actionManager(DEFAULT, driver.register.registrationcommand.type, driver.register.registrationcommand.command, 
                           driver.register.registrationcommand.queryresult, '', driver.register.registrationcommand.evalwrite)
     .then((result) => {
+      console.log('Result of the registration command: ')
+      console.log(result)
       controller.reInitVariablesValues(deviceId);
       controller.reInitConnectionsValues(deviceId);
-      resolve();
+      controller.vault.snapshotDataStore();
+      if (controller.vault.getValue("IsRegistered", deviceId)) {
+        console.log('registration success')
+        resolve("Meta Registration Process success");
+      }
+      else {
+        console.log('registration failure')
+        reject(new Error("Meta Registration Process failed."))
+      }
     })
   })
 }
 
 function isDeviceRegistered(controller, deviceId) {
   let retValue = controller.vault.getValue("IsRegistered", deviceId);
+  console.log('is resgistered ? : ' + retValue)
+  console.log(controller.vault.variables)
   if (retValue) {return retValue}
   else {return false;}
 }

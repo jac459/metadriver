@@ -69,7 +69,7 @@ class httprestProcessor {
         if (params.command.verb == 'post') {
           got.post(params.command.call, {json:params.command.message, responseType: 'json'})
          .then((response) => {
-            if (response.body[0].error) {console.log(response.body[0].error)}
+            if (response.body[0].error) {console.log("Error in the post command : " + response.body[0].error); resolve(undefined);}
             resolve(response.body[0]);
           })
           .catch((err) => {
@@ -82,7 +82,7 @@ class httprestProcessor {
         if (params.command.verb == 'put') {
           got.put(params.command.call, {json:params.command.message, responseType: 'json'})
           .then((response) => {
-            if (response.body[0].error) {console.log(response.body[0].error)}
+            if (response.body[0].error) {console.log("Error in the post command : " + response.body[0].error); resolve(undefined);}
             resolve(response.body[0]);
           })
           .catch((err) => {
@@ -103,6 +103,9 @@ class httprestProcessor {
       return new Promise(function (resolve, reject) {
         if (params.query) {
           try {
+            console.log('QUERY DISPLAY')
+            console.log(params)
+            console.log(JSONPath(params.query, params.data))
             if (typeof (params.data) == 'string') { params.data = JSON.parse(params.data); }
             resolve(JSONPath(params.query, params.data));
           }
