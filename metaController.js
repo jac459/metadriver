@@ -142,6 +142,7 @@ module.exports = function controller(driver) {
           if (givenResult && (typeof(givenResult) == 'string' )) {
             givenResult = givenResult.replace(/\\/g, '\\\\') // Absolutely necessary to properly escape the escaped character. Or super tricky bug.
             givenResult = givenResult.replace(/"/g, '\\"') // Absolutely necessary to properly escape the escaped character. Or super tricky bug.
+            givenResult = givenResult.replace(/(\r\n|\n|\r)/gm,"") //Management of NAIM issue but should be useful in general.
           }
           while (inputChain != inputChain.replace(Pattern, givenResult)) {
             inputChain = inputChain.replace(Pattern, givenResult);
