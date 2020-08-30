@@ -573,20 +573,21 @@ function runNeeo () {
       const neeoSettings = {
       brain: config.brainip.toString(),
       port: config.brainport.toString(),
-      name: "Meta Driver Alpha Version 2",
+      name: "Meta Driver Alpha Version 3",
       devices: driverTable
     };
-    console.log(neeoSettings)
-    console.log('Trying to start the Driver')
+    console.log(neeoSettings);
+    console.log(__dirname);
+    console.log('Trying to start the Meta')
     neeoapi.startServer(neeoSettings)
       .then(() => {
         console.log('Driver running, you can search it on the remote control.');
         if (brainDiscovered) {
             fs.writeFile(__dirname + '/config.js', JSON.stringify(config), err => {
               if (err) {
-                  console.log('Error writing file', err);
+                  console.log('Error writing configuration file', err);
               } else {
-                  console.log('Initial config saved.');
+                  console.log('Initial configuration saved.');
               }
               resolve();
             })
