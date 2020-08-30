@@ -15,15 +15,15 @@
     "listeners" : {
         "NaimStatus" : {"type":"http-get", "command":"http://$NaimIp:15081/nowplaying", "pooltime":"3000", "poolduration":"", "queryresult" : "$.*", 
           "evalwrite" : [ 
-               {"variable" : "MyStatus", "value" : "DYNAMIK JSON.parse(\"$Result\".replace(/(\r\n|\n|\r)/gm,\"\")).title"},
-               {"variable" : "AlbumArt", "value" : "DYNAMIK JSON.parse(\"$Result\".replace(/(\r\n|\n|\r)/gm,\"\")).artwork"}
+               {"variable" : "MyStatus", "value" : "DYNAMIK JSON.parse(\"$Result\").title"},
+               {"variable" : "AlbumArt", "value" : "DYNAMIK JSON.parse(\"$Result\").artwork"}
             ]
           },
         "NaimVolume" : {"type":"http-get", "command":"http://$NaimIp:15081/levels/room", "pooltime":"3000", "poolduration":"", "queryresult" : "$.*", 
         "evalwrite" : [ 
                 {"variable" : "VolumePlayedDisplay", "value" : "DYNAMIK '||'.repeat(JSON.parse(\"$Result\").volume) + '--'.repeat(Math.round((100-JSON.parse((\"$Result\").replace(/\n|\r/g, \"\")).volume)/3))"}, 
-                {"variable" : "VolumePlayed", "value" : "DYNAMIK JSON.parse(\"$Result\".replace(/(\r\n|\n|\r)/gm,\"\")).volume"},
-                {"variable" : "SwitchedOn", "value" : "DYNAMIK JSON.parse(\"$Result\".replace(/(\r\n|\n|\r)/gm,\"\")).mute"}
+                {"variable" : "VolumePlayed", "value" : "DYNAMIK JSON.parse(\"$Result\").volume"},
+                {"variable" : "SwitchedOn", "value" : "DYNAMIK JSON.parse(\"$Result\").mute"}
             ]
         }
       },
