@@ -9,11 +9,12 @@ const { sliderHelper } = require(path.join(__dirname,"sliderHelper"));
 const { directoryHelper } = require(path.join(__dirname,"directoryHelper"));
 const { variablesVault } = require(path.join(__dirname,"variablesVault"));
 
+
 const { cachedDataVersionTag } = require('v8'); // check if needed for discovery of neeo brain and suppress otherwise.
 const { resolve } = require("path");
 
 const { spawn } = require("child_process").spawn;
-
+const async = require("async");
 const wol = require('wake_on_lan');
 const { isArray } = require("util");
 const variablePattern = {'pre':'$','post':''};
@@ -32,6 +33,7 @@ const MQTT = 'mqtt';
 const WOL = 'wol';
 const DEFAULT = 'default'; //NEEO SDK deviceId default value
 const { ProcessingManager, httpgetProcessor, httprestProcessor, httpgetSoapProcessor, httppostProcessor, cliProcessor, cliIProcessor, staticProcessor, webSocketProcessor, jsontcpProcessor, mqttProcessor } = require("./ProcessingManager");
+const { functionsIn } = require('lodash');
 
 const processingManager = new ProcessingManager();
 const myHttpgetProcessor = new httpgetProcessor();
@@ -148,6 +150,8 @@ module.exports = function controller(driver) {
             inputChain = inputChain.replace(Pattern, givenResult);
           }
           console.log(inputChain);
+          console.log(inputChain.split('DYNAMIK ')[1]);
+          console.log(eval(inputChain.split('DYNAMIK ')[1]));
           return eval(inputChain.split('DYNAMIK ')[1]);
         }
         else {
@@ -312,17 +316,45 @@ module.exports = function controller(driver) {
 
   this.queryProcessor = function (data, query, commandtype, deviceId) { // process any command according to the target protocole
     return new Promise(function (resolve, reject) {
-     
       self.assignProcessor(commandtype);
-      //console.log('Query Processor : ' + query)
-      query = self.vault.readVariables(query, deviceId);
-      let params = {'query' : query, 'data' : data}
-      processingManager.query(params).then((data) => {
-          resolve(data)
+      console.log('Query Processor : ' + query)
+      let myQueryT = [];
+      let promiseT = [];
+      if (!Array.isArray(query)) {
+        myQueryT.push(query);
+      }
+      else {
+        myQueryT = query
+      }
+      for (let index = 0; index < myQueryT.length; index++) { //process all the query result in parallele.
+        const mypromise = new Promise ((resolve, reject) => {
+          myQueryT[index] = self.vault.readVariables(myQueryT[index], deviceId);
+          let params = {'query' : myQueryT[index], 'data' : data}
+          processingManager.query(params).then((data) => {
+            resolve(data);
+          })
         })
+        promiseT.push(mypromise)
+      }
+      Promise.all(promiseT).then((values) => {
+        if (values.length == 1) {
+          resolve(values[0]);
+        }
+        else {
+          let result = [];
+          for (let index = 0; index < values[0].length; index++) {
+            let cell = [];
+            for (let index2 = 0; index2 < values.length; index2++) {
+              cell.push(values[index2][index]);
+            }
+            result.push(cell);
+          }
+          resolve(result)
+        }
+    });
     })
   }
- 
+  
   this.onListenExecute = function (result, listener, deviceId) {
     process.stdout.write('.');  
     self.queryProcessor(result, listener.queryresult, listener.type, deviceId).then((result) => {
@@ -400,8 +432,9 @@ module.exports = function controller(driver) {
         self.wrapUpProcessor(connection.name);
       });
     }
-    let theButton = self.buttons[self.buttons.findIndex((button) => {return button.name ==  name && button.deviceId == deviceId})].value;
+    let theButton = self.buttons[self.buttons.findIndex((button) => {return button.name ==  name && button.deviceId == deviceId})];
     if (theButton != undefined) {
+      theButton = theButton.value;
       if (theButton.type != WOL) { //all the cases
         if (theButton.command != undefined){ 
           self.actionManager(deviceId, theButton.type, theButton.command, theButton.queryresult, theButton.evaldo, theButton.evalwrite)

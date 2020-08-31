@@ -200,13 +200,14 @@ class variablesVault {
 
     this.snapshotDataStore = function() {
       return new Promise(function (resolve, reject) {
-        fs.unlink(self.dataStore,function(err){
-          let tempDS = [];
-          self.variables.forEach((varI) => {
-            if (varI.persisted) {
-              tempDS.push({"name":varI.name, "value":varI.value})
-            }
-          });
+        if (self.dataStore) {
+          fs.unlink(self.dataStore,function(err){
+            let tempDS = [];
+            self.variables.forEach((varI) => {
+              if (varI.persisted) {
+                tempDS.push({"name":varI.name, "value":varI.value})
+              }
+            });
           fs.writeFile(self.dataStore, JSON.stringify(tempDS), err => {
             if (err) {
               console.log('Error writing in the datastore');
@@ -216,8 +217,10 @@ class variablesVault {
             }
               resolve();
             })
-          });  
+          }); 
+        } 
       })
+      
     }
   }  
 }

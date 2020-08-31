@@ -139,7 +139,9 @@ function instanciationHelper(controller, givenResult, jsonDriver) {
     recontructedDriver = recontructedDriver + tempoResult;
     recontructedDriver = recontructedDriver + slicedDriver[index].split(" DYNAMIK_INST_END")[1];
   }
-  return JSON.parse(recontructedDriver);
+ // reconstructedDriver = controller.vault.readVariables(recontructedDriver, DEFAULT);
+ // console.log(recontructedDriver);
+  return JSON.parse(controller.vault.readVariables(recontructedDriver, DEFAULT));
 }
 
 function discoveryDriverPreparator(controller, driver, deviceId) {
@@ -150,6 +152,8 @@ function discoveryDriverPreparator(controller, driver, deviceId) {
       controller.initiateProcessor(driver.discover.command.type).then(() => {
         controller.commandProcessor(driver.discover.command.command, driver.discover.command.type, deviceId).then((result)=>{
           controller.queryProcessor(result, driver.discover.command.queryresult, driver.discover.command.type, deviceId).then((result) => {
+            console.log('QUERY RESULT');
+            console.log(result);
             if (driver.discover.command.evalwrite) {controller.evalWrite(driver.discover.command.evalwrite, result, deviceId)};
             if (!Array.isArray(result)) {
               let tempo = [];
@@ -197,8 +201,7 @@ function registerDevice(controller, credentials, driver, deviceId) {
 
 function isDeviceRegistered(controller, deviceId) {
   let retValue = controller.vault.getValue("IsRegistered", deviceId);
-  console.log('is resgistered ? : ' + retValue)
-  console.log(controller.vault.variables)
+  console.log('is registered ? : ' + retValue)
   if (retValue) {return retValue}
   else {return false;}
 }
@@ -210,7 +213,7 @@ function createController(hubController, driver) {//Discovery specific
   }
   else {//normal device, controller to be created.
     const controller = new metacontrol(driver);
-    controller.vault.initialiseVault(getDataStorePath(driver.filename));
+    //controller.vault.initialiseVault(getDataStorePath(driver.filename));
     return controller;
   }
 }
@@ -252,6 +255,8 @@ function executeDriversCreation (drivers, hubController, deviceId) { //drivers i
           }
         }
       }
+      controller.vault.initialiseVault(getDataStorePath(driver.filename));//Retrieve the value form the vault
+
 
       //Registration
       if (driver.register) {
@@ -536,6 +541,7 @@ function executeDriversCreation (drivers, hubController, deviceId) { //drivers i
         )
         console.log("Device " + driver.name + " has been created.")
         driverTable.push(theDevice);  
+        console.log(theDevice)
     })
     resolve(driverTable);
   })

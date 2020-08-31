@@ -69,7 +69,7 @@ class httprestProcessor {
         if (params.command.verb == 'post') {
           got.post(params.command.call, {json:params.command.message, responseType: 'json'})
          .then((response) => {
-            if (response.body[0].error) {console.log("Error in the post command : " + response.body[0].error); resolve(undefined);}
+        //    if (response.body[0].error) {console.log("Error in the post command : " + response.body[0].error); resolve(undefined);}
             resolve(response.body[0]);
           })
           .catch((err) => {
@@ -80,9 +80,11 @@ class httprestProcessor {
           });
         }
         if (params.command.verb == 'put') {
+          console.log('final address')
+          console.log(params.command.call)
           got.put(params.command.call, {json:params.command.message, responseType: 'json'})
           .then((response) => {
-            if (response.body[0].error) {console.log("Error in the post command : " + response.body[0].error); resolve(undefined);}
+       //     if (response.body[0].error) {console.log("Error in the put command : " + response.body[0].error); resolve(undefined);}
             resolve(response.body[0]);
           })
           .catch((err) => {

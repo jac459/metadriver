@@ -23,6 +23,7 @@
   },
   "homepage": "https://github.com/jac459/metadriver#readme",
   "dependencies": {
+    "async": "^3.2.0",
     "fs": "0.0.1-security",
     "got": "^11.5.2",
     "http.min": "^2.0.1",
