@@ -30,8 +30,6 @@ function getConfig() {
 }
 
 function getHelper (HelpTable, prop, deviceId) {
-  console.log(HelpTable.findIndex((item) => { return (item.name==prop && item.deviceId==deviceId) }))
-  console.log(HelpTable[HelpTable.findIndex((item) => { return (item.name==prop && item.deviceId==deviceId) })])
   return HelpTable[HelpTable.findIndex((item) => { return (item.name==prop && item.deviceId==deviceId) })];
 }
 
@@ -223,9 +221,7 @@ function executeDriversCreation (drivers, hubController, deviceId) { //drivers i
     
     driverTable.length = 0; //Reset the table without cleaning the previous reference (to avoid destructing other devices when running Discovery).
     drivers.forEach(driver => {
-      console.log(driver.name);
-      console.log(driver.filename);
-
+      
       let currentDeviceId = deviceId ? deviceId : DEFAULT; //to add the deviceId of the real discovered device in the Helpers
 
       let controller = createController(hubController, driver);
@@ -292,7 +288,7 @@ function executeDriversCreation (drivers, hubController, deviceId) { //drivers i
             description: driver.discover.welcomedescription,
             enableDynamicDeviceBuilder: true,
           },
-          () => {
+          function registrationProcess() {
             return new Promise(function (resolve, reject) {
               discoveryDriverPreparator(controller, driver, currentDeviceId).then((driverList) => {
                 const formatedTable = [];
@@ -591,7 +587,7 @@ function runNeeo () {
       const neeoSettings = {
       brain: config.brainip.toString(),
       port: config.brainport.toString(),
-      name: "Meta Driver Alpha Version 3",
+      name: "Meta Driver Alpha Version 5",
       devices: driverTable
     };
     console.log(neeoSettings);
