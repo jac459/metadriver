@@ -25,18 +25,25 @@ class variablesVault {
     var self = this;
 
     this.initialiseVault= function(filename) {
-      self.dataStore = filename;
-        //Initialise the variable to datastore value.
-       // self.variables = []; can't do that for multiple discovered devices
+      return new Promise(function (resolve, reject) {
+        if (filename) {
+          self.dataStore = filename;
+            //Initialise the variable to datastore value.
+          // self.variables = []; can't do that for multiple discovered devices
 
-        self.getDataFromDataStore().then((DS) => {
-          if (DS) {
-            DS.forEach(element => {
-                self.addVariable(getExternalName(element.name), element.value, getDeviceId(element.name), true);
+            self.getDataFromDataStore().then((DS) => {
+              if (DS) {
+                DS.forEach(element => {
+                    self.addVariable(getExternalName(element.name), element.value, getDeviceId(element.name), true);
+                });
+              }
+              resolve();
             });
           }
-        })
-
+        else {//nothing to do
+          resolve();
+        }
+      })
     }
 
     this.addVariable = function(name, value, deviceId, persisted) {
@@ -189,6 +196,9 @@ class variablesVault {
                 }
               }
             })
+          }
+          else {
+            resolve();
           }
         }
         catch (err) {

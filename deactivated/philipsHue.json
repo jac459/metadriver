@@ -4,7 +4,7 @@
   "version":4,
   "register":{
     "registertype": "SECURITY_CODE",
-    "registerheaderText": "Philips Hue Bridge registration",
+    "registerheadertext": "Philips Hue Bridge registration",
     "registerdescription": "Please enter the IP address of your device, then press the button of your bridge and THEN enter.",
     "registrationcommand":{"type":"http-rest", "command":"{\"verb\":\"post\",\"call\":\"http://$RegistrationCode/api\", \"message\":{\"devicetype\":\"meta\"}}", "queryresult":"$.success.username", "evalwrite":[{"variable":"HueBridgeIp","value":"$RegistrationCode"},{"variable":"HueUserName","value":"$Result"}, {"variable":"IsRegistered","value":"DYNAMIK (\"$Result\" == \"undefined\") ? false : true"}]}
   },

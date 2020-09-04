@@ -307,10 +307,15 @@ module.exports = function controller(driver) {
     })    
   }
 
-  this.stopListenProcessor = function(listener) { // process any command according to the target protocole
+  this.stopListenProcessor = function(listener, deviceId) { // process any command according to the target protocole
     return new Promise(function (resolve, reject) {
-      self.assignProcessor(listener.type);
-      processingManager.stopListen(listener);
+      if (listener.deviceId == deviceId) {
+        self.assignProcessor(listener.type);
+        processingManager.stopListen(listener);
+      }
+      else {
+        console.log("Meta Warning: Trying to stop a listener from the wrong device");
+      }
     })    
   }
 
@@ -370,7 +375,12 @@ module.exports = function controller(driver) {
   this.listenStart = function (listener, deviceId) {
     return new Promise(function (resolve, reject) {
       try {
-        self.listenProcessor(listener.command, listener.type, listener, deviceId);
+        if (listener.deviceId == deviceId) {
+          self.listenProcessor(listener.command, listener.type, listener, deviceId);
+        }
+        else {
+          console.log("Meta warning: trying to start a listnener which is not from the right device.")
+        }
       } 
       catch (err) {reject('Error when starting to listen. ' + err)}
     })
@@ -414,7 +424,9 @@ module.exports = function controller(driver) {
     });
     
     self.listeners.forEach(listener => {
-      self.listenStart(listener, deviceId);
+      if (listener.deviceId == deviceId) {//we start only the listeners of this device !!!
+        self.listenStart(listener, deviceId);
+      }
     });
   }
   
@@ -426,7 +438,9 @@ module.exports = function controller(driver) {
 
     if (name == "CLEANUP") {//listener management to listen to other devices. Stop listening on power off.
       self.listeners.forEach(listener => {
-        self.stopListenProcessor(listener);
+        if (listener.deviceId == deviceId) {//we stop only the listeners of this device !!!
+          self.stopListenProcessor(listener, deviceId);
+        }
       });
       self.connectionH.forEach(connection => {
         self.wrapUpProcessor(connection.name);

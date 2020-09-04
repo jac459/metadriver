@@ -30,6 +30,9 @@ function getConfig() {
 }
 
 function getHelper (HelpTable, prop, deviceId) {
+  console.log(deviceId + ' Item number: ' + HelpTable.findIndex((item) => { return (item.name==prop && item.deviceId==deviceId) }))
+  console.log('actual item: ')
+  console.log(HelpTable[HelpTable.findIndex((item) => { return (item.name==prop && item.deviceId==deviceId) })])
   return HelpTable[HelpTable.findIndex((item) => { return (item.name==prop && item.deviceId==deviceId) })];
 }
 
@@ -251,123 +254,124 @@ function executeDriversCreation (drivers, hubController, deviceId) { //drivers i
           }
         }
       }
-      controller.vault.initialiseVault(getDataStorePath(driver.filename));//Retrieve the value form the vault
+      controller.vault.initialiseVault(getDataStorePath(driver.filename)).then(() => {//Retrieve the value form the vault
 
-
-      //Registration
-      if (driver.register) {
-        theDevice.enableRegistration(
-        {
-          type: 'SECURITY_CODE',
-          headerText: driver.register.registerheaderText,
-          description: driver.register.registerdescription,
-        },
-        {
-          register: (credentials) => registerDevice(controller, credentials, driver, currentDeviceId),
-          isRegistered: () => {return isDeviceRegistered(controller, currentDeviceId);},
-        })
-      }
-
-      //GET ALL CONNECTIONS
-      if (driver.webSocket) {
-        controller.addConnection({"name":"webSocket", "descriptor":driver.webSocket, "connector":""})
-      }
-      if (driver.jsontcp) {
-        controller.addConnection({"name":"jsontcp", "descriptor":driver.jsontcp, "connector":""})
-      }
-      if (driver.mqtt) {
-        controller.addConnection({"name":"mqtt", "descriptor":driver.mqtt, "connector":""})
-      }
-
-      //DISCOVERY  
-      if (driver.discover) {
-
-        theDevice.enableDiscovery(
+        //Registration
+        if (driver.register) {
+          theDevice.enableRegistration(
           {
-            headerText: driver.discover.welcomeheadertext,
-            description: driver.discover.welcomedescription,
-            enableDynamicDeviceBuilder: true,
+            type: 'SECURITY_CODE',
+            headerText: driver.register.registerheadertext,
+            description: driver.register.registerdescription,
           },
-          function registrationProcess() {
-            return new Promise(function (resolve, reject) {
-              discoveryDriverPreparator(controller, driver, currentDeviceId).then((driverList) => {
-                const formatedTable = [];
-                discoveredDriverListBuilder(driverList, formatedTable, 0, controller).then((outputTable) => {
-                  resolve(outputTable); 
-                  controller.vault.snapshotDataStore();
+          {
+            register: (credentials) => registerDevice(controller, credentials, driver, currentDeviceId),
+            isRegistered: () => {return isDeviceRegistered(controller, currentDeviceId);},
+          })
+        }
+
+        //GET ALL CONNECTIONS
+        if (driver.webSocket) {
+          controller.addConnection({"name":"webSocket", "descriptor":driver.webSocket, "connector":""})
+        }
+        if (driver.jsontcp) {
+          controller.addConnection({"name":"jsontcp", "descriptor":driver.jsontcp, "connector":""})
+        }
+        if (driver.mqtt) {
+          controller.addConnection({"name":"mqtt", "descriptor":driver.mqtt, "connector":""})
+        }
+
+        //DISCOVERY  
+        if (driver.discover) {
+
+          theDevice.enableDiscovery(
+            {
+              headerText: driver.discover.welcomeheadertext,
+              description: driver.discover.welcomedescription,
+              enableDynamicDeviceBuilder: true,
+            },
+            () => {
+              return new Promise(function (resolve, reject) {
+                discoveryDriverPreparator(controller, driver, currentDeviceId).then((driverList) => {
+                  const formatedTable = [];
+                  discoveredDriverListBuilder(driverList, formatedTable, 0, controller).then((outputTable) => {
+                    controller.vault.snapshotDataStore();
+                    resolve(outputTable); 
+                  })
                 })
               })
-            })
-          }
-        )
-      }
- 
-      //CREATING LISTENERS
-      for (var prop in driver.listeners) { // Initialisation of the variables
-        if (Object.prototype.hasOwnProperty.call(driver.listeners, prop)) {
-            controller.addListener({
-              name : prop, 
-              type : driver.listeners[prop].type,
-              command : driver.listeners[prop].command,
-              timer : "", //prepare the the listener to save the timer here.
-              pooltime : driver.listeners[prop].pooltime,
-              poolduration : driver.listeners[prop].poolduration,
-              queryresult : driver.listeners[prop].queryresult,
-              evalwrite : driver.listeners[prop].evalwrite,
-            })
+            }
+          )
         }
-      }
-    
-      //CREATING CONTROLLERS
+        controller.reInitConnectionsValues(currentDeviceId);
+        
+        //CREATING LISTENERS
+        for (var prop in driver.listeners) { // Initialisation of the variables
+          if (Object.prototype.hasOwnProperty.call(driver.listeners, prop)) {
+              controller.addListener({
+                name : prop, 
+                deviceId: currentDeviceId,
+                type : driver.listeners[prop].type,
+                command : driver.listeners[prop].command,
+                timer : "", //prepare the the listener to save the timer here.
+                pooltime : driver.listeners[prop].pooltime,
+                poolduration : driver.listeners[prop].poolduration,
+                queryresult : driver.listeners[prop].queryresult,
+                evalwrite : driver.listeners[prop].evalwrite,
+              })
+          }
+        }
       
-      for (var prop in driver.buttons) { // Dynamic creation of all buttons
-        if (Object.prototype.hasOwnProperty.call(driver.buttons, prop)) {
-          controller.addButton(currentDeviceId, prop, driver.buttons[prop])
-        }
-      } 
+        //CREATING CONTROLLERS
+        
+        for (var prop in driver.buttons) { // Dynamic creation of all buttons
+          if (Object.prototype.hasOwnProperty.call(driver.buttons, prop)) {
+            controller.addButton(currentDeviceId, prop, driver.buttons[prop])
+          }
+        } 
 
-      for (var prop in driver.images) { // Dynamic creation of all images
-        if (Object.prototype.hasOwnProperty.call(driver.images, prop)) {
-          controller.addImageHelper(currentDeviceId, prop, driver.images[prop].listen)
-        }
-      }
-    
-      for (var prop in driver.labels) { // Dynamic creation of all labels
-        if (Object.prototype.hasOwnProperty.call(driver.labels, prop)) {
-          controller.addLabelHelper(currentDeviceId, prop, driver.labels[prop].listen, driver.labels[prop].actionlisten)
-        }
-      }
-
-      for (var prop in driver.sensors) { // Dynamic creation of all sensors
-        if (Object.prototype.hasOwnProperty.call(driver.sensors, prop)) {
-          controller.addSensorHelper(currentDeviceId, prop, driver.sensors[prop].listen)
-        }
-      }
-
-      for (var prop in driver.switches) { // Dynamic creation of all sliders
-        if (Object.prototype.hasOwnProperty.call(driver.switches, prop)) {
-          controller.addSwitchHelper(currentDeviceId, prop, driver.switches[prop].listen, driver.switches[prop].evaldo);
-        }
-      }
-
-      for (var prop in driver.sliders) { // Dynamic creation of all sliders
-        if (Object.prototype.hasOwnProperty.call(driver.sliders, prop)) {
-          controller.addSliderHelper(currentDeviceId, driver.sliders[prop].listen, driver.sliders[prop].evaldo, prop);
-        }
-      }
-
-      for (var prop in driver.directories) { // Dynamic creation of directories
-        if (Object.prototype.hasOwnProperty.call(driver.directories, prop)) {
-          const theHelper = controller.addDirectoryHelper(currentDeviceId, prop);
-          for (var feed in driver.directories[prop].feeders) {
-            let feedConfig = {"name":feed, 
-                              "label":driver.directories[prop].feeders[feed].label, 
-                              "commandset":driver.directories[prop].feeders[feed].commandset, 
-                            };
-            theHelper.addFeederHelper(feedConfig);
+        for (var prop in driver.images) { // Dynamic creation of all images
+          if (Object.prototype.hasOwnProperty.call(driver.images, prop)) {
+            controller.addImageHelper(currentDeviceId, prop, driver.images[prop].listen)
           }
         }
-      }
+      
+        for (var prop in driver.labels) { // Dynamic creation of all labels
+          if (Object.prototype.hasOwnProperty.call(driver.labels, prop)) {
+            controller.addLabelHelper(currentDeviceId, prop, driver.labels[prop].listen, driver.labels[prop].actionlisten)
+          }
+        }
+
+        for (var prop in driver.sensors) { // Dynamic creation of all sensors
+          if (Object.prototype.hasOwnProperty.call(driver.sensors, prop)) {
+            controller.addSensorHelper(currentDeviceId, prop, driver.sensors[prop].listen)
+          }
+        }
+
+        for (var prop in driver.switches) { // Dynamic creation of all sliders
+          if (Object.prototype.hasOwnProperty.call(driver.switches, prop)) {
+            controller.addSwitchHelper(currentDeviceId, prop, driver.switches[prop].listen, driver.switches[prop].evaldo);
+          }
+        }
+
+        for (var prop in driver.sliders) { // Dynamic creation of all sliders
+          if (Object.prototype.hasOwnProperty.call(driver.sliders, prop)) {
+            controller.addSliderHelper(currentDeviceId, driver.sliders[prop].listen, driver.sliders[prop].evaldo, prop);
+          }
+        }
+
+        for (var prop in driver.directories) { // Dynamic creation of directories
+          if (Object.prototype.hasOwnProperty.call(driver.directories, prop)) {
+            const theHelper = controller.addDirectoryHelper(currentDeviceId, prop);
+            for (var feed in driver.directories[prop].feeders) {
+              let feedConfig = {"name":feed, 
+                                "label":driver.directories[prop].feeders[feed].label, 
+                                "commandset":driver.directories[prop].feeders[feed].commandset, 
+                              };
+              theHelper.addFeederHelper(feedConfig);
+            }
+          }
+        }
 
       //CREATING WIDGETS
 /*
@@ -537,7 +541,9 @@ function executeDriversCreation (drivers, hubController, deviceId) { //drivers i
         )
         console.log("Device " + driver.name + " has been created.")
         driverTable.push(theDevice);  
-        console.log(theDevice)
+        console.log(theDevice);
+      });
+
     })
     resolve(driverTable);
   })
@@ -583,8 +589,8 @@ function setupNeeo() {
 
 function runNeeo () {
   return new Promise(function (resolve, reject) {
-      if (!config.brainport) {config.brainport = 4005}
-      const neeoSettings = {
+    if (!config.brainport) {config.brainport = 4005}
+    const neeoSettings = {
       brain: config.brainip.toString(),
       port: config.brainport.toString(),
       name: "Meta Driver 0.8.11 Beta 1",
