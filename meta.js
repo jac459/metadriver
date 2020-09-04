@@ -589,7 +589,7 @@ function setupNeeo() {
 
 function runNeeo () {
   return new Promise(function (resolve, reject) {
-    if (!config.brainport) {config.brainport = 4005}
+    if (!config.brainport) {config.brainport = 4015}
     const neeoSettings = {
       brain: config.brainip.toString(),
       port: config.brainport.toString(),
