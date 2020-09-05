@@ -10,12 +10,12 @@
     "registertype": "SECURITY_CODE",
     "registerheadertext": "SnapCast Registration",
     "registerdescription": "Please enter the IP address of your device",
-    "registrationcommand":{"type":"static", "command":"$RegistrationCode", "queryresult":"", "evalwrite":[{"variable":"SnapCastIp","value":"$Result"}]}
+    "registrationcommand":{"type":"static", "command":"$RegistrationCode", "queryresult":"", "evalwrite":[{"variable":"SnapCastIp","value":"$Result"},{"variable":"IsRegistered","value":true}]}
   },
   "discover":{
     "welcomeheadertext":"SNAPCAST Driver",
     "welcomedescription":"powered by meta\nby JAC459",
-    "command":{"type":"jsontcp", "command":"{\"call\":\"Server.GetStatus\", \"message\":\"\"}", "queryresult":"$.server.groups[0].clients[*]", "evalwrite":[{"variable":"SnapCastId","value":"$Result"},{"variable":"IsRegistered","value":true}]}
+    "command":{"type":"jsontcp", "command":"{\"call\":\"Server.GetStatus\", \"message\":\"\"}", "queryresult":"$.server.groups[0].clients[*]", "evalwrite":[{"variable":"SnapCastId","value":"$Result"}]}
   },
   "template" : {
     "name":"Snapcast", 

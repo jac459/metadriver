@@ -114,12 +114,7 @@ module.exports = function controller(driver) {
     self.directoryH.push(newDirectoryH);
     return newDirectoryH;
   }
-/*
-  this.registerStateUpdateCallback = function(updateFunction) {//technical function to send event to the remote.
-    console.log('Component update registered for ' + self.name)
-    self.sendComponentUpdate = updateFunction;
-  };
-*/
+
   this.dynamicallyAssignSubscription = function(deviceId) {
     console.log('dynamicallyAssignSubscription')
     //  self.registerInitiationCallback(self.discoverHubController.updateFunction);
@@ -149,9 +144,6 @@ module.exports = function controller(driver) {
           while (inputChain != inputChain.replace(Pattern, givenResult)) {
             inputChain = inputChain.replace(Pattern, givenResult);
           }
-          console.log(inputChain);
-          console.log(inputChain.split('DYNAMIK ')[1]);
-          console.log(eval(inputChain.split('DYNAMIK ')[1]));
           return eval(inputChain.split('DYNAMIK ')[1]);
         }
         else {

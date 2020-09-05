@@ -30,9 +30,6 @@ function getConfig() {
 }
 
 function getHelper (HelpTable, prop, deviceId) {
-  console.log(deviceId + ' Item number: ' + HelpTable.findIndex((item) => { return (item.name==prop && item.deviceId==deviceId) }))
-  console.log('actual item: ')
-  console.log(HelpTable[HelpTable.findIndex((item) => { return (item.name==prop && item.deviceId==deviceId) })])
   return HelpTable[HelpTable.findIndex((item) => { return (item.name==prop && item.deviceId==deviceId) })];
 }
 
@@ -145,7 +142,7 @@ function instanciationHelper(controller, givenResult, jsonDriver) {
   return JSON.parse(controller.vault.readVariables(recontructedDriver, DEFAULT));
 }
 
-function discoveryDriverPreparator(controller, driver, deviceId) {
+function discoveryDriverPreparator(controller, driver, deviceId, targetDeviceId) {
   return new Promise(function (resolve, reject) {
                       
     if (driver.discover) {
@@ -290,9 +287,9 @@ function executeDriversCreation (drivers, hubController, deviceId) { //drivers i
               description: driver.discover.welcomedescription,
               enableDynamicDeviceBuilder: true,
             },
-            () => {
+            (targetDeviceId) => {
               return new Promise(function (resolve, reject) {
-                discoveryDriverPreparator(controller, driver, currentDeviceId).then((driverList) => {
+                discoveryDriverPreparator(controller, driver, currentDeviceId, targetDeviceId).then((driverList) => {
                   const formatedTable = [];
                   discoveredDriverListBuilder(driverList, formatedTable, 0, controller).then((outputTable) => {
                     controller.vault.snapshotDataStore();
