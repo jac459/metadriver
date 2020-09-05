@@ -102,23 +102,27 @@ function createDevices () {
   })
 }
 
-function discoveredDriverListBuilder(inputRawDriverList, outputPreparedDriverList, indent, controller) {
+function discoveredDriverListBuilder(inputRawDriverList, outputPreparedDriverList, indent, controller, targetDeviceId) {
   return new Promise (function (resolve, reject) {
+
     if (indent < inputRawDriverList.length) {
       if (inputRawDriverList[indent].dynamicname && inputRawDriverList[indent].dynamicname != "") {
-        let temp = [];
-        temp.push(inputRawDriverList[indent]); //Array to element, element to Array. (TODO, make the function accept non array)
-        executeDriversCreation(temp, controller, inputRawDriverList[indent].dynamicid).then((builtdevice) => {
-          builtdevice = builtdevice[0];
-          builtdevice.addCapability("dynamicDevice");
-          const discoveredDevice = {
-            id:inputRawDriverList[indent].dynamicid,
-            name:inputRawDriverList[indent].dynamicname,
-            reachable:true,
-            device : builtdevice
-          }
-          outputPreparedDriverList.push(discoveredDevice);
-        })
+        if (targetDeviceId == undefined || targetDeviceId == inputRawDriverList[indent].dynamicid)
+        {
+          let temp = [];
+          temp.push(inputRawDriverList[indent]); //Array to element, element to Array. (TODO, make the function accept non array)
+          executeDriversCreation(temp, controller, inputRawDriverList[indent].dynamicid).then((builtdevice) => {
+            builtdevice = builtdevice[0];
+            builtdevice.addCapability("dynamicDevice");
+            const discoveredDevice = {
+              id:inputRawDriverList[indent].dynamicid,
+              name:inputRawDriverList[indent].dynamicname,
+              reachable:true,
+              device : builtdevice
+            }
+            outputPreparedDriverList.push(discoveredDevice);
+          })
+        }
       }
       //We resolve even if this device is skipped.
       resolve(discoveredDriverListBuilder(inputRawDriverList, outputPreparedDriverList, indent+1, controller));
@@ -291,7 +295,7 @@ function executeDriversCreation (drivers, hubController, deviceId) { //drivers i
               return new Promise(function (resolve, reject) {
                 discoveryDriverPreparator(controller, driver, currentDeviceId, targetDeviceId).then((driverList) => {
                   const formatedTable = [];
-                  discoveredDriverListBuilder(driverList, formatedTable, 0, controller).then((outputTable) => {
+                  discoveredDriverListBuilder(driverList, formatedTable, 0, controller, targetDeviceId).then((outputTable) => {
                     controller.vault.snapshotDataStore();
                     resolve(outputTable); 
                   })
