@@ -35,7 +35,7 @@ class sliderHelper {
       });
     };
     this.initialise = function (deviceId) {
-      controller.vault.addObserver(self.variableListened, self.update, deviceId);
+      controller.vault.addObserver(self.variableListened, self.update, deviceId, self.name);
     }
   }
 }

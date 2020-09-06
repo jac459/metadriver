@@ -125,7 +125,7 @@ function discoveredDriverListBuilder(inputRawDriverList, outputPreparedDriverLis
         }
       }
       //We resolve even if this device is skipped.
-      resolve(discoveredDriverListBuilder(inputRawDriverList, outputPreparedDriverList, indent+1, controller));
+      resolve(discoveredDriverListBuilder(inputRawDriverList, outputPreparedDriverList, indent+1, controller, targetDeviceId));
     }
     else {resolve (outputPreparedDriverList);}
   })
@@ -594,7 +594,7 @@ function runNeeo () {
     const neeoSettings = {
       brain: config.brainip.toString(),
       port: config.brainport.toString(),
-      name: "Meta Driver 0.8.11 Beta 1",
+      name: "Meta Driver 0.8.12",
       devices: driverTable
     };
     console.log(neeoSettings);

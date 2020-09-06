@@ -96,13 +96,13 @@ class variablesVault {
       })
     }
 */
-    this.addObserver = function(name, theFunction, deviceId) { // who listen to variable changes.
+    this.addObserver = function(name, theFunction, deviceId, componentRegistering) { // who listen to variable changes.
       try {
         let internalVariableName = toInternalName(name, deviceId);
         if (name != undefined && name != '' && theFunction != undefined && theFunction) {
           let observersList = self.variables.find(elt => {return elt.name == internalVariableName}).observers; 
-          if (observersList.findIndex(func => {return func == theFunction}) < 0) {//to avoid adding multiple times an oberver
-            observersList.push(theFunction);
+          if (observersList.findIndex(func => {return (func.observer == componentRegistering)}) < 0) {//to avoid adding multiple times an oberver
+            observersList.push({"observer":componentRegistering, "theFunction": theFunction});
            }
         }
       }
@@ -131,7 +131,7 @@ class variablesVault {
         if (!(foundVar.value === value)) {// If the value changed.
           foundVar.value = value; //Write value here
           foundVar.observers.forEach(element => { //invoke all observers
-            element(deviceId, foundVar.value);
+            element.theFunction(deviceId, foundVar.value);
           });
         }
       }

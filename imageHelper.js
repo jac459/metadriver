@@ -24,7 +24,7 @@ class imageHelper {
       });
     };
     this.initialise = function (deviceId) {
-      self.controller.vault.addObserver(self.variableListened, self.update, deviceId);
+      self.controller.vault.addObserver(self.variableListened, self.update, deviceId, self.name);
     }
   }
 }

@@ -80,39 +80,64 @@ module.exports = function controller(driver) {
   }
 
   this.addImageHelper = function(deviceId, imageName, listened) {//function called by the MetaDriver to store 
-    const newImageH = new imageHelper(deviceId, imageName, listened, self)
-    self.imageH.push(newImageH);
-    return newImageH;
+    let indent = self.imageH.findIndex((elt) => {return (elt.name == imageName && elt.deviceId == deviceId)});
+    if (indent<0) { //add only if not existant
+      const newImageH = new imageHelper(deviceId, imageName, listened, self)
+      self.imageH.push(newImageH);
+      return self.imageH[self.imageH.length-1]
+    }
+    else {return self.imageH[indent];}
   }
   
   this.addLabelHelper = function(deviceId, labelName, listened, actionListened) {//function called by the MetaDriver to store 
-    const newLabelH = new labelHelper(deviceId, labelName, listened, self, actionListened)
-    self.labelH.push(newLabelH);
-    return newLabelH;
+    let indent = self.labelH.findIndex((elt) => {return (elt.name == labelName && elt.deviceId == deviceId)});
+    if (indent<0) { //add only if not existant
+      const newLabelH = new labelHelper(deviceId, labelName, listened, self, actionListened)
+      self.labelH.push(newLabelH);
+      return self.labelH[self.labelH.length-1]
+    }
+   else {return self.labelH[indent];}
   }
 
   this.addSensorHelper = function(deviceId, sensorName, listened) {//function called by the MetaDriver to store 
-    const newSensorH = new sensorHelper(deviceId, sensorName, listened, self)
-    self.sensorH.push(newSensorH);
-    return newSensorH;
+    let indent = self.sensorH.findIndex((elt) => {return (elt.name == sensorName && elt.deviceId == deviceId)});
+    if (indent<0) { //add only if not existant
+      const newSensorH = new sensorHelper(deviceId, sensorName, listened, self)
+      self.sensorH.push(newSensorH);
+      return self.sensorH[self.sensorH.length-1]
+
+    }
+    else {return self.sensorH[indent];}
   }
 
   this.addSwitchHelper = function(deviceId, switchName, listen, evaldo) {//function called by the MetaDriver to store 
-    const newSwitchH = new switchHelper(deviceId, switchName, listen, evaldo, self)
-    self.switchH.push(newSwitchH);
-    return newSwitchH;
+    let indent = self.switchH.findIndex((elt) => {return (elt.name == switchName && elt.deviceId == deviceId)});
+    if (indent<0) { //add only if not existant
+      const newSwitchH = new switchHelper(deviceId, switchName, listen, evaldo, self)
+      self.switchH.push(newSwitchH);
+      return self.switchH[self.switchH.length-1]
+    }
+    else {return self.switchH[indent];}
   }
 
   this.addSliderHelper = function(deviceId, listen, evaldo, slidername) {//function called by the MetaDriver to store 
-    const newSliderH = new sliderHelper(deviceId, listen, evaldo, slidername, self)
-    self.sliderH.push(newSliderH);
-    return newSliderH;
+    let indent = self.sliderH.findIndex((elt) => {return (elt.name == slidername && elt.deviceId == deviceId)});
+    if (indent<0) { //add only if not existant
+      const newSliderH = new sliderHelper(deviceId, listen, evaldo, slidername, self)
+      self.sliderH.push(newSliderH);
+      return self.sliderH[self.sliderH.length-1]
+    }
+    else {return self.sliderH[indent];}
   }
 
   this.addDirectoryHelper = function(deviceId, dirname) {//function called by the MetaDriver to store the features of the list 
-    const newDirectoryH = new directoryHelper(deviceId, dirname, self)
-    self.directoryH.push(newDirectoryH);
-    return newDirectoryH;
+    let indent = self.directoryH.findIndex((elt) => {return (elt.name == dirname && elt.deviceId == deviceId)});
+    if (indent<0) { //add only if not existant
+      const newDirectoryH = new directoryHelper(deviceId, dirname, self)
+      self.directoryH.push(newDirectoryH);
+      return self.directoryH[self.directoryH.length-1]
+    }
+    else {return self.directoryH[indent];}
   }
 
   this.dynamicallyAssignSubscription = function(deviceId) {
@@ -314,7 +339,7 @@ module.exports = function controller(driver) {
   this.queryProcessor = function (data, query, commandtype, deviceId) { // process any command according to the target protocole
     return new Promise(function (resolve, reject) {
       self.assignProcessor(commandtype);
-      console.log('Query Processor : ' + query)
+      console.log(deviceId + ' Query Processor : ' + query)
       let myQueryT = [];
       let promiseT = [];
       if (!Array.isArray(query)) {

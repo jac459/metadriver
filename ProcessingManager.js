@@ -183,6 +183,8 @@ class httpgetProcessor {
   startListen(params, deviceId) {
     return new Promise(function (resolve, reject) {
       let previousResult = '';
+      console.log('starting listener ' + deviceId);
+      console.log(params);
       clearInterval(params.listener.timer);
       params.listener.timer = setInterval(() => {
         http(params.command)

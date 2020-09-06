@@ -41,8 +41,8 @@ class labelHelper {
     };
 
     this.initialise = function (deviceId) {
-      self.controller.vault.addObserver(self.variableListened, self.update, deviceId);
-      self.controller.vault.addObserver(self.actionVariableListened, self.updateAction, deviceId);
+      self.controller.vault.addObserver(self.variableListened, self.update, deviceId, self.name);
+      self.controller.vault.addObserver(self.actionVariableListened, self.updateAction, deviceId, self.name);
     }
 
   }
