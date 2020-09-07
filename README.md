@@ -11,11 +11,11 @@ Example of integration:
 
 #### https://www.youtube.com/watch?v=LN6M7-U_0Bk&t=12s
 
-This readme apply to metadriver Version 0.8.13 => Alpha release for advanced users.
+This readme apply to metadriver Version 0.8-Alpha-1 (build 13) release for advanced users.
 
 #### Latest update
 
-Version 0.8.13 is basically a consolidation of v0. 8.1 with:
+Version 0.8.13 is basically a consolidation of v0.8.1 with:
 ##### Features
 - Enhanced support of HTTP-REST (incl. PUT) 
 - Extended jsonpath support (new framework and multithreaded execution) 
@@ -105,12 +105,20 @@ This driver is based on Node.js technology, you thus need to install node.js fir
 Note: this driver can be directly installed on the Neeo brain provided that you root it first. Please consult the following repository to get more information: https://github.com/jac459/NeeoDriversInBrain.
 Note that installing the driver in the brain is more complex overall and it is recommended to start by using a computer or a raspberry ideally.
 
-In order to install, download the zip of the repository (by clicking the green "code" button) and download in your target computer (or brain).
-unzip it and run:
+##### Option 1
+In order to install, look at the right of your screen to see the release section and click on tag. Then choose the latest release (currently alpha 1).
+Download the zip of the repository and unzip/unrar in your target computer (or brain).
+Go to the created folder and type:
 ```npm install```
 This command will install the driver and all the dependencies. You need to have an internet access in order to download the dependencies.
+
+##### Option 2
+Alternatively you can also type 
+```npm install jac459/metadriver```
+This will install the latest version of the driver in a folder named node_modules/@jac459/metadriver.
+
 #### What am I installing? 
-The main dependency you are installing is obviously the neeo libraries. Itbis automatically installed so you don't need to go to neeo's github. 
+The main dependency you are installing is obviously the neeo libraries. Itis automatically installed so you don't need to go to neeo's github. 
 Other than that you install an hand full of connections libraries in order to connect to the various potential devices you own and speaking all slightly different languages. 
 
 To run the driver, you can either type:
