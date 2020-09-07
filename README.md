@@ -16,7 +16,7 @@ This readme apply to metadriver Version 0.8-Alpha-1 (build 13) release for advan
 #### Latest update
 
 Version 0.8-Alpha-1 is basically a consolidation of v0.8.1 with:
-##### Features
+##### New Features
 - Enhanced support of HTTP-REST (incl. PUT) 
 - Extended jsonpath support (new framework and multithreaded execution) 
 - Fully working registration support for security code. 
@@ -47,53 +47,34 @@ Version 0.7.3 brings some minor bug fixes as well as:
 - Technical protocols: JSON over TCP
 
 ## Features
-#### Full Support
-(tested on many devices)
-
-- Control any device with HTTP-GET and JSON API (REST).
-- Control any device with HTTP-POST and JSON API.
-- Control any device with Socket.IO and JSON API.
+### Neeo UI Support
+#### Neeo Components
+95% of Neeo Interface is fully supported so far:
 - Create Buttons
 - Create sliders 
 - Create Brightness sliders
 - Create switches 
 - Create Images 
 - Create lists (directories) with paging and complex navigation (items and tiles)
-- Link buttons with sliders
+==> to be supported: buttons inside directories (didn't had a use for this yet), Sonos style player (bug on the cover display).
+#### Neeo Interactions
+- buttons, sliders, switches, directories triggers any action you want.
+- Link buttons with sliders (volume increase will move the volume slider for example).
+- Have your switches, sliders, labels display the value of your variables.
 - Chained commands (one button has different behaviour each time pressed. Example: mute toggle will mute on or off when pressed)
 - Variables Management for complex integrations => a button or a choice in a list, can write in a variable, this variable can be reused by other components.
-- Listen to devices through Socket or HTTP pooling.
-
-#### Partial Support
-(tested with one device)
-
-- Device Discovery (one implementation ==> Snapcast driver)
+- Listen to devices through Socket or HTTP pooling ==> Neeo Remotes components change following devices change (for example if you increase manually the volume of your receiver, the volume will change accordingly). Or when you play a song, the slider will show the progress of the song.
+### Devices communication Support
+- Control any device with HTTP-GET, POST, PUT and JSON API (REST).
+- Control any device with Socket.IO/WebSocket and JSON API. 
 - Control any device with HTTP-GET and XML API.
-- Control any device with WebSocket and JSON API.
 - Control any device with Json over TCP.
 - Control any device with CLI.
+- Control any device with MQTT.
 - Wake On Lan
-
-
-#### In Progress
-(being developed)
-- Device activation detection (in order to stop pooling when the device is not activated.
-- Player widget.
-- Full rest protocole (PUT, DELETE,...). 
-- Basic registration with security code. 
-
-#### To Do
-(not started but planned)
-- Registration capability improvement in order to register to external systems (Hue, Spotify, ...)
-- Variable saving (dictionary store),
-- Support of headers on HTTP calls.
-- Buttons in list
-- Additional transport and format (MQTT, TCP, ...).
-- More sample devices (including IR blaster examples).
-- Persist Variables on drive. 
-
-#### Known Bugs
-- [should be fixed] Variables are not working for discovered items
+### Neeo Special features:
+- Device Discovery (examples with Philips Hue bulbs and groups, Snapcast driver)
+- Basic registration with security code. (example for Philips Hue and Yamaha Network Receiver)
 
 #### Release Plan
 
@@ -136,7 +117,7 @@ Also, if you run from a Raspberry, the max number I have been able to load is 8 
 Another advantage is that there is only one code base running all the drivers so it will be theoretically easier to track bugs.
 Simple drivers will have very simple device files but expect a bit more complexity for advanced interactions.
 
-The target for this driver is to create a set of "device files" in order to continue to support many new devices when the Neeo cloud will close.
+The target for this driver is to create a "device files database" in order to continue to support many new devices when the Neeo cloud will close.
 
 In terms of architecture, this driver is based on 4 main parts:
 Meta.js:constitutes the glue with neeo api to create the graphical side (kind of MVC). 
@@ -159,6 +140,9 @@ To use the driver without creating your own device files, you just need to know 
 As of today, the majority of devices created are based on AV Receiver type of device as it is the most versatile. This device doesn't appear by default in the remote interface and you need to go to the recipe part in the app in order to make it visible. 
 Also, you will probably need to add your own shortcuts in order to compose the interface you like the way you want. 
 When running the device through the remote it will bring you to the shortcut slide. You can generally remove other slides as not useful. 
+
+Some devices store data. For example, if you have a device needing a registration code, the meta will save the code in -datastore.json file in order to avoid you to have it to type again. If somehow the installation of your device doesn't work and the device doesn't behave the way you want, you may prefere to dete the -datastore file and restart the meta in order to have a fresh install of your driver.
+
 TODO: add how-to for the different devices created
 
 ## Maker Corner
