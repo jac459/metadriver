@@ -15,7 +15,7 @@ This readme apply to metadriver Version 0.8-Alpha-1 (build 13) release for advan
 
 #### Latest update
 
-Version 0.8.13 is basically a consolidation of v0.8.1 with:
+Version 0.8-Alpha-1 is basically a consolidation of v0.8.1 with:
 ##### Features
 - Enhanced support of HTTP-REST (incl. PUT) 
 - Extended jsonpath support (new framework and multithreaded execution) 
