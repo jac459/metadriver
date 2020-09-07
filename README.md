@@ -4,7 +4,7 @@ https://www.paypal.me/jac459
 
 # metadriver
 Programmable driver for Neeo to command any device and generate complex integration.
-Example of integration:
+Examples of integration:
 #### https://youtu.be/ybQrpgSK1yM
 #### https://www.youtube.com/watch?v=-XNF1mSqwuo
 #### https://www.youtube.com/watch?v=6-sFs4sADLE
