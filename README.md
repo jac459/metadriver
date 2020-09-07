@@ -11,9 +11,24 @@ Example of integration:
 
 #### https://www.youtube.com/watch?v=LN6M7-U_0Bk&t=12s
 
-This readme apply to metadriver Version 0.8.1 => Alpha release for advanced users.
+This readme apply to metadriver Version 0.8.13 => Alpha release for advanced users.
 
 #### Latest update
+
+Version 0.8.13 is basically a consolidation of v0. 8.1 with:
+##### Features
+- Enhanced support of HTTP-REST (incl. PUT) 
+- Extended jsonpath support (new framework and multithreaded execution) 
+- Fully working registration support for security code. 
+- sample registration devices: snapcast, Philips hue with color pick, yamaha network receiver with model detection. 
+- Refined polling activation for device listening.
+- Refined resource management for discovered devices. 
+##### known bugs and limitations
+- Depending on the way the driver is installed and override a previous version you can end up with a "component not found" bug preventing update of components in the remote (labels, sliders). 
+==> this bug is currently my public enemy number one. If it happens to you please note exactly what you did before it happens and write to me through github issues ideally or the telegram group (link in the drivers in brain repo) 
+- power off doesn't exit the recipe for lights hue (you need to press home). 
+- Further resource management improvement can be done for the dynamically discovered resources. 
+
 Version 0.8.1 brings some bug fixes as well as:
 - Architecture refactoring with creation of a Variable Vault (centralized)
 - Creation of a datastore to persist value on the device drive (step 1)
