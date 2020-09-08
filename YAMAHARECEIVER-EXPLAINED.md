@@ -78,5 +78,30 @@ Template is the actual driver that will be created. It may be instanciated multi
 Even more important:
 ### /!\ /!\ /!\ the name of the containing device and the name of the template, in this case ```Smart Receiver``` HAVE TO BE THE SAME. If it hasn't your driver will not respond and will not create any log. There is nthing I can do about it. 
 
+Ok, now that we know that, we can concentrate on the 2 lines that are different from a non-discover device:
+```
+    "dynamicname":"DYNAMIK_INST_START DYNAMIK \"Yamaha Network Receiver \" + JSON.parse(\"$Result\").model_name DYNAMIK_INST_END",
+    "dynamicid":"DYNAMIK_INST_START DYNAMIK JSON.parse(\"$Result\").device_id DYNAMIK_INST_END",
+```
+
+This 2 lines are mandatory for a discovered device. This is the dynamically generated name (that will be used by your user) and even more important, this is the dynamically created ID that will be used by the meta and the neeo brain.
+```DYNAMIK_INST_START``` and ```DYNAMIK_INST_END``` may look confusing but it is in fact 2 markers used to say that what is inside should be changed during the CREATION of the dynamic device.
+In our case, we use after the first marker, the keywork DYNAMIK to interpret the result and we read the result of the command we sent to the yamaha. In this caseit is a JSON envelop, so we need to parse is the way it is shown: ```JSON.parse(\"$Result\")```and we extract its property .model_name.
+like wise, for the id, we take the ```device_id``` returned by the http request to the yamaha.
+
+### More explanation on the query result and JSON.parse.
+So if we summarise, the command in discover send an http request that we get a result we put in the variable $Result (this is the default behavior of the meta, nothing specific to do about it.
+As you can see, in the register command, we used the jsonpath expression in "queryresult": ```$.response_code```. The "$." give us the full answer of the yamaha, and response_code get only the value response_code.
+In the case of the discovery we do differently because we need to get 2 values from the result. So we don't filter it, we just get the whole answer and filter it later.
+The way to filter it later, as you may have understood is by doing ```JSON.parse```.
+
+So now that we have the dynamicname and dynamicid set, we have a very normal driver except one strange line:
+```"YamahaIp":"$YamahaIp",```
+This variable is a non persisted varaible taking the value of a persisted variable. That's confusing!
+In fact, what happen is that at the creation of the device (or remember that it can be many devices, like bulbs for HUE), all the devices will have their value initiated with the value of the parent driver (outside the template part).
+
+
+
+
 
   
