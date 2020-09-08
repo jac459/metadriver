@@ -50,5 +50,33 @@ After this brief appetizer, we go directly to a complex stuff, the Register func
  
  ## Discover Function
 
- 
+The discover function is super useful when you have devices with a HUB like the philips hue. The neeo will detect all the bulbs and groups in order to create as many light drivers as you need.
+But in the case of the Yamaha Reciever, we will go to something simpler, we will just dynamically detect the model of the receiver to display it.
+
+```  
+"discover":{
+    "welcomeheadertext":"Yamaha Network Receiver",
+    "welcomedescription":"powered by meta\nby JAC459",
+    "command":{"type":"http-get", "command":"http://$RegistrationCode/YamahaExtendedControl/v1/system/getDeviceInfo", "queryresult":"$."}
+  },
+"template" : {
+    "name":"Smart Receiver", 
+    "dynamicname":"DYNAMIK_INST_START DYNAMIK \"Yamaha Network Receiver \" + JSON.parse(\"$Result\").model_name DYNAMIK_INST_END",
+    "dynamicid":"DYNAMIK_INST_START DYNAMIK JSON.parse(\"$Result\").device_id DYNAMIK_INST_END",
+     "manufacturer":"Yamaha",
+...
+```
+ So when you have the discover section (you can have the discover seciton without the register but can't have the register without the discover), a new dialog box will be created when setting up the driver in the neeo app.
+ The headertext will be the text displayed in ```welcomeheadertext``` and the description in ```welcomedescription```.
+ Then we have the command generating the discovery.
+ This command will drive what items will be discovered by the discovery dialog box.
+ In our case, we just reuse the $RegistrationCode variable (as we passed the registration, we know it is the correct IP address) and then we ask to the yamaha what is his specific name. As yamaha devices are very well educated, it will give us multiple info about himself that we use later.
+#### ```template```
+Template is very important to undersant.
+Template is the actual driver that will be created. It may be instanciated multiple times during the discovery if many devices are discovered. It won't be the case for the yamaha but you need to have that in mind.
+##### /!\ Containing device should not have other features than discovery and register. The actual buttons and all will be in the template.
+Even more important:
+#### /!\/!\/!\ the name of the containing device and the name of the template, in this case ```Smart Receiver``` HAVE TO BE THE SAME. If it hasn't your driver will not respond and will not create any log. There is nthing I can do about it. 
+
+
   
