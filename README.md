@@ -156,3 +156,7 @@ TODO: add how-to for the different devices created
 Hey, if you plan to create your own device for the metadriver, you are very much welcome and encouraged to do so. You can go to the folling link in order to find plenty of information on it.
 
 https://github.com/jac459/metadriver/blob/master/TUTORIALS.md
+
+You can also use the more up-to-date explanation of the yamaha driver:
+https://github.com/jac459/metadriver/blob/master/YAMAHARECEIVER-EXPLAINED.md
+More devices full explanation will be created in the future.
