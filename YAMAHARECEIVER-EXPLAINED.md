@@ -1,4 +1,9 @@
+# Yamaha Network Receiver Code explained
+
 In this tutorial we will explain how the yamaha reciever driver was done and have a close look at the code written.
+
+This explanations will give you more info on the register function as well as discovery function. Along with the lists, this is the most complex things in neeo and when using the meta. But then, it is useful. In the case of the yamaha receiver, it allows the user to enter its own IP address and then the meta setting up the driver in order to command the device.
+
 ```
 { "name":"Smart Receiver",
   "manufacturer":"Yamaha",
@@ -32,7 +37,7 @@ After this brief appetizer, we go directly to a complex stuff, the Register func
   In the case of the yamaha, if the request is correct, the answer will be in JSON ('meta' loves JSON), and we will refine the result to find the response_code (using ```queryresult```).
   Then we write in a few variables using ```evalwrite```. The first one is ```YamahaIP```. It is declared as a ```persistedvariables``` as you can see below which is a good news. The meta will save it in a datastore and your user won't have to type it again if the registration is successful.
   Then we write in 
-  ### ```IsRegistered```
+  #### ```IsRegistered```
   This variable is important because first it is persisted, second, this is the variable that will be used by the meta to know if it can pass the registration process.
   As long as you don't have in the persisted variable ```IsRegistered``` with value ```true```, your registration will loop. 
   In our case, we make sure that the IP given is correct before assigning true.
