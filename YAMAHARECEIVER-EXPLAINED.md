@@ -76,7 +76,7 @@ Template is very important to undersant.
 Template is the actual driver that will be created. It may be instanciated multiple times during the discovery if many devices are discovered. It won't be the case for the yamaha but you need to have that in mind.
 ##### /!\ Containing device should not have other features than discovery and register. The actual buttons and all will be in the template.
 Even more important:
-#### /!\/!\/!\ the name of the containing device and the name of the template, in this case ```Smart Receiver``` HAVE TO BE THE SAME. If it hasn't your driver will not respond and will not create any log. There is nthing I can do about it. 
+### /!\ /!\ /!\ the name of the containing device and the name of the template, in this case ```Smart Receiver``` HAVE TO BE THE SAME. If it hasn't your driver will not respond and will not create any log. There is nthing I can do about it. 
 
 
   
