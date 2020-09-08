@@ -7,6 +7,7 @@ Programmable driver for Neeo to command any device and generate complex integrat
 Examples of integration:
 #### https://youtu.be/ybQrpgSK1yM
 #### https://www.youtube.com/watch?v=-XNF1mSqwuo
+#### https://www.youtube.com/watch?v=uwL7UPG0shI
 #### https://www.youtube.com/watch?v=6-sFs4sADLE
 #### https://www.youtube.com/watch?v=XpKpmx7qhjY
 #### https://www.youtube.com/watch?v=MDp45PwwUho
