@@ -9,8 +9,10 @@ Examples of integration:
 #### https://www.youtube.com/watch?v=-XNF1mSqwuo
 #### https://www.youtube.com/watch?v=uwL7UPG0shI
 #### https://www.youtube.com/watch?v=6-sFs4sADLE
+#### https://youtu.be/7j605CJoSGE
 #### https://www.youtube.com/watch?v=XpKpmx7qhjY
 #### https://www.youtube.com/watch?v=MDp45PwwUho
+#### https://youtu.be/9Z_wd0l7iyM
 #### https://www.youtube.com/watch?v=LN6M7-U_0Bk&t=12s
 
 This readme apply to metadriver Version 0.8-Alpha-1 (build 13) release for advanced users.
