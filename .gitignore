@@ -3,6 +3,5 @@ config.js
 AVReceiver
 pictures
 .vscode
-README.md
-TUTORIALS.md
+*.md
 *-DataStore.json
