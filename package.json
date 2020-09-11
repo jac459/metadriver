@@ -29,6 +29,7 @@
     "http.min": "^2.0.1",
     "json-rpc2": "^2.0.0",
     "jsonpath-plus": "^4.0.0",
+    "local-devices": "^3.0.0",
     "lodash": "^4.17.19",
     "meta": "^2.2.13",
     "mqtt": "^4.2.0",

@@ -3,6 +3,8 @@ const path = require('path');
 const settings = require(path.join(__dirname,'settings'));
 const neeoapi = require("neeo-sdk");
 const metacontrol = require(path.join(__dirname,'metaController'));
+const find = require('local-devices');
+
 const fs = require('fs');
 const activatedModule = path.join(__dirname,'activated');
 const BUTTONHIDE = '__';
@@ -280,6 +282,9 @@ function executeDriversCreation (drivers, hubController, deviceId) { //drivers i
         }
         if (driver.mqtt) {
           controller.addConnection({"name":"mqtt", "descriptor":driver.mqtt, "connector":""})
+        }
+        if (driver.repl) {
+          controller.addConnection({"name":"repl", "descriptor":driver.repl, "connector":""})
         }
 
         //DISCOVERY  
@@ -630,7 +635,10 @@ function runNeeo () {
 
 
 //MAIN
-
+find().then(devices => {
+  console.log (devices)
+  
+})
 getConfig().then(() => {
   createDevices()
   .then (() => {

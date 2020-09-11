@@ -520,10 +520,20 @@ class cliProcessor {
   }
 }
 exports.cliProcessor = cliProcessor;
-class cliIProcessor {
+class replProcessor {
   initiate(connection) {
     return new Promise(function (resolve, reject) {
-      resolve();
+      try {
+        if (connection.connector != "" && connection.connector != undefined) {
+          connection.connector.close();
+        } //to avoid opening multiple
+        connection.connector = io.connect(connection.descriptor);
+        resolve(connection);
+      }
+      catch (err) {
+        console.log('Error while intenting connection to the target device.');
+        console.log(err);
+      }
     });
   }
   process(params) {
@@ -551,7 +561,7 @@ class cliIProcessor {
     return '';
   }
 }
-exports.cliIProcessor = cliIProcessor;
+exports.replProcessor = replProcessor;
 
 class mqttProcessor {
   initiate(connection) {

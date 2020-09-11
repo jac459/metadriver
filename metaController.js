@@ -25,14 +25,14 @@ const HTTPGETSOAP = 'http-get-soap';
 const HTTPPOST = 'http-post';
 const STATIC = 'static';
 const CLI = 'cli';
-const CLIInt = 'cli-i';
+const REPL = 'repl';
 const WEBSOCKET = 'webSocket';
 const JSONTCP = 'jsontcp';
 const MQTT = 'mqtt';
 
 const WOL = 'wol';
 const DEFAULT = 'default'; //NEEO SDK deviceId default value
-const { ProcessingManager, httpgetProcessor, httprestProcessor, httpgetSoapProcessor, httppostProcessor, cliProcessor, cliIProcessor, staticProcessor, webSocketProcessor, jsontcpProcessor, mqttProcessor } = require("./ProcessingManager");
+const { ProcessingManager, httpgetProcessor, httprestProcessor, httpgetSoapProcessor, httppostProcessor, cliProcessor, staticProcessor, webSocketProcessor, jsontcpProcessor, mqttProcessor, replProcessor } = require("./ProcessingManager");
 const { functionsIn } = require('lodash');
 
 const processingManager = new ProcessingManager();
@@ -40,11 +40,11 @@ const myHttpgetProcessor = new httpgetProcessor();
 const myHttpgetSoapProcessor = new httpgetSoapProcessor();
 const myHttppostProcessor = new httppostProcessor();
 const myCliProcessor = new cliProcessor();
-const myCliIProcessor = new cliIProcessor();
 const myStaticProcessor = new staticProcessor();
 const myWebSocketProcessor = new webSocketProcessor();
 const myJsontcpProcessor = new jsontcpProcessor();
 const myMqttProcessor = new mqttProcessor();
+const myReplProcessor = new replProcessor();
 const myHttprestProcessor = new httprestProcessor();
 
 module.exports = function controller(driver) {
@@ -253,9 +253,6 @@ module.exports = function controller(driver) {
     else if (commandtype == CLI) {
       processingManager.processor = myCliProcessor;
     }
-    else if (commandtype == CLIInt) {
-      processingManager.processor = myCliIProcessor;
-    }
     else if (commandtype == WEBSOCKET) {
       processingManager.processor = myWebSocketProcessor;
     }
@@ -264,6 +261,9 @@ module.exports = function controller(driver) {
     }
     else if (commandtype == MQTT) {
       processingManager.processor = myMqttProcessor;
+    }
+    else if (commandtype == REPL) {
+      processingManager.processor = myReplProcessor;
     }
     else {console.log('Error in meta settings: The commandtype to process is not defined: ' + commandtype)};
   }
@@ -393,10 +393,11 @@ module.exports = function controller(driver) {
     return new Promise(function (resolve, reject) {
       try {
         if (listener.deviceId == deviceId) {
+          console.log("Meta: starting listener for device " + deviceId + " " + listener.command)
           self.listenProcessor(listener.command, listener.type, listener, deviceId);
         }
         else {
-          console.log("Meta warning: trying to start a listnener which is not from the right device.")
+          console.log("Meta warning: trying to start a listener which is not from the right device.")
         }
       } 
       catch (err) {reject('Error when starting to listen. ' + err)}
