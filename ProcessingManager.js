@@ -112,7 +112,8 @@ class httprestProcessor {
             resolve(JSONPath(params.query, params.data));
           }
           catch (err) {
-            console.log('error ' + err + ' in JSONPATH ' + params.query + ' processing of :' + params.data);
+            console.log('error ' + err + ' in JSONPATH ' + params.query + ' processing of :');
+            console.log(params.data);
           }
         }
         else { resolve(params.data); }
@@ -170,12 +171,12 @@ class httpgetProcessor {
       if (params.query) {
         try {
           if (typeof (params.data) == 'string') { params.data = JSON.parse(params.data); };
-          //resolve(jpath.query(params.data, params.query));
           resolve(JSONPath(params.query, params.data));
         }
         catch (err) {
-          console.log('error ' + err + ' in JSONPATH ' + params.query + ' processing of :' + params.data);
-        }
+          console.log('error ' + err + ' in JSONPATH ' + params.query + ' processing of :');
+          console.log(params.data);
+      }
       }
       else { resolve(params.data); }
     });
@@ -189,9 +190,9 @@ class httpgetProcessor {
       params.listener.timer = setInterval(() => {
         http(params.command)
           .then(function (result) {
-            if (result != previousResult) {
-              previousResult = result;
-              params._listenCallback(result, params.listener, deviceId);
+            if (result.data != previousResult) {
+              previousResult = result.data;
+              params._listenCallback(result.data, params.listener, deviceId);
             }
             resolve('');
           })
@@ -245,7 +246,8 @@ class webSocketProcessor {
         }
       }
       catch (err) {
-        console.log('error ' + err + ' in JSONPATH ' + params.query + ' processing of :' + params.data);
+        console.log('error ' + err + ' in JSONPATH ' + params.query + ' processing of :');
+        console.log(params.data);
       }
     });
   }

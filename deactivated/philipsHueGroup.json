@@ -21,7 +21,7 @@
   "template" : {
     "name":"HueGroups", 
     "dynamicname":"DYNAMIK_INST_START DYNAMIK \"Philips Hue by group \" + JSON.parse(\"$Result\")[1] DYNAMIK_INST_END",
-    "dynamicid":"DYNAMIK_INST_START DYNAMIK \"HUE_GROUP_\" + JSON.parse(\"$Result\")[0] DYNAMIK_INST_END",
+    "dynamicid":"DYNAMIK_INST_START DYNAMIK JSON.parse(\"$Result\")[0] DYNAMIK_INST_END",
     "manufacturer":"Philips",
     "version":14,
     "type":"LIGHT",     
@@ -29,15 +29,16 @@
       "HueBridgeIp":"$HueBridgeIp",
       "HueUserName":"$HueUserName",  
       "LightNumber":"DYNAMIK_INST_START DYNAMIK JSON.parse(\"$Result\")[0] DYNAMIK_INST_END",
+      "DynamicId":"DYNAMIK_INST_START DYNAMIK JSON.parse(\"$Result\")[0] DYNAMIK_INST_END",
       "Brightness":"",
       "Color":"",
       "SwitchedOn":""
     },
     "listeners" : {
-      "HueStatus" : {"type":"http-get", "command":"http://$HueBridgeIp/api/$HueUserName/groups/$LightNumber", "pooltime":"3000", "poolduration":"", "queryresult" : "$.*", 
+      "HueStatus" : {"type":"http-get", "command":"http://$HueBridgeIp/api/$HueUserName/groups/", "pooltime":"3000", "poolduration":"", "queryresult" : ["$.*~","$..action"], 
         "evalwrite" : [ 
-             {"variable" : "Brightness", "value" : "DYNAMIK Math.round(Number(JSON.parse(\"$Result\").action.bri)/2.54)"},
-             {"variable" : "SwitchedOn", "value" : "DYNAMIK JSON.parse(\"$Result\").action.on"}
+             {"variable" : "Brightness", "value" : "DYNAMIK Math.round(JSON.parse(\"$Result\").find(elt => elt[0] == \"$DynamicId\")[1].bri/2.54)"},
+             {"variable" : "SwitchedOn", "value" : "DYNAMIK JSON.parse(\"$Result\").find(elt => elt[0] == \"$DynamicId\")[1].on"}
           ]
         }
     },

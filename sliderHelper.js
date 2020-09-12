@@ -24,9 +24,10 @@ class sliderHelper {
     };
     this.set = function (deviceId, theValue) {
       return new Promise(function (resolve, reject) {
+        theValue = Math.round(theValue);
         if (self.value != theValue) {
           self.value = theValue;
-          controller.sendComponentUpdate({ uniqueDeviceId: deviceId, component: self.name, value: Math.round(theValue)})
+          controller.sendComponentUpdate({ uniqueDeviceId: deviceId, component: self.name, value: theValue})
           .catch((err) => {console.log("Error while trying to set the value : " + theValue+ " in this component : " + controller.name + "/" + deviceId + "/" + self.name + " => " + err);});
           controller.vault.writeVariable(variableListened, Math.round(theValue), deviceId);
           controller.evalDo(evaldo, Math.round(theValue), deviceId)

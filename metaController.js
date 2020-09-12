@@ -68,7 +68,19 @@ module.exports = function controller(driver) {
   }
  
   this.addListener = function(params) {
-    self.listeners.push(params);
+    self.vault.readVariables(params, params.deviceId);
+    let listIndent = self.listeners.findIndex((listen) => {return listen.command == params.command});
+    if (listIndent < 0) {//the command is new.
+      params.evalwrite.deviceId = params.deviceId;//for dynamic devices, tracking of which variables to write on.
+      self.listeners.push(params);
+    }
+    else {//we forbid addition of a new duplicate command to listen and we add the evalwrite conditions instead.
+      params.evalwrite.forEach(pEw => {
+            pEw.deviceId = params.deviceId; //for dynamic devices, tracking of which variables to write on.
+            self.listeners[listIndent].evalwrite.push(pEw);
+      });
+      
+    }
   }
 
   this.addConnection = function(params) {
@@ -186,10 +198,13 @@ module.exports = function controller(driver) {
 
   
   this.evalWrite = function (evalwrite, result, deviceId) {
-    if (evalwrite) { //case we want to write inside a variable
+        if (evalwrite) { //case we want to write inside a variable
       evalwrite.forEach(evalW => {
+        if (evalW.deviceId) {deviceId = evalW.deviceId} //this is specific for listeners and discovery, when one command should be refreshing data of multiple devices (example hue bulbs)
+        
         //process the value
         let finalValue = self.vault.readVariables(evalW.value, deviceId);
+        console.log(finalValue)
         finalValue = self.assignTo(RESULT, finalValue, result);
         self.vault.writeVariable(evalW.variable, finalValue, deviceId); 
       });
@@ -381,9 +396,10 @@ module.exports = function controller(driver) {
     process.stdout.write('.');  
     self.queryProcessor(result, listener.queryresult, listener.type, deviceId).then((result) => {
       //result = result[0];
-      if (Array.isArray(result)) {
+      //CONVERTING TO FIRST ITEM SHOULD BE IN THE DEVICE AND NOT HARDCODED.
+    /*  if (Array.isArray(result)) {
         result = result[0];
-      }
+      }*/
        if (listener.evalwrite) {self.evalWrite(listener.evalwrite, result, deviceId);}
        //if (listener.evaldo) {self.evalDo(listener.evaldo, result, deviceId);}
     })

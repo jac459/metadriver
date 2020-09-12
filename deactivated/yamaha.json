@@ -41,9 +41,9 @@
         "MuteSwitch" : {"label":"", "listen":"IsMuted", "evaldo":[{"test":"DYNAMIK $Result", "then":"__MUTEON", "or":"__MUTEOFF"}]}
     },
     "listeners":{
-        "YamahaStatus" : {"type":"http-get", "command":"http://$YamahaIp/YamahaExtendedControl/v1/main/getStatus", "pooltime":"1000", "poolduration":"5000", "queryresult" : "$.data", 
+        "YamahaStatus" : {"type":"http-get", "command":"http://$YamahaIp/YamahaExtendedControl/v1/main/getStatus", "pooltime":"1000", "poolduration":"", "queryresult" : "$.", 
           "evalwrite" : [ 
-          {"variable" : "VolumePlayed","value" : "DYNAMIK Math.round(Number(JSON.parse(\"$Result\").volume)*100/161)"}
+          {"variable" : "VolumePlayed","value" : "DYNAMIK Math.round(Number(JSON.parse(\"$Result\")[0].volume)*100/161)"}
         ]}
     },
     "buttons":{
