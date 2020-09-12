@@ -1,16 +1,16 @@
 var settings = 
-{"drivers":
+{'drivers':
   [
     {
-      name:"LG Gary", 
-      manufacturer:"LG",
-      type:"AVRECEIVER", //ACCESSORY, AUDIO, AVRECEIVER, DVB (aka. satellite receiver), DVD (aka. disc player), GAMECONSOLE, HDMISWITCH
+      name:'LG Gary', 
+      manufacturer:'LG',
+      type:'AVRECEIVER', //ACCESSORY, AUDIO, AVRECEIVER, DVB (aka. satellite receiver), DVD (aka. disc player), GAMECONSOLE, HDMISWITCH
       //LIGHT, MEDIAPLAYER, MUSICPLAYER, PROJECTOR, TUNER, TV, VOD (aka. Video-On-Demand box like Apple TV, Fire TV...), SOUNDBAR,
       //icon:"sonos",
       version:1,
       buttons:{
-        "BUTTON 1": {label:"", type:"http-get", command:"http://192.168.1.24/YamahaExtendedControl/v1/main/setMute?enable=false", queryresult:""},
-        "BUTTON 2": {label:"", type:"http-get", command:"http://192.168.1.24/YamahaExtendedControl/v1/main/setPower?power=on", queryresult:""},
+        'BUTTON 1': {label:'', type:'http-get', command:'http://192.168.1.24/YamahaExtendedControl/v1/main/setMute?enable=false', queryresult:''},
+        'BUTTON 2': {label:'', type:'http-get', command:'http://192.168.1.24/YamahaExtendedControl/v1/main/setPower?power=on', queryresult:''},
       }
     },
    /* {
@@ -41,80 +41,80 @@ var settings =
  
  */
 {
-  name:"Plex Remote", 
-  manufacturer:"Plex",
+  name:'Plex Remote', 
+  manufacturer:'Plex',
   version:8,
-  type:"AVRECEIVER", //ACCESSORY, AUDIO, AVRECEIVER, DVB (aka. satellite receiver), DVD (aka. disc player), GAMECONSOLE, HDMISWITCH
+  type:'AVRECEIVER', //ACCESSORY, AUDIO, AVRECEIVER, DVB (aka. satellite receiver), DVD (aka. disc player), GAMECONSOLE, HDMISWITCH
   //LIGHT, MEDIAPLAYER, MUSICPLAYER, PROJECTOR, TUNER, TV, VOD (aka. Video-On-Demand box like Apple TV, Fire TV...), SOUNDBAR,
   variables:{
-    Token:"Ea6Q4hnybqknyhwXEnS4",
-    PlexIP:"192.168.1.10",
-    MyStatus:"Ready",
-    MyPicture:"",
-    SectionKey:"Ready",
+    Token:'Ea6Q4hnybqknyhwXEnS4',
+    PlexIP:'192.168.1.10',
+    MyStatus:'Ready',
+    MyPicture:'',
+    SectionKey:'Ready',
   },
   images:{
-    "MyCover" : {label:"", size : "small", listen:"MyPicture"},
-    "MyCover2" : {label:"", size : "large", listen:"MyPicture"}
+    'MyCover' : {label:'', size : 'small', listen:'MyPicture'},
+    'MyCover2' : {label:'', size : 'large', listen:'MyPicture'}
   },
   labels:{
-    "CurrentStatus" : {label:"status", listen:"MyStatus"},
+    'CurrentStatus' : {label:'status', listen:'MyStatus'},
   },  
   buttons:{
   },
   directories:{
-    Library: {label:"", feeders: {
-          "Collection":{label:"Gallery", commandset: [{type:"http-get-soap", command:"http://192.168.1.28:32400/library/sections?X-Plex-Token=$Token", queryresult:"/MediaContainer/Directory", itemtype: "listitem", itemname:"DYNAMIK JSON.parse(\"$Result\").Directory.title", itemlabel:"DYNAMIK \"Type - \" + JSON.parse(\"$Result\").Directory.type", itembrowse:"DYNAMIK JSON.parse(\"$Result\").Directory.title", itemimage:"DYNAMIK \"http://192.168.1.28:32400\" + JSON.parse(\"$Result\").Directory.thumb + \"?X-Plex-Token=$Token\"", 
-            evalnext:[{test:"DYNAMIK JSON.parse(\"$Result\").Directory.type == \"photo\"", then:"Gallery", or:""},{test:"DYNAMIK JSON.parse(\"$Result\").Directory.type == \"movie\"", then:"Movies", or:""},{test:"DYNAMIK JSON.parse(\"$Result\").Directory.type == \"artist\"", then:"Music", or:""},
-          ], evalwrite:[{variable:"SectionKey",value:"DYNAMIK JSON.parse(\"$Result\").Directory.Location.id"}, {variable:"MyPicture",value:"DYNAMIK \"http://192.168.1.28:32400\" + JSON.parse(\"$Result\").Photo.thumb + \"?X-Plex-Token=$Token\""}]},
+    Library: {label:'', feeders: {
+          'Collection':{label:'Gallery', commandset: [{type:'http-get-soap', command:'http://192.168.1.28:32400/library/sections?X-Plex-Token=$Token', queryresult:'/MediaContainer/Directory', itemtype: 'listitem', itemname:'DYNAMIK JSON.parse("$Result").Directory.title', itemlabel:'DYNAMIK "Type - " + JSON.parse("$Result").Directory.type', itembrowse:'DYNAMIK JSON.parse("$Result").Directory.title', itemimage:'DYNAMIK "http://192.168.1.28:32400" + JSON.parse("$Result").Directory.thumb + "?X-Plex-Token=$Token"', 
+            evalnext:[{test:'DYNAMIK JSON.parse("$Result").Directory.type == "photo"', then:'Gallery', or:''},{test:'DYNAMIK JSON.parse("$Result").Directory.type == "movie"', then:'Movies', or:''},{test:'DYNAMIK JSON.parse("$Result").Directory.type == "artist"', then:'Music', or:''},
+          ], evalwrite:[{variable:'SectionKey',value:'DYNAMIK JSON.parse("$Result").Directory.Location.id'}, {variable:'MyPicture',value:'DYNAMIK "http://192.168.1.28:32400" + JSON.parse("$Result").Photo.thumb + "?X-Plex-Token=$Token"'}]},
           ]},
-          "Gallery":{label:"Gallery", commandset: [{type:"http-get-soap", command:"http://192.168.1.28:32400/library/sections/$SectionKey/all?X-Plex-Token=$Token", itemtype: "tile", queryresult:"/MediaContainer/Photo", itemname:"DYNAMIK JSON.parse(\"$Result\").Photo.title", itemlabel:"", itembrowse:"", itemimage:"DYNAMIK \"http://192.168.1.28:32400\" + JSON.parse(\"$Result\").Photo.thumb + \"?X-Plex-Token=$Token\"", evalnext:[{test:true, then:"Devices", or:"Rooms"}], evalwrite:[{variable:"MyPicture",value:"DYNAMIK \"http://192.168.1.28:32400\" + JSON.parse(\"$Result\").Photo.thumb + \"?X-Plex-Token=$Token\""}]}]},
-          "Music":{label:"My music", commandset: [{type:"http-get-soap", command:"http://192.168.1.28:32400/library/sections/$SectionKey/all?X-Plex-Token=$Token", itemtype: "tile", queryresult:"/MediaContainer/artist", itemname:"DYNAMIK JSON.parse(\"$Result\").Photo.title", itemlabel:"", itembrowse:"", itemimage:"DYNAMIK \"http://192.168.1.28:32400\" + JSON.parse(\"$Result\").Photo.thumb + \"?X-Plex-Token=$Token\"", evalnext:[{test:true, then:"Devices", or:"Rooms"}], evalwrite:[{variable:"MyPicture",value:"DYNAMIK \"http://192.168.1.28:32400\" + JSON.parse(\"$Result\").Photo.thumb + \"?X-Plex-Token=$Token\""}]}]},
-          "Movies":{label:"My movies", commandset: [{type:"http-get-soap", command:"http://192.168.1.28:32400/library/sections/$SectionKey/all?X-Plex-Token=$Token", itemtype: "listitem", queryresult:"/MediaContainer/Video", itemname:"DYNAMIK JSON.parse(\"$Result\").Video.title", itemlabel:"DYNAMIK JSON.parse(\"$Result\").Video.tagline", itembrowse:"", itemimage:"DYNAMIK \"http://192.168.1.28:32400\" + JSON.parse(\"$Result\").Video.thumb + \"?X-Plex-Token=$Token\"", evalwrite:[{variable:"MyPicture",value:"DYNAMIK \"http://192.168.1.28:32400\" + JSON.parse(\"$Result\").Photo.thumb + \"?X-Plex-Token=$Token\""}]},
+          'Gallery':{label:'Gallery', commandset: [{type:'http-get-soap', command:'http://192.168.1.28:32400/library/sections/$SectionKey/all?X-Plex-Token=$Token', itemtype: 'tile', queryresult:'/MediaContainer/Photo', itemname:'DYNAMIK JSON.parse("$Result").Photo.title', itemlabel:'', itembrowse:'', itemimage:'DYNAMIK "http://192.168.1.28:32400" + JSON.parse("$Result").Photo.thumb + "?X-Plex-Token=$Token"', evalnext:[{test:true, then:'Devices', or:'Rooms'}], evalwrite:[{variable:'MyPicture',value:'DYNAMIK "http://192.168.1.28:32400" + JSON.parse("$Result").Photo.thumb + "?X-Plex-Token=$Token"'}]}]},
+          'Music':{label:'My music', commandset: [{type:'http-get-soap', command:'http://192.168.1.28:32400/library/sections/$SectionKey/all?X-Plex-Token=$Token', itemtype: 'tile', queryresult:'/MediaContainer/artist', itemname:'DYNAMIK JSON.parse("$Result").Photo.title', itemlabel:'', itembrowse:'', itemimage:'DYNAMIK "http://192.168.1.28:32400" + JSON.parse("$Result").Photo.thumb + "?X-Plex-Token=$Token"', evalnext:[{test:true, then:'Devices', or:'Rooms'}], evalwrite:[{variable:'MyPicture',value:'DYNAMIK "http://192.168.1.28:32400" + JSON.parse("$Result").Photo.thumb + "?X-Plex-Token=$Token"'}]}]},
+          'Movies':{label:'My movies', commandset: [{type:'http-get-soap', command:'http://192.168.1.28:32400/library/sections/$SectionKey/all?X-Plex-Token=$Token', itemtype: 'listitem', queryresult:'/MediaContainer/Video', itemname:'DYNAMIK JSON.parse("$Result").Video.title', itemlabel:'DYNAMIK JSON.parse("$Result").Video.tagline', itembrowse:'', itemimage:'DYNAMIK "http://192.168.1.28:32400" + JSON.parse("$Result").Video.thumb + "?X-Plex-Token=$Token"', evalwrite:[{variable:'MyPicture',value:'DYNAMIK "http://192.168.1.28:32400" + JSON.parse("$Result").Photo.thumb + "?X-Plex-Token=$Token"'}]},
           ]},
                                 }
               }
   }
 
 },
-{name:"Brain Navigator", 
-    manufacturer:"JAC",
-    type:"AVRECEIVER", //ACCESSORY, AUDIO, AVRECEIVER, DVB (aka. satellite receiver), DVD (aka. disc player), GAMECONSOLE, HDMISWITCH
+{name:'Brain Navigator', 
+    manufacturer:'JAC',
+    type:'AVRECEIVER', //ACCESSORY, AUDIO, AVRECEIVER, DVB (aka. satellite receiver), DVD (aka. disc player), GAMECONSOLE, HDMISWITCH
     //LIGHT, MEDIAPLAYER, MUSICPLAYER, PROJECTOR, TUNER, TV, VOD (aka. Video-On-Demand box like Apple TV, Fire TV...), SOUNDBAR,
 //    icon:"sonos",//neeo-brain
     version:29,
     variables:{
-      MyStatus:"",
-      RoomKey:"",
-      DeviceKey:"",
-      TriggerKey:"",
-      MyPicture:"https://scontent.fsin5-1.fna.fbcdn.net/v/t1.0-9/s960x960/83258087_10156692837451196_8122948557457063936_o.jpg?_nc_cat=109&_nc_sid=8024bb&_nc_ohc=pW8b6Dvy070AX9XJIND&_nc_ht=scontent.fsin5-1.fna&_nc_tp=7&oh=d5f9ac574e9e31977f23791c1848e501&oe=5F4490D2"
+      MyStatus:'',
+      RoomKey:'',
+      DeviceKey:'',
+      TriggerKey:'',
+      MyPicture:'https://scontent.fsin5-1.fna.fbcdn.net/v/t1.0-9/s960x960/83258087_10156692837451196_8122948557457063936_o.jpg?_nc_cat=109&_nc_sid=8024bb&_nc_ohc=pW8b6Dvy070AX9XJIND&_nc_ht=scontent.fsin5-1.fna&_nc_tp=7&oh=d5f9ac574e9e31977f23791c1848e501&oe=5F4490D2'
     },
     sensors:{
-      MySensor : {label:"", type:"string", listen:"MyStatus"}
+      MySensor : {label:'', type:'string', listen:'MyStatus'}
     },
     images:{
-      "MyCover" : {label:"", size : "small", listen:"MyPicture"},
-      "MyCover2" : {label:"", size : "large", listen:"MyPicture"}
+      'MyCover' : {label:'', size : 'small', listen:'MyPicture'},
+      'MyCover2' : {label:'', size : 'large', listen:'MyPicture'}
     },
     labels:{
-      "CurrentStatus" : {label:"status", listen:"MyStatus"},
+      'CurrentStatus' : {label:'status', listen:'MyStatus'},
     },
     buttons:{
-      "CURSOR LEFT": {label:"", type:"static", command:"{name:\"\"}", queryresult:"", evalwrite:[{variable:"MyPicture",value:"DYNAMIK (true)?\"https://scontent.fsin5-1.fna.fbcdn.net/v/t1.0-9/s960x960/83258087_10156692837451196_8122948557457063936_o.jpg?_nc_cat=109&_nc_sid=8024bb&_nc_ohc=pW8b6Dvy070AX9XJIND&_nc_ht=scontent.fsin5-1.fna&_nc_tp=7&oh=d5f9ac574e9e31977f23791c1848e501&oe=5F4490D2\":\"Command Failed\""}]},
-      "CURSOR ENTER": {label:"", type:"static", command:"{name:\"\"}", queryresult:"", evalwrite:[{variable:"MyPicture",value:"DYNAMIK (true)?\"https://upload.wikimedia.org/wikipedia/commons/5/58/The_Chemical_Brothers_performing_in_Barcelona%2C_Spain_%282007%29.jpg\":\"Command Failed\""}]},
-      "CURSOR RIGHT": {label:"", type:"static", command:"{name:\"\"}", queryresult:"", evalwrite:[{variable:"MyPicture",value:"DYNAMIK (true)?\"https://dancingastronaut.com/wp-content/uploads/2015/05/chemical-brothers.jpg\":\"Command Failed\""}]},
+      'CURSOR LEFT': {label:'', type:'static', command:'{name:""}', queryresult:'', evalwrite:[{variable:'MyPicture',value:'DYNAMIK (true)?"https://scontent.fsin5-1.fna.fbcdn.net/v/t1.0-9/s960x960/83258087_10156692837451196_8122948557457063936_o.jpg?_nc_cat=109&_nc_sid=8024bb&_nc_ohc=pW8b6Dvy070AX9XJIND&_nc_ht=scontent.fsin5-1.fna&_nc_tp=7&oh=d5f9ac574e9e31977f23791c1848e501&oe=5F4490D2":"Command Failed"'}]},
+      'CURSOR ENTER': {label:'', type:'static', command:'{name:""}', queryresult:'', evalwrite:[{variable:'MyPicture',value:'DYNAMIK (true)?"https://upload.wikimedia.org/wikipedia/commons/5/58/The_Chemical_Brothers_performing_in_Barcelona%2C_Spain_%282007%29.jpg":"Command Failed"'}]},
+      'CURSOR RIGHT': {label:'', type:'static', command:'{name:""}', queryresult:'', evalwrite:[{variable:'MyPicture',value:'DYNAMIK (true)?"https://dancingastronaut.com/wp-content/uploads/2015/05/chemical-brothers.jpg":"Command Failed"'}]},
       
      },
     directories:{
-      "recipes": {label:"", feeders: {
-            "Rooms":{label:"Rooms list", commandset: [{type:"http-get", command:"http://192.168.1.151:3000/v1/projects/home/rooms/", queryresult:"$.*", itemname:"DYNAMIK JSON.parse(\"$Result\").name", itemtype: "listitem", itemlabel:"Recipe name", itembrowse:"DYNAMIK JSON.parse(\"$Result\").key", itemimage:"https://raw.githubusercontent.com/jac459/metadriver/master/AVReceiver/rooms.jpg", evalnext:[{test:true, then:"Devices", or:"Rooms"}], evalwrite:[{variable:"RoomKey",value:"DYNAMIK JSON.parse(\"$Result\").key"}]},
-                                                      {type:"http-get", command:"http://192.168.1.151:3000/v1/projects/home/rooms/", queryresult:"$.*", itemname:"DYNAMIK JSON.parse(\"$Result\").name", itemtype: "tile", itemlabel:"Recipe name", itembrowse:"DYNAMIK JSON.parse(\"$Result\").key", itemimage:"https://raw.githubusercontent.com/jac459/metadriver/master/AVReceiver/rooms.jpg", evalnext:[{test:true, then:"Devices", or:"Rooms"}], evalwrite:[{variable:"RoomKey",value:"DYNAMIK JSON.parse(\"$Result\").key"}]},  
+      'recipes': {label:'', feeders: {
+            'Rooms':{label:'Rooms list', commandset: [{type:'http-get', command:'http://192.168.1.151:3000/v1/projects/home/rooms/', queryresult:'$.*', itemname:'DYNAMIK JSON.parse("$Result").name', itemtype: 'listitem', itemlabel:'Recipe name', itembrowse:'DYNAMIK JSON.parse("$Result").key', itemimage:'https://raw.githubusercontent.com/jac459/metadriver/master/AVReceiver/rooms.jpg', evalnext:[{test:true, then:'Devices', or:'Rooms'}], evalwrite:[{variable:'RoomKey',value:'DYNAMIK JSON.parse("$Result").key'}]},
+                                                      {type:'http-get', command:'http://192.168.1.151:3000/v1/projects/home/rooms/', queryresult:'$.*', itemname:'DYNAMIK JSON.parse("$Result").name', itemtype: 'tile', itemlabel:'Recipe name', itembrowse:'DYNAMIK JSON.parse("$Result").key', itemimage:'https://raw.githubusercontent.com/jac459/metadriver/master/AVReceiver/rooms.jpg', evalnext:[{test:true, then:'Devices', or:'Rooms'}], evalwrite:[{variable:'RoomKey',value:'DYNAMIK JSON.parse("$Result").key'}]},  
                                                      ]},
-            "Devices":{label:"Devices list", commandset: [{type:"http-get", command:"http://192.168.1.151:3000/v1/projects/home/rooms/$RoomKey/devices", queryresult:"$.*", itemname:"DYNAMIK JSON.parse(\"$Result\").name", itemlabel:"Recipe name", itembrowse:"DYNAMIK JSON.parse(\"$Result\").key", itemimage:"https://raw.githubusercontent.com/jac459/metadriver/master/AVReceiver/devices.jpg", evalnext:[{test:true, then:"Macros", or:"Devices"}], evalwrite:[{variable:"DeviceKey",value:"DYNAMIK JSON.parse(\"$Result\").key"}]},
+            'Devices':{label:'Devices list', commandset: [{type:'http-get', command:'http://192.168.1.151:3000/v1/projects/home/rooms/$RoomKey/devices', queryresult:'$.*', itemname:'DYNAMIK JSON.parse("$Result").name', itemlabel:'Recipe name', itembrowse:'DYNAMIK JSON.parse("$Result").key', itemimage:'https://raw.githubusercontent.com/jac459/metadriver/master/AVReceiver/devices.jpg', evalnext:[{test:true, then:'Macros', or:'Devices'}], evalwrite:[{variable:'DeviceKey',value:'DYNAMIK JSON.parse("$Result").key'}]},
                                                       ]},
-            "Macros":{label:"Macros list", commandset: [{type:"http-get", command:"http://192.168.1.151:3000/v1/projects/home/rooms/$RoomKey/devices/$DeviceKey/macros", queryresult:"$.*", itemname:"DYNAMIK JSON.parse(\"$Result\").name", itemlabel:"Recipe name", itemaction:"ACTION_ActivateMacro", itemimage:"https://raw.githubusercontent.com/jac459/metadriver/master/AVReceiver/Neeo_logo.jpg", evalwrite:[{variable:"TriggerKey",value:"DYNAMIK JSON.parse(\"$Result\").key"}]}]},
-            "ACTION_ActivateMacro":{label:"", commandset: [{type:"http-get", command:"http://192.168.1.151:3000/v1/projects/home/rooms/$RoomKey/devices/$DeviceKey/macros/$TriggerKey/trigger", queryresult:"$.*", itemname:"", itemlabel:"Recipe name", itemaction:""},
+            'Macros':{label:'Macros list', commandset: [{type:'http-get', command:'http://192.168.1.151:3000/v1/projects/home/rooms/$RoomKey/devices/$DeviceKey/macros', queryresult:'$.*', itemname:'DYNAMIK JSON.parse("$Result").name', itemlabel:'Recipe name', itemaction:'ACTION_ActivateMacro', itemimage:'https://raw.githubusercontent.com/jac459/metadriver/master/AVReceiver/Neeo_logo.jpg', evalwrite:[{variable:'TriggerKey',value:'DYNAMIK JSON.parse("$Result").key'}]}]},
+            'ACTION_ActivateMacro':{label:'', commandset: [{type:'http-get', command:'http://192.168.1.151:3000/v1/projects/home/rooms/$RoomKey/devices/$DeviceKey/macros/$TriggerKey/trigger', queryresult:'$.*', itemname:'', itemlabel:'Recipe name', itemaction:''},
                                                       ]},
           },
         },
@@ -218,68 +218,68 @@ var settings =
         }
       }
     }*/
-    {name:"Volumio", 
-    manufacturer:"Volumio",
+    {name:'Volumio', 
+    manufacturer:'Volumio',
     version:4,
-    type:"AVRECEIVER", //ACCESSORY, AUDIO, AVRECEIVER, DVB (aka. satellite receiver), DVD (aka. disc player), GAMECONSOLE, HDMISWITCH
+    type:'AVRECEIVER', //ACCESSORY, AUDIO, AVRECEIVER, DVB (aka. satellite receiver), DVD (aka. disc player), GAMECONSOLE, HDMISWITCH
     //LIGHT, MEDIAPLAYER, MUSICPLAYER, PROJECTOR, TUNER, TV, VOD (aka. Video-On-Demand box like Apple TV, Fire TV...), SOUNDBAR,
     socket:'http://volumio.local',
     listeners : {
-      VolumioStatus : {type:"webSocket", command:"pushState", queryresult : "", 
+      VolumioStatus : {type:'webSocket', command:'pushState', queryresult : '', 
         evalwrite : [ 
-          {variable : "Playing",value : "DYNAMIK JSON.parse(\"$Result\").title"}, 
-          {variable : "VolumePlayed",value : "DYNAMIK JSON.parse(\"$Result\").volume"}, 
-          {variable : "AlbumCoverURI",value : "DYNAMIK \"http://volumio.local\" + JSON.parse(\"$Result\").albumart"}]}
+          {variable : 'Playing',value : 'DYNAMIK JSON.parse("$Result").title'}, 
+          {variable : 'VolumePlayed',value : 'DYNAMIK JSON.parse("$Result").volume'}, 
+          {variable : 'AlbumCoverURI',value : 'DYNAMIK "http://volumio.local" + JSON.parse("$Result").albumart'}]}
     },
     variables:{
-      Playing:"",
-      MyArtist:"",
-      MyAlbum:"",
-      AlbumArtURI:"",
-      PlayPayLoad:"",
-      AlbumCoverURI:"",
-      ArtistThumbURI:"",
+      Playing:'',
+      MyArtist:'',
+      MyAlbum:'',
+      AlbumArtURI:'',
+      PlayPayLoad:'',
+      AlbumCoverURI:'',
+      ArtistThumbURI:'',
       DirectPlay:false,
-      VolumePlayed:""
+      VolumePlayed:''
     },
 
     images:{
-      AlbumCover : {label:"", size : "large", listen:"AlbumCoverURI"},
-      AlbumCoverSmall : {label:"", size : "small", listen:"AlbumCoverURI"},
+      AlbumCover : {label:'', size : 'large', listen:'AlbumCoverURI'},
+      AlbumCoverSmall : {label:'', size : 'small', listen:'AlbumCoverURI'},
     },
     labels:{  
-      CurrentStatus : {label:"status", listen:"Playing"},
+      CurrentStatus : {label:'status', listen:'Playing'},
     },
     switches:{
-      PlayMode : {label:"", listen:"DirectPlay"},
-      PLAYING : {label:"", listen:"DirectPlay"},
-      MUTE : {label:"", listen:"DirectPlay"},
-      SHUFFLE : {label:"", listen:"DirectPlay"},
-      REPEAT : {label:"", listen:"DirectPlay"},
+      PlayMode : {label:'', listen:'DirectPlay'},
+      PLAYING : {label:'', listen:'DirectPlay'},
+      MUTE : {label:'', listen:'DirectPlay'},
+      SHUFFLE : {label:'', listen:'DirectPlay'},
+      REPEAT : {label:'', listen:'DirectPlay'},
     },
     sliders:{
-      VOLUME: {label:"", min : 0, max : 100, unit : "db", type:"http-get", command:"http://volumio.local/api/v1/commands/?cmd=volume&volume=", queryresult:"$.volume", listen:"VolumePlayed"},
+      VOLUME: {label:'', min : 0, max : 100, unit : 'db', type:'http-get', command:'http://volumio.local/api/v1/commands/?cmd=volume&volume=', queryresult:'$.volume', listen:'VolumePlayed'},
     },
     buttons:{
-      "VOLUME UP": {label:"", "type":"slidercontrol", "slidername":"Volume", "step":"5"},
-      "VOLUME DOWN": {label:"", "type":"slidercontrol", "slidername":"Volume", "step":"-5"},
-      "STOP": {label:"", type:"http-get", command:"http://volumio.local/api/v1/commands/?cmd=stop", queryresult:"$.response", evalwrite:[{variable:"Playing",value:"DYNAMIK \"$Result\"==\"stop Success\" ? \"Music Stopped\" : \"Music Stopped\""}]},
-      "PLAY": {label:"", type:"http-get", command:"http://volumio.local/api/v1/commands/?cmd=play", queryresult:"$.response", evalwrite:[{variable:"Playing",value:"DYNAMIK \"$Result\"==\"play Success\" ? \"Music Started\" : \"Command Failed\""}]},
-      "PLAY TOGGLE": {label:"", type:"http-get", command:"http://volumio.local/api/v1/commands/?cmd=toggle", queryresult:"$.response", evalwrite:[{variable:"Playing",value:"DYNAMIK \"$Result\"==\"toggle Success\" ? \"Pause\" : \"Command Failed\""}]},
-      "PREVIOUS": {label:"", type:"http-get", command:"http://volumio.local/api/v1/commands/?cmd=prev", queryresult:"$.response", evalwrite:[{variable:"Playing",value:"DYNAMIK \"$Result\"==\"stop Success\" ? \"Previous Track\" : \"Command Failed\""}]},
-      "NEXT": {label:"", type:"http-get", command:"http://volumio.local/api/v1/commands/?cmd=next", queryresult:"$.response", evalwrite:[{variable:"Playing",value:"DYNAMIK \"$Result\"==\"stop Success\" ? \"Next Track\" : \"Command Failed\""}]},
+      'VOLUME UP': {label:'', 'type':'slidercontrol', 'slidername':'Volume', 'step':'5'},
+      'VOLUME DOWN': {label:'', 'type':'slidercontrol', 'slidername':'Volume', 'step':'-5'},
+      'STOP': {label:'', type:'http-get', command:'http://volumio.local/api/v1/commands/?cmd=stop', queryresult:'$.response', evalwrite:[{variable:'Playing',value:'DYNAMIK "$Result"=="stop Success" ? "Music Stopped" : "Music Stopped"'}]},
+      'PLAY': {label:'', type:'http-get', command:'http://volumio.local/api/v1/commands/?cmd=play', queryresult:'$.response', evalwrite:[{variable:'Playing',value:'DYNAMIK "$Result"=="play Success" ? "Music Started" : "Command Failed"'}]},
+      'PLAY TOGGLE': {label:'', type:'http-get', command:'http://volumio.local/api/v1/commands/?cmd=toggle', queryresult:'$.response', evalwrite:[{variable:'Playing',value:'DYNAMIK "$Result"=="toggle Success" ? "Pause" : "Command Failed"'}]},
+      'PREVIOUS': {label:'', type:'http-get', command:'http://volumio.local/api/v1/commands/?cmd=prev', queryresult:'$.response', evalwrite:[{variable:'Playing',value:'DYNAMIK "$Result"=="stop Success" ? "Previous Track" : "Command Failed"'}]},
+      'NEXT': {label:'', type:'http-get', command:'http://volumio.local/api/v1/commands/?cmd=next', queryresult:'$.response', evalwrite:[{variable:'Playing',value:'DYNAMIK "$Result"=="stop Success" ? "Next Track" : "Command Failed"'}]},
     },
     directories:{
-      "Collection": {label:"My music", feeders: {
-        "Artists":{label:"Artists list", commandset: [{type:"http-get", command:"http://volumio.local/api/v1/browse?uri=artists://", queryresult:"$.navigation.lists[0].items[*]", itemname:"DYNAMIK JSON.parse(\"$Result\").title", itemlabel:"Artist Collection", itembrowse:"DYNAMIK JSON.parse(\"$Result\").title", itemimage:"DYNAMIK \"http://volumio.local\" + JSON.parse(\"$Result\").albumart", evalnext:[{test:true, then:"Albums", or:""}], evalwrite:[{variable:"MyArtist",value:"DYNAMIK JSON.parse(\"$Result\").title"},{variable:"ArtistThumbURI",value:"DYNAMIK JSON.parse(\"$Result\").albumart"}]}]},
-        "Albums":{label:"Albums list", commandset: [{type:"http-get", command:"http://volumio.local/api/v1/browse?uri=artists://$MyArtist", queryresult:"$.navigation.lists[0].items[*]", itemname:"DYNAMIK JSON.parse(\"$Result\").title", itemlabel:"$MyArtist", itembrowse:"DYNAMIK JSON.parse(\"$Result\").title", itemimage:"DYNAMIK \"http://volumio.local\" + JSON.parse(\"$Result\").albumart", evalnext:[{test:true, then:"Songs", or:""}], evalwrite:[{variable:"MyAlbum",value:"DYNAMIK JSON.parse(\"$Result\").title"}, {variable:"AlbumArtURI",value:"DYNAMIK \"http://volumio.local\" + JSON.parse(\"$Result\").albumart"}]}]},
-        "Songs":{label:"Songs list", commandset: [{type:"http-get", command:"http://volumio.local/api/v1/browse?uri=artists://$MyArtist/$MyAlbum", queryresult:"$.navigation.lists[0].items[*]", itemname:"DYNAMIK JSON.parse(\"$Result\").title", itemlabel:"Recipe name", itemaction:"ACTION_ReplaceAndPlay", itemimage:"$AlbumArtURI", evalwrite:[{variable:"PlayPayLoad",value:"$Result"}], }]},
-        "ACTION_ReplaceAndPlay":{label:"", commandset: [{type:"http-post", command:"DYNAMIK JSON.stringify({post:\"http://volumio.local/api/v1/\" + ( $DirectPlay ? \"replaceAndPlay\": \"addToQueue\"), message:\"$PlayPayLoad\"})", queryresult:"", itemname:"DYNAMIK JSON.parse(\"$Result\").title", itemlabel:"Recipe name", itemaction:"Evaldo", itemimage:"$AlbumArtURI"}]},
+      'Collection': {label:'My music', feeders: {
+        'Artists':{label:'Artists list', commandset: [{type:'http-get', command:'http://volumio.local/api/v1/browse?uri=artists://', queryresult:'$.navigation.lists[0].items[*]', itemname:'DYNAMIK JSON.parse("$Result").title', itemlabel:'Artist Collection', itembrowse:'DYNAMIK JSON.parse("$Result").title', itemimage:'DYNAMIK "http://volumio.local" + JSON.parse("$Result").albumart', evalnext:[{test:true, then:'Albums', or:''}], evalwrite:[{variable:'MyArtist',value:'DYNAMIK JSON.parse("$Result").title'},{variable:'ArtistThumbURI',value:'DYNAMIK JSON.parse("$Result").albumart'}]}]},
+        'Albums':{label:'Albums list', commandset: [{type:'http-get', command:'http://volumio.local/api/v1/browse?uri=artists://$MyArtist', queryresult:'$.navigation.lists[0].items[*]', itemname:'DYNAMIK JSON.parse("$Result").title', itemlabel:'$MyArtist', itembrowse:'DYNAMIK JSON.parse("$Result").title', itemimage:'DYNAMIK "http://volumio.local" + JSON.parse("$Result").albumart', evalnext:[{test:true, then:'Songs', or:''}], evalwrite:[{variable:'MyAlbum',value:'DYNAMIK JSON.parse("$Result").title'}, {variable:'AlbumArtURI',value:'DYNAMIK "http://volumio.local" + JSON.parse("$Result").albumart'}]}]},
+        'Songs':{label:'Songs list', commandset: [{type:'http-get', command:'http://volumio.local/api/v1/browse?uri=artists://$MyArtist/$MyAlbum', queryresult:'$.navigation.lists[0].items[*]', itemname:'DYNAMIK JSON.parse("$Result").title', itemlabel:'Recipe name', itemaction:'ACTION_ReplaceAndPlay', itemimage:'$AlbumArtURI', evalwrite:[{variable:'PlayPayLoad',value:'$Result'}], }]},
+        'ACTION_ReplaceAndPlay':{label:'', commandset: [{type:'http-post', command:'DYNAMIK JSON.stringify({post:"http://volumio.local/api/v1/" + ( $DirectPlay ? "replaceAndPlay": "addToQueue"), message:"$PlayPayLoad"})', queryresult:'', itemname:'DYNAMIK JSON.parse("$Result").title', itemlabel:'Recipe name', itemaction:'Evaldo', itemimage:'$AlbumArtURI'}]},
         },
       },
-      "Queue": {label:"My playing queue", feeders: {
-        "Queue":{label:"Queue", commandset: [{type:"http-get", command:"http://volumio.local/api/v1/getQueue", queryresult:"$.queue[*]", itemname:"DYNAMIK JSON.parse(\"$Result\").name", itemlabel:"DYNAMIK JSON.parse(\"$Result\").artist", itembrowse:"DYNAMIK JSON.parse(\"$Result\").title", itemimage:"DYNAMIK \"http://volumio.local\" + JSON.parse(\"$Result\").albumart"}]},
-        "ACTION_ReplaceAndPlay":{label:"", commandset: [{type:"http-post", command:"DYNAMIK JSON.stringify({post:\"http://volumio.local/api/v1/\" + ( $DirectPlay ? \"replaceAndPlay\": \"addToQueue\"), message:\"$PlayPayLoad\"})", queryresult:"", itemname:"DYNAMIK JSON.parse(\"$Result\").title", itemlabel:"Recipe name", itemaction:"Evaldo", itemimage:"$AlbumArtURI"}]},
+      'Queue': {label:'My playing queue', feeders: {
+        'Queue':{label:'Queue', commandset: [{type:'http-get', command:'http://volumio.local/api/v1/getQueue', queryresult:'$.queue[*]', itemname:'DYNAMIK JSON.parse("$Result").name', itemlabel:'DYNAMIK JSON.parse("$Result").artist', itembrowse:'DYNAMIK JSON.parse("$Result").title', itemimage:'DYNAMIK "http://volumio.local" + JSON.parse("$Result").albumart'}]},
+        'ACTION_ReplaceAndPlay':{label:'', commandset: [{type:'http-post', command:'DYNAMIK JSON.stringify({post:"http://volumio.local/api/v1/" + ( $DirectPlay ? "replaceAndPlay": "addToQueue"), message:"$PlayPayLoad"})', queryresult:'', itemname:'DYNAMIK JSON.parse("$Result").title', itemlabel:'Recipe name', itemaction:'Evaldo', itemimage:'$AlbumArtURI'}]},
     },
   },
 },
