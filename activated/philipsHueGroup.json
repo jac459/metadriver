@@ -13,6 +13,7 @@
     "registrationcommand":{"type":"http-rest", "command":"{\"verb\":\"post\",\"call\":\"http://$RegistrationCode/api\", \"message\":{\"devicetype\":\"meta\"}}", "queryresult":"$.success.username", "evalwrite":[{"variable":"HueBridgeIp","value":"$RegistrationCode"},{"variable":"HueUserName","value":"$Result"}, {"variable":"IsRegistered","value":"DYNAMIK ((\"$Result\" == \"undefined\") || (\"$Result\".startsWith(\"Command failed:\"))) ? false : true"}]}
   },
   "persistedvariables":{
+    "RegistrationCode":"",
     "HueBridgeIp":"",
     "IsRegistered":"",
     "HueUserName":""
