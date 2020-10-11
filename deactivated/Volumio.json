@@ -12,10 +12,10 @@
             {"variable" : "AlbumCoverURI", "value" : "DYNAMIK (!JSON.parse(\"$Result\").albumart.startsWith(\"http\") ? (\"$VolumioURI\" + JSON.parse(\"$Result\").albumart) : JSON.parse(\"$Result\").albumart)"}
           ]
         },
-      "VolumioProgress" : {"type":"http-get", "command":"$VolumioURI/api/v1/getState", "pooltime":"3000", "poolduration":"", "queryresult" : "$.data", 
+      "VolumioProgress" : {"type":"http-get", "command":"$VolumioURI/api/v1/getState", "pooltime":"3000", "poolduration":"", "queryresult" : "$.", 
         "evalwrite" : [ 
-             {"variable" : "Progress", "value" : "DYNAMIK Math.round(0.1*Number(JSON.parse(\"$Result\").seek)/Number(JSON.parse(\"$Result\").duration))"},
-             {"variable" : "CurrentDuration", "value" : "DYNAMIK JSON.parse(\"$Result\").duration"}
+             {"variable" : "Progress", "value" : "DYNAMIK Math.round(0.1*Number(JSON.parse(\"$Result\")[0].seek)/Number(JSON.parse(\"$Result\")[0].duration))"},
+             {"variable" : "CurrentDuration", "value" : "DYNAMIK JSON.parse(\"$Result\")[0].duration"}
           ]
         }
     },

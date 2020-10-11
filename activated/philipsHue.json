@@ -10,7 +10,7 @@
     "registertype": "SECURITY_CODE",
     "registerheadertext": "Philips Hue Bridge registration",
     "registerdescription": "Please enter the IP address of your device, then press the button of your bridge and THEN enter.",
-    "registrationcommand":{"type":"http-rest", "command":"{\"verb\":\"post\",\"call\":\"http://$RegistrationCode/api\", \"message\":{\"devicetype\":\"meta\"}}", "queryresult":"$.success.username", "evalwrite":[{"variable":"HueBridgeIp","value":"$RegistrationCode"},{"variable":"HueUserName","value":"$Result"}, {"variable":"IsRegistered","value":"DYNAMIK (\"$Result\" == \"undefined\") ? false : true"}]}
+    "registrationcommand":{"type":"http-rest", "command":"{\"verb\":\"post\",\"call\":\"http://$RegistrationCode/api\", \"message\":{\"devicetype\":\"meta\"}}", "queryresult":"$.success.username", "evalwrite":[{"variable":"HueBridgeIp","value":"$RegistrationCode"},{"variable":"HueUserName","value":"$Result"}, {"variable":"IsRegistered","value":"DYNAMIK ((\"$Result\" == \"undefined\") || (\"$Result\".startsWith(\"Command failed:\"))) ? false : true"}]}
   },
   "persistedvariables":{
     "RegistrationCode":"",
@@ -19,7 +19,7 @@
     "HueUserName":""
   },
   "discover":{
-    "welcomeheadertext":"Hue Driver",
+    "welcomeheadertext":"Hue Driver ==> If first usage, press the button on top of your HUE Bridge before clicking next !!!",
     "welcomedescription":"powered by meta\nby JAC459",
     "command":{"type":"http-get", "command":"http://$HueBridgeIp/api/$HueUserName/lights/", "queryresult":["$.*~","$..name"]}
   },
@@ -56,8 +56,8 @@
     "buttons":{
         "POWER ON": {"label":"", "type":"static", "command":"", "evaldo":[{"test":true,"then":"INITIALISE", "or":""}]},
         "POWER OFF": {"label":"", "type":"static", "command":"", "evaldo":[{"test":true,"then":"CLEANUP", "or":""}]},
-        "SWITCHON": {"label":"", "type":"http-rest", "command":"{\"verb\":\"put\",\"call\":\"http://$HueBridgeIp/api/$HueUserName/lights/$LightNumber/state\", \"message\":{\"on\": true}}"},
-        "SWITCHOFF": {"label":"", "type":"http-rest", "command":"{\"verb\":\"put\",\"call\":\"http://$HueBridgeIp/api/$HueUserName/lights/$LightNumber/state\", \"message\":{\"on\": false}}"},
+        "SWITCHON": {"label":"", "type":"http-rest", "command":"{\"verb\":\"put\",\"call\":\"http://$HueBridgeIp/api/$HueUserName/lights/$LightNumber/state\", \"message\":{\"on\": true}}", "evalwrite":[{"variable":"SwitchedOn","value":true}]},},
+        "SWITCHOFF": {"label":"", "type":"http-rest", "command":"{\"verb\":\"put\",\"call\":\"http://$HueBridgeIp/api/$HueUserName/lights/$LightNumber/state\", \"message\":{\"on\": false}}", "evalwrite":[{"variable":"SwitchedOn","value":false}]},},
         "BRIGHTNESSCHANGE": {"label":"", "type":"http-rest", "command":"DYNAMIK \"{\\\"verb\\\":\\\"put\\\",\\\"call\\\":\\\"http://$HueBridgeIp/api/$HueUserName/lights/$LightNumber/state\\\", \\\"message\\\":{\\\"bri\\\": \" + Math.round(254/100*$Brightness) + \"}}\""}
     },
     "directories":{

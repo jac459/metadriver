@@ -14,6 +14,7 @@ var config = {brainip : '', brainport : ''};
 var brainDiscovered = false;
 var brainDiscovered = false;
 const driverTable = [];
+var discoveredDevices = undefined;
 
 function getConfig() {
   return new Promise(function (resolve, reject) {
@@ -179,10 +180,21 @@ function discoveryDriverPreparator(controller, driver, deviceId, targetDeviceId)
   })
 }
 
-function registerDevice(controller, credentials, driver, deviceId) {
-  return new Promise(function (resolve, reject) {
-    console.log(credentials);
+function getResgristrationCode(controller, credentials, driver, deviceId){
+     console.log(credentials);
     controller.vault.addVariable("RegistrationCode", credentials.securityCode, deviceId, true)
+    registerDevice(controller, driver, deviceId).then((result)=>{
+      if (result) {
+        resolve(true);
+      }
+      else {
+        resolve(false)
+      }
+    })
+  }
+
+function registerDevice(controller, driver, deviceId) {
+  return new Promise(function (resolve, reject) {
     controller.actionManager(DEFAULT, driver.register.registrationcommand.type, driver.register.registrationcommand.command, 
                           driver.register.registrationcommand.queryresult, '', driver.register.registrationcommand.evalwrite)
     .then((result) => {
@@ -193,7 +205,7 @@ function registerDevice(controller, credentials, driver, deviceId) {
       controller.vault.snapshotDataStore();
       if (controller.vault.getValue("IsRegistered", deviceId)) {
         console.log('registration success')
-        resolve("Meta Registration Process success");
+        resolve(true);
       }
       else {
         console.log('registration failure')
@@ -203,24 +215,88 @@ function registerDevice(controller, credentials, driver, deviceId) {
   })
 }
 
-function isDeviceRegistered(controller, deviceId) {
-  let retValue = controller.vault.getValue("IsRegistered", deviceId);
-  console.log('is registered ? : ' + retValue)
-  if (retValue) {return retValue}
-  else {return false;}
+function isDeviceRegistered(controller, driver, deviceId) {
+  return new Promise(function (resolve, reject) {
+    let retValue = controller.vault.getValue("IsRegistered", deviceId);
+    console.log('is registered ? : ' + retValue)
+    console.log("blibli")
+    if (retValue) {resolve(retValue);}
+    else {
+      registerDevice(controller, driver, deviceId).then((result)=>{
+        console.log('the result is '+result)
+        if (result) {
+          resolve(true);
+        }
+        else {
+          resolve(false)
+        }
+      })
+    }
+  })
 }
 
- 
 function createController(hubController, driver) {//Discovery specific
   if (hubController) {//We are inside a discovered item no new controller to be created.
     return hubController;
   }
   else {//normal device, controller to be created.
     const controller = new metacontrol(driver);
-    //controller.vault.initialiseVault(getDataStorePath(driver.filename));
     return controller;
   }
 }
+
+function assignControllers(controller, driver, currentDeviceId) {
+  for (var prop in driver.buttons) { // Dynamic creation of all buttons
+    if (Object.prototype.hasOwnProperty.call(driver.buttons, prop)) {
+      controller.addButton(currentDeviceId, prop, driver.buttons[prop])
+    }
+  } 
+
+  for (var prop in driver.images) { // Dynamic creation of all images
+    if (Object.prototype.hasOwnProperty.call(driver.images, prop)) {
+      controller.addImageHelper(currentDeviceId, prop, driver.images[prop].listen)
+    }
+  }
+
+  for (var prop in driver.labels) { // Dynamic creation of all labels
+    if (Object.prototype.hasOwnProperty.call(driver.labels, prop)) {
+      controller.addLabelHelper(currentDeviceId, prop, driver.labels[prop].listen, driver.labels[prop].actionlisten)
+    }
+  }
+
+  for (var prop in driver.sensors) { // Dynamic creation of all sensors
+    if (Object.prototype.hasOwnProperty.call(driver.sensors, prop)) {
+      controller.addSensorHelper(currentDeviceId, prop, driver.sensors[prop].listen)
+    }
+  }
+
+  for (var prop in driver.switches) { // Dynamic creation of all sliders
+    if (Object.prototype.hasOwnProperty.call(driver.switches, prop)) {
+      controller.addSwitchHelper(currentDeviceId, prop, driver.switches[prop].listen, driver.switches[prop].evaldo);
+    }
+  }
+
+  for (var prop in driver.sliders) { // Dynamic creation of all sliders
+    if (Object.prototype.hasOwnProperty.call(driver.sliders, prop)) {
+      controller.addSliderHelper(currentDeviceId, driver.sliders[prop].listen, driver.sliders[prop].evaldo, prop);
+    }
+  }
+
+  for (var prop in driver.directories) { // Dynamic creation of directories
+    if (Object.prototype.hasOwnProperty.call(driver.directories, prop)) {
+      const theHelper = controller.addDirectoryHelper(currentDeviceId, prop);
+      for (var feed in driver.directories[prop].feeders) {
+        let feedConfig = {"name":feed, 
+                          "label":driver.directories[prop].feeders[feed].label, 
+                          "commandset":driver.directories[prop].feeders[feed].commandset, 
+                        };
+        theHelper.addFeederHelper(feedConfig);
+      }
+    }
+  }
+
+}
+
 
 function executeDriversCreation (drivers, hubController, deviceId) { //drivers is a json represnetaiton of the drivers and hubController is a controller to be given to discovered devices (it is there Hub controller).
   return new Promise(function (resolve, reject) {
@@ -250,6 +326,19 @@ function executeDriversCreation (drivers, hubController, deviceId) { //drivers i
         }
       }
       controller.vault.addVariable('NeeoBrainIP', config.brainip, currentDeviceId); //Adding a usefull system variable giving the brain IP address.
+
+      //adding discovered device variable in the vault
+      if (driver.discovereddevice){
+        if (driver.discovereddevice.mac) {
+          driver.discovereddevice.mac.forEach(macAddress => {
+            let discoDev = discoveredDevices.find((elt)=> {return elt.mac.toUpperCase().startsWith(macAddress.toUpperCase())});
+            if (discoDev) {
+              controller.vault.addVariable('DiscoveredDeviceIP', discoDev.ip, currentDeviceId); //Adding a usefull system variable giving the discovered device IP address.
+            }
+          })
+         }
+      }
+
       if (driver.persistedvariables){
         for (var prop in driver.persistedvariables) { // Initialisation of the variables to be persisted
           if (Object.prototype.hasOwnProperty.call(driver.persistedvariables, prop)) {
@@ -258,6 +347,12 @@ function executeDriversCreation (drivers, hubController, deviceId) { //drivers i
         }
       }
       controller.vault.initialiseVault(getDataStorePath(driver.filename)).then(() => {//Retrieve the value form the vault
+
+      //CREATING CONTROLLERS
+      assignControllers(controller, driver, currentDeviceId);
+
+        //PreInit
+        controller.onButtonPressed("__PREINIT",currentDeviceId);
 
         //Registration
         if (driver.register) {
@@ -268,8 +363,8 @@ function executeDriversCreation (drivers, hubController, deviceId) { //drivers i
             description: driver.register.registerdescription,
           },
           {
-            register: (credentials) => registerDevice(controller, credentials, driver, currentDeviceId),
-            isRegistered: () => {return isDeviceRegistered(controller, currentDeviceId);},
+            register: (credentials) => getResgristrationCode(controller, credentials, driver, currentDeviceId),
+            isRegistered: () => {return new Promise(function (resolve, reject) {console.log("bloublou");isDeviceRegistered(controller, driver, currentDeviceId).then((res)=>{resolve(res)})})},
           })
         }
 
@@ -328,56 +423,6 @@ function executeDriversCreation (drivers, hubController, deviceId) { //drivers i
           }
         }
       
-        //CREATING CONTROLLERS
-        
-        for (var prop in driver.buttons) { // Dynamic creation of all buttons
-          if (Object.prototype.hasOwnProperty.call(driver.buttons, prop)) {
-            controller.addButton(currentDeviceId, prop, driver.buttons[prop])
-          }
-        } 
-
-        for (var prop in driver.images) { // Dynamic creation of all images
-          if (Object.prototype.hasOwnProperty.call(driver.images, prop)) {
-            controller.addImageHelper(currentDeviceId, prop, driver.images[prop].listen)
-          }
-        }
-      
-        for (var prop in driver.labels) { // Dynamic creation of all labels
-          if (Object.prototype.hasOwnProperty.call(driver.labels, prop)) {
-            controller.addLabelHelper(currentDeviceId, prop, driver.labels[prop].listen, driver.labels[prop].actionlisten)
-          }
-        }
-
-        for (var prop in driver.sensors) { // Dynamic creation of all sensors
-          if (Object.prototype.hasOwnProperty.call(driver.sensors, prop)) {
-            controller.addSensorHelper(currentDeviceId, prop, driver.sensors[prop].listen)
-          }
-        }
-
-        for (var prop in driver.switches) { // Dynamic creation of all sliders
-          if (Object.prototype.hasOwnProperty.call(driver.switches, prop)) {
-            controller.addSwitchHelper(currentDeviceId, prop, driver.switches[prop].listen, driver.switches[prop].evaldo);
-          }
-        }
-
-        for (var prop in driver.sliders) { // Dynamic creation of all sliders
-          if (Object.prototype.hasOwnProperty.call(driver.sliders, prop)) {
-            controller.addSliderHelper(currentDeviceId, driver.sliders[prop].listen, driver.sliders[prop].evaldo, prop);
-          }
-        }
-
-        for (var prop in driver.directories) { // Dynamic creation of directories
-          if (Object.prototype.hasOwnProperty.call(driver.directories, prop)) {
-            const theHelper = controller.addDirectoryHelper(currentDeviceId, prop);
-            for (var feed in driver.directories[prop].feeders) {
-              let feedConfig = {"name":feed, 
-                                "label":driver.directories[prop].feeders[feed].label, 
-                                "commandset":driver.directories[prop].feeders[feed].commandset, 
-                              };
-              theHelper.addFeederHelper(feedConfig);
-            }
-          }
-        }
 
       //CREATING WIDGETS
 /*
@@ -599,7 +644,7 @@ function runNeeo () {
     const neeoSettings = {
       brain: config.brainip.toString(),
       port: config.brainport.toString(),
-      name: "Meta Driver 0.8.14",
+      name: "metadriver",
       devices: driverTable
     };
     console.log(neeoSettings);
@@ -636,13 +681,14 @@ function runNeeo () {
 
 //MAIN
 find().then(devices => {
-  console.log (devices)
-  
-})
-getConfig().then(() => {
-  createDevices()
-  .then (() => {
-    setupNeeo();
+  console.log (devices);
+  discoveredDevices = devices;
+    getConfig().then(() => {
+    createDevices()
+    .then (() => {
+      setupNeeo();
+    })
   })
 })
+
 

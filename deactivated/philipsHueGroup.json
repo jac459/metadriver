@@ -1,4 +1,4 @@
-{ "name":"HueGroups",
+{ "name":"Hue Groups",
   "manufacturer":"Philips",
   "type":"LIGHT",
   "version":6,
@@ -19,7 +19,7 @@
     "command":{"type":"http-get", "command":"http://$HueBridgeIp/api/$HueUserName/groups/", "queryresult":["$.*~","$..name"]}
   },
   "template" : {
-    "name":"HueGroups", 
+    "name":"Hue Groups", 
     "dynamicname":"DYNAMIK_INST_START DYNAMIK \"Philips Hue by group \" + JSON.parse(\"$Result\")[1] DYNAMIK_INST_END",
     "dynamicid":"DYNAMIK_INST_START DYNAMIK JSON.parse(\"$Result\")[0] DYNAMIK_INST_END",
     "manufacturer":"Philips",
