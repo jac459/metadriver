@@ -154,6 +154,9 @@ When running the device through the remote it will bring you to the shortcut sli
 
 Some devices store data. For example, if you have a device needing a registration code, the meta will save the code in -datastore.json file in order to avoid the need to type it again. If somehow the installation of your device doesn't work and the device doesn't behave the way you want, you may prefere to dete the -datastore file and restart the meta in order to have a fresh install of your driver.
 
+Some drivers are "observing" the devices to reflect the state they are even if not changed by the remote (ex: volumio, hue). In order to start the listening process,you must launch "power on" when you start the device. If it is for lights,you need to do it for each lights.
+Don't worry,the meta is automatically optimizing the request in order to minimize the network load.(only one request for multiple devices when possible ) 
+
 TODO: add how-to for the different devices created
 
 ## Maker Corner
