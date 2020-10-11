@@ -15,11 +15,14 @@ Examples of integration:
 #### https://youtu.be/9Z_wd0l7iyM
 #### https://www.youtube.com/watch?v=LN6M7-U_0Bk&t=12s
 
-This readme applies to metadriver Version 0.8-Alpha-1 (build 13) release for advanced users.
+This readme applies to metadriver Version 0.8-Alpha (build 0.8.15) release for advanced users.
 
 #### Latest update
 
-Version 0.8-Alpha-1 is basically a consolidation of v0.8.1 with:
+Full Discovery feature working on both yamaha and hue/hueGroups drivers.
+No need to enter any IP address, the meta scans the network and find the devices. 
+Bug (nasty) corrected on hue bulbs state listener. 
+
 ##### New Features
 - Enhanced support for HTTP-REST (incl. PUT) 
 - Extended jsonpath support (new framework and multithreaded execution) 
