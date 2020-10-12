@@ -15,11 +15,14 @@ Examples of integration:
 #### https://youtu.be/9Z_wd0l7iyM
 #### https://www.youtube.com/watch?v=LN6M7-U_0Bk&t=12s
 
-This readme applies to metadriver Version 0.8-Alpha-1 (build 13) release for advanced users.
+This readme applies to metadriver Version 0.8-Alpha (build 0.8.15) release for advanced users.
 
 #### Latest update
 
-Version 0.8-Alpha-1 is basically a consolidation of v0.8.1 with:
+Full Discovery feature working on both yamaha and hue/hueGroups drivers.
+No need to enter any IP address, the meta scans the network and find the devices. 
+Bug (nasty) corrected on hue bulbs state listener. 
+
 ##### New Features
 - Enhanced support for HTTP-REST (incl. PUT) 
 - Extended jsonpath support (new framework and multithreaded execution) 
@@ -150,6 +153,9 @@ Also, you will probably need to add your own shortcuts in order to compose the i
 When running the device through the remote it will bring you to the shortcut slide. You can generally remove other slides as not useful. 
 
 Some devices store data. For example, if you have a device needing a registration code, the meta will save the code in -datastore.json file in order to avoid the need to type it again. If somehow the installation of your device doesn't work and the device doesn't behave the way you want, you may prefere to dete the -datastore file and restart the meta in order to have a fresh install of your driver.
+
+Some drivers are "observing" the devices to reflect the state they are in, even if not changed by the remote (ex: volumio, hue). In order to start the listening process,you must launch "power on" when you start the recipe of the device. If it is for lights,you need to do it for each lights (power on will not switch them on but activate the listening).
+Don't worry,the meta is automatically optimizing the requests in order to minimize the network load (only one request for multiple devices when possible) 
 
 TODO: add how-to for the different devices created
 
