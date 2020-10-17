@@ -172,7 +172,9 @@ module.exports = function controller(driver) {
           while (inputChain != inputChain.replace(Pattern, givenResult)) {
             inputChain = inputChain.replace(Pattern, givenResult);
           }
-          return eval(inputChain.split('DYNAMIK ')[1]);
+          let evaluatedValue = eval(inputChain.split('DYNAMIK ')[1]);
+          console.log("evaluated: " + evaluatedValue)
+          return evaluatedValue;
         }
         else {
           inputChain = inputChain.replace(Pattern, givenResult);
@@ -189,7 +191,7 @@ module.exports = function controller(driver) {
 
   
   this.evalWrite = function (evalwrite, result, deviceId) {
-        if (evalwrite) { //case we want to write inside a variable
+    if (evalwrite) { //case we want to write inside a variable
       evalwrite.forEach(evalW => {
         if (evalW.deviceId) {deviceId = evalW.deviceId} //this is specific for listeners and discovery, when one command should be refreshing data of multiple devices (example hue bulbs)
         
@@ -392,7 +394,7 @@ module.exports = function controller(driver) {
         result = result[0];
       }*/
        if (listener.evalwrite) {self.evalWrite(listener.evalwrite, result, deviceId);}
-       //if (listener.evaldo) {self.evalDo(listener.evaldo, result, deviceId);}
+       if (listener.evaldo) {self.evalDo(listener.evaldo, result, deviceId);}
     });
   };
 
