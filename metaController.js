@@ -388,11 +388,6 @@ module.exports = function controller(driver) {
   this.onListenExecute = function (result, listener, deviceId) {
     process.stdout.write('.');  
     self.queryProcessor(result, listener.queryresult, listener.type, deviceId).then((result) => {
-      //result = result[0];
-      //CONVERTING TO FIRST ITEM SHOULD BE IN THE DEVICE AND NOT HARDCODED.
-    /*  if (Array.isArray(result)) {
-        result = result[0];
-      }*/
        if (listener.evalwrite) {self.evalWrite(listener.evalwrite, result, deviceId);}
        if (listener.evaldo) {self.evalDo(listener.evaldo, result, deviceId);}
     });

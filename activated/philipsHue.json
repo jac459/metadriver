@@ -45,7 +45,7 @@
         "evalwrite" : [ 
           {"variable" : "Brightness", "value" : "DYNAMIK JSON.parse(\"$Result\").find(elt => elt[0] == \"$DynamicId\")[1].on ? Math.round(JSON.parse(\"$Result\").find(elt => elt[0] == \"$DynamicId\")[1].bri/2.54) : 0"},
           {"variable" : "SwitchedOn", "value" : "DYNAMIK JSON.parse(\"$Result\").find(elt => elt[0] == \"$DynamicId\")[1].on"}
-     ]
+   ]
         }
     },
     "switches":{
