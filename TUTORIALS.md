@@ -59,7 +59,7 @@ The variable is very important, but on itself it is of no use.
 "LabelStatus":"Default value" => the LabelStatus is an arbitrary name that you choose (in one word please) . The 'default value' is a default value that you choose. Can be empty.
 #### label
 Then the label part. You see an arbitrary name (CurrentStatus, one word), a label name (if you want to change the label) and then the most important:
-- listen: in this important field, you put the name of a variable. Each time you assign a value to this variable, the label will have this value.
+- listen: in this important field, you put the name of a variable. Each time you assign a value to this variable, the label will have this value. WARNING: listen means it listen to states change. So you need to assign a new value to the variable in order to take the value. For example, if you declare a variable with a value, the label won't display anything before you assigh a new value. That's because the label is created after the variable so from the label stand point, the variable never had its value changed.
 #### evalwrite
 This is a new feature that we can attach to a button (or any actionable component). 
 - evalwrite: evalwrite allows you to write a value into a variable. There are a lot of complex ways to do this, but in this simple example, we will use a very special variable:
