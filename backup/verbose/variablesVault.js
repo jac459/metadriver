@@ -127,12 +127,13 @@ class variablesVault {
       let internalVariableName = toInternalName(name, deviceId);
       let foundVar = self.variables.find(elt => {return elt.name == internalVariableName});
       if (!foundVar) {console.log("The variable you are requesting doesn\'t seems to be properly declared.")}
-      console.log("writing vault " + deviceId + "/" + name + " : " + value);
+      console.log('writing ' + value + " in " + deviceId + "/")
+      console.log(foundVar)
       if (foundVar) {
-        console.log("Previous value : " + foundVar.value);
         //if (!(foundVar.value === value)) {// If the value changed.
           foundVar.value = value; //Write value here
           foundVar.observers.forEach(element => { //invoke all observers
+            console.log('variable call back')
             console.log(element.theFunction)
             element.theFunction(deviceId, foundVar.value);
           });

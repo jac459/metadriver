@@ -1,27 +1,32 @@
 {
-  "name": "@jac459/metadriver",
-  "version": "0.8.15",
-  "description": "full customizable driver to control any device with neeo (including list and device monitoring)",
-  "main": "meta.js",
-  "scripts": {
-    "start": "node meta.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "repository": {
+  "_from": "github:jac459/metadriver",
+  "_id": "@jac459/metadriver@0.8.15",
+  "_inBundle": false,
+  "_integrity": "",
+  "_location": "/@jac459/metadriver",
+  "_phantomChildren": {},
+  "_requested": {
     "type": "git",
-    "url": "git://github.com/jac459/metadriver.git"
+    "raw": "jac459/metadriver",
+    "rawSpec": "jac459/metadriver",
+    "saveSpec": "github:jac459/metadriver",
+    "fetchSpec": null,
+    "gitCommittish": null
   },
-  "keywords": [
-    "neeo",
-    "meta",
-    "jac"
+  "_requiredBy": [
+    "#USER",
+    "/"
   ],
-  "author": "jac459",
-  "license": "MIT",
+  "_resolved": "github:jac459/metadriver#ca8c3d96908df109b9b3cf47853bdc7372699a1a",
+  "_spec": "jac459/metadriver",
+  "_where": "/home/pi",
+  "author": {
+    "name": "jac459"
+  },
   "bugs": {
     "url": "https://github.com/jac459/metadriver/issues"
   },
-  "homepage": "https://github.com/jac459/metadriver#readme",
+  "bundleDependencies": false,
   "dependencies": {
     "async": "^3.2.0",
     "fs": "0.0.1-security",
@@ -40,10 +45,30 @@
     "xmldom": "^0.3.0",
     "xpath": "0.0.27"
   },
+  "deprecated": false,
+  "description": "full customizable driver to control any device with neeo (including list and device monitoring)",
+  "devDependencies": {
+    "eslint": "^7.8.1"
+  },
+  "homepage": "https://github.com/jac459/metadriver#readme",
+  "keywords": [
+    "neeo",
+    "meta",
+    "jac"
+  ],
+  "license": "MIT",
+  "main": "meta.js",
+  "name": "@jac459/metadriver",
   "publishConfig": {
     "registry": "https://npm.pkg.github.com/"
   },
-  "devDependencies": {
-    "eslint": "^7.8.1"
-  }
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/jac459/metadriver.git"
+  },
+  "scripts": {
+    "start": "node meta.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "version": "0.8.15"
 }

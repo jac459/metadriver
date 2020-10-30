@@ -173,7 +173,6 @@ module.exports = function controller(driver) {
             inputChain = inputChain.replace(Pattern, givenResult);
           }
           let evaluatedValue = eval(inputChain.split('DYNAMIK ')[1]);
-          console.log("evaluated: " + evaluatedValue)
           return evaluatedValue;
         }
         else {
@@ -197,8 +196,9 @@ module.exports = function controller(driver) {
         
         //process the value
         let finalValue = self.vault.readVariables(evalW.value, deviceId);
-        console.log(finalValue)
+        console.log(deviceId + " - evalWrite Final VALUE - " + finalValue)
         finalValue = self.assignTo(RESULT, finalValue, result);
+        console.log(deviceId + " - evalWrite Final IS - " + finalValue)
         self.vault.writeVariable(evalW.variable, finalValue, deviceId); 
       });
     }

@@ -14,27 +14,30 @@ class sliderHelper {
     };
     this.update = function (deviceId, theValue) {
       return new Promise(function (resolve, reject) {
-        if (self.value != theValue) {
+        console.log('updating slider')
+        //if (self.value != theValue) {
           self.value = theValue;
+          console.log('updating slider')
           controller.sendComponentUpdate({ uniqueDeviceId: deviceId, component: self.name, value: Math.round(theValue)})
-          .then((result) => {console.log("update performed : new value : " + theValue + " component " + controller.name + "/"+ self.name+"/"+deviceId);console.log(result)})
+          .then((result) => {console.log("Update performed : new value : " + theValue + " component " + controller.name + "/"+ self.name+"/"+deviceId);console.log(result)})
           .catch((err) => {console.log("Error while trying to update the value : " + theValue+ " in this component : " + controller.name + "/" + deviceId + "/" + self.name + " => " + err); reject(err); });
-        }
+        //}
        resolve();
       });
     };
     this.set = function (deviceId, theValue) {
       return new Promise(function (resolve, reject) {
+        console.log('setting slider')
         theValue = Math.round(theValue);
-        //if (self.value != theValue) {
+        if (self.value != theValue) {
           self.value = theValue;
-          console.log('set call2 ' + theValue)
+          console.log('setting slider')
           controller.sendComponentUpdate({ uniqueDeviceId: deviceId, component: self.name, value: theValue})
-          .then((result) => {console.log("update performed : new value : " + theValue + " component " + controller.name + "/"+ self.name+"/"+deviceId);console.log(result)})
+          .then((result) => {console.log("Set performed : new value : " + theValue + " component " + controller.name + "/"+ self.name+"/"+deviceId);console.log(result)})
           .catch((err) => {console.log("Error while trying to set the value : " + theValue+ " in this component : " + controller.name + "/" + deviceId + "/" + self.name + " => " + err);});
           controller.vault.writeVariable(variableListened, Math.round(theValue), deviceId);
           controller.evalDo(evaldo, Math.round(theValue), deviceId)
-        //}
+        }
        resolve();
       });
     };

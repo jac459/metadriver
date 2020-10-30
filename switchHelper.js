@@ -19,6 +19,7 @@ class switchHelper {
           self.value = theValue;
           console.log('updating ' + deviceId + " > " + self.name + " with " + theValue + " " + typeof(theValue))
           self.controller.sendComponentUpdate({ uniqueDeviceId: deviceId, component: self.name, value: theValue })
+          .then((result) => {console.log("Updates performed : new value : " + theValue + " component " + controller.name + "/"+ self.name+"/"+deviceId);console.log(result)})
           .catch((err) => {console.log("Error while trying to put the value : " + theValue+ " in this component : " + deviceId + " / " + self.name + " => " + err); reject(err); });
         }
         resolve();
@@ -30,6 +31,7 @@ class switchHelper {
         if (self.value != theValue) {
           self.value = theValue;
           self.controller.sendComponentUpdate({ uniqueDeviceId: deviceId, component: self.name, value: theValue })
+          .then((result) => {console.log("Set performed : new value : " + theValue + " component " + controller.name + "/"+ self.name+"/"+deviceId);console.log(result)})
           .catch((err) => {console.log("Error while trying to put the value : " + theValue+ " in this component : " + self.name + " => " + err); reject(err); });
         }
         controller.vault.writeVariable(variableListened, theValue, deviceId);

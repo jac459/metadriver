@@ -219,7 +219,6 @@ function isDeviceRegistered(controller, driver, deviceId) {
   return new Promise(function (resolve, reject) {
     let retValue = controller.vault.getValue("IsRegistered", deviceId);
     console.log('is registered ? : ' + retValue)
-    console.log("blibli")
     if (retValue) {resolve(retValue);}
     else {
       registerDevice(controller, driver, deviceId).then((result)=>{

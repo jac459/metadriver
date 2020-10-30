@@ -126,10 +126,10 @@ class httprestProcessor {
       params.listener.timer = setInterval(() => {
         http(params.command)
           .then(function (result) {
-            if (result != previousResult) {
+            //if (result != previousResult) {
               previousResult = result;
               params._listenCallback(result, params.listener, deviceId);
-            }
+            //}
             resolve('');
           })
           .catch((err) => { console.log(err); });
