@@ -156,8 +156,8 @@ function discoveryDriverPreparator(controller, driver, deviceId, targetDeviceId)
       let instanciationTable = []
       controller.initiateProcessor(driver.discover.command.type).then(() => {
         controller.commandProcessor(driver.discover.command.command, driver.discover.command.type, deviceId).then((result)=>{
-          controller.queryProcessor(result, driver.discover.command.queryresult, driver.discover.command.type, deviceId).then((result) => {
-            console.log('QUERY RESULT');
+          console.log(result);
+            controller.queryProcessor(result, driver.discover.command.queryresult, driver.discover.command.type, deviceId).then((result) => {
             console.log(result);
             if (driver.discover.command.evalwrite) {controller.evalWrite(driver.discover.command.evalwrite, result, deviceId)};
             if (!Array.isArray(result)) {
@@ -363,7 +363,7 @@ function executeDriversCreation (drivers, hubController, deviceId) { //drivers i
           },
           {
             register: (credentials) => getResgristrationCode(controller, credentials, driver, currentDeviceId),
-            isRegistered: () => {return new Promise(function (resolve, reject) {console.log("bloublou");isDeviceRegistered(controller, driver, currentDeviceId).then((res)=>{resolve(res)})})},
+            isRegistered: () => {return new Promise(function (resolve, reject) {isDeviceRegistered(controller, driver, currentDeviceId).then((res)=>{resolve(res)})})},
           })
         }
 

@@ -22,7 +22,7 @@
     "dynamicname":"DYNAMIK_INST_START DYNAMIK JSON.parse(\"$Result\").name DYNAMIK_INST_END",
     "dynamicid":"DYNAMIK_INST_START DYNAMIK JSON.parse(\"$Result\").id DYNAMIK_INST_END",
     "manufacturer":"Xiaomi",
-    "version":11,
+    "version":13,
     "type":"TV", 
     "variables":{
       "XiaomiIp":"$XiaomiIp",
