@@ -114,7 +114,7 @@ class directoryHelper {
                 tiles.push({
                     thumbnailUri: cacheList[i].image,
                     actionIdentifier: (cacheList[i].action ? cacheList[i].action + "$ListIndex=" + (i-1) : cacheList[i].action), //For support of index
-                    uiAction: 'reload',
+                    uiAction: cacheList[i].UI ? cacheList[i].UI : ''
                 })
                 if ((i+1 < cacheList.length) && (cacheList[i+1].itemtype == 'tile')) {
                   //test if the next item is also a tile to put on the right, if it is not the end of the list
@@ -122,7 +122,7 @@ class directoryHelper {
                   tiles.push({
                     thumbnailUri: cacheList[i].image,
                     actionIdentifier: cacheList[i].action,
-                    uiAction: 'reload',
+                    uiAction: cacheList[i].UI ? cacheList[i].UI : ''
                   });
                 }
                 neeoList.addListTiles(tiles);
@@ -134,7 +134,7 @@ class directoryHelper {
                   thumbnailUri: cacheList[i].image,
                   actionIdentifier: (cacheList[i].action ? cacheList[i].action + "$ListIndex=" + (i-1) : cacheList[i].action), //For support of index
                   browseIdentifier: cacheList[i].browse,
-                  uiAction: (cacheList[i].action != '' || cacheList[i].action != undefined) ? '' : 'reload',
+                  uiAction: cacheList[i].UI ? cacheList[i].UI : ((cacheList[i].action != '' || cacheList[i].action != undefined) ? '' : 'reload'),
                 });
               }
             }
@@ -146,6 +146,7 @@ class directoryHelper {
 
     this.fillTheList = function (deviceId, cacheList, allconfigs, params, indentCommand) {
         let rAction;
+        let rUI;
         let rBrowse;
         let rName;
         let rItemType;
@@ -165,6 +166,7 @@ class directoryHelper {
                 rItemType = self.controller.vault.readVariables(commandSet.itemtype, deviceId); 
                 rLabel = self.controller.vault.readVariables(commandSet.itemlabel, deviceId); 
                 rAction = self.controller.vault.readVariables(commandSet.itemaction, deviceId); 
+                rUI = self.controller.vault.readVariables(commandSet.itemUI, deviceId); 
                 rBrowse = self.controller.vault.readVariables(commandSet.itembrowse, deviceId); 
                 self.controller.queryProcessor(result, commandSet.queryresult, commandSet.type, deviceId).then ((tempResultList) => {
                   let resultList = [];
@@ -180,7 +182,7 @@ class directoryHelper {
                       'itemtype' : rItemType,
                       'label' : self.controller.assignTo(RESULT, rLabel, oneItemResult),
                       'action' : rAction ? self.controller.assignTo(RESULT, rAction, oneItemResult)+"$CommandSet="+indentCommand+"$PastQueryValue=" + ((typeof(oneItemResult) == 'string')?oneItemResult:JSON.stringify(oneItemResult)) : rAction,
-//                      'browse' : rBrowse ? self.controller.assignTo(RESULT, rBrowse, oneItemResult)+"$CommandSet="+indentCommand+"$PastQueryValue=" + ((typeof(oneItemResult) == 'string')?oneItemResult:JSON.stringify(oneItemResult)) : rBrowse
+                      'UI' : self.controller.assignTo(RESULT, rUI, oneItemResult),
                       'browse' : "$CommandSet="+indentCommand+"$PastQueryValue=" + ((typeof(oneItemResult) == 'string')?oneItemResult:JSON.stringify(oneItemResult))
                     });
                   });
