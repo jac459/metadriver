@@ -1,28 +1,33 @@
 {"name":"Naim Control", 
   "manufacturer":"NAIM",
-  "version":6,
+  "version":7,
   "type":"AUDIO", 
   "variables":{
       "NaimIp":"192.168.1.110",
       "VolumePlayedDisplay":"",
       "VolumePlayed":"50",
+      "VolumeSaved":"",
       "AlbumArt":"",
       "InputName":"",
       "MyStatus":"",
       "SwitchedOn":true,
+      "Progress":"",
+      "CurrentDuration":"",
       "ActionStatus":""
   },
   "listeners" : {
       "NaimStatus" : {"type":"http-get", "command":"http://$NaimIp:15081/nowplaying", "pooltime":"3000", "poolduration":"", "queryresult" : "$.", 
         "evalwrite" : [ 
              {"variable" : "MyStatus", "value" : "DYNAMIK JSON.parse(\"$Result\")[0].title + \" - \" + JSON.parse(\"$Result\")[0].albumName + \" by \" + JSON.parse(\"$Result\")[0].artistName"},
-             {"variable" : "AlbumArt", "value" : "DYNAMIK JSON.parse(\"$Result\")[0].artwork"}
+             {"variable" : "AlbumArt", "value" : "DYNAMIK JSON.parse(\"$Result\")[0].artwork"},
+             {"variable" : "CurrentDuration", "value" : "DYNAMIK JSON.parse(\"$Result\")[0].duration"},
+             {"variable" : "Progress", "value" : "DYNAMIK Math.round(100*JSON.parse(\"$Result\")[0].transportPosition/JSON.parse(\"$Result\")[0].duration)"}
           ]
         },
       "NaimVolume" : {"type":"http-get", "command":"http://$NaimIp:15081/levels/room", "pooltime":"3000", "poolduration":"", "queryresult" : "$.", 
       "evalwrite" : [ 
               {"variable" : "VolumePlayedDisplay", "value" : "DYNAMIK '||'.repeat(JSON.parse(\"$Result\")[0].volume) + '--'.repeat(Math.round((100-JSON.parse(\"$Result\")[0].volume)/3))"}, 
-              {"variable" : "VolumePlayed", "value" : "DYNAMIK Math.round(JSON.parse(\"$Result\")[0].volume)"},
+              {"variable" : "VolumePlayed", "value" : "DYNAMIK (JSON.parse(\"$Result\")[0].mute==1 ? 0 : Math.round(JSON.parse(\"$Result\")[0].volume))"},
               {"variable" : "SwitchedOn", "value" : "DYNAMIK (JSON.parse(\"$Result\")[0].mute==1)"}
           ]
       }
@@ -42,20 +47,23 @@
      "POWER ON": {"label":"", "type":"http-rest", "command":"{\"verb\":\"put\",\"call\":\"http://$NaimIp:15081/power?system=on\", \"message\":{}}", "evaldo":[{"test":true,"then":"INITIALISE", "or":""}]},
      "POWER OFF": {"label":"", "type":"http-rest", "command":"{\"verb\":\"put\",\"call\":\"http://$NaimIp:15081/power?system=lona\", \"message\":{}}", "evaldo":[{"test":true,"then":"CLEANUP", "or":""}]},
      "PLAY TOGGLE": {"label":"", "type":"http-get", "command":"http://$NaimIp:15081/nowplaying?cmd=playpause"},
-     "PREVIOUS": {"label":"", "type":"http-get", "command":"http://$NaimIp:15081/nowplaying?cmd=previous"},
      "NEXT": {"label":"", "type":"http-get", "command":"http://$NaimIp:15081/nowplaying?cmd=next"},
+     "PREVIOUS": {"label":"", "type":"http-get", "command":"http://$NaimIp:15081/nowplaying?cmd=prev"},
      "MUTE TOGGLE": {"label":"", "type":"static", "command":"", "evalwrite":[{"variable":"SwitchedOn","value":"DYNAMIK ($SwitchedOn)?false:true" }],  "evaldo":[{"test":"DYNAMIK ($SwitchedOn)", "then":"MUTE", "or":"UNMUTE"}]},
      "VOLUME UP": {"label":"", "type":"static", "command":"", "evalwrite":[{"variable":"VolumePlayed","value":"DYNAMIK (Number($VolumePlayed)<100)?Number($VolumePlayed)+1:100"}], "evaldo":[{"test":true, "then":"__VOLUMESET", "or":""}]},
      "VOLUME DOWN": {"label":"", "type":"static", "command":"", "evalwrite":[{"variable":"VolumePlayed","value":"DYNAMIK (Number($VolumePlayed)>0)?Number($VolumePlayed)-1:0"}], "evaldo":[{"test":true, "then":"__VOLUMESET", "or":""}]},
      "CURSOR LEFT": {"label":"", "type":"static", "command":"", "evaldo":[{"test":true,"then":"PREVIOUS", "or":""}]},
      "CURSOR RIGHT": {"label":"", "type":"static", "command":"", "evaldo":[{"test":true,"then":"NEXT", "or":""}]},
      "CURSOR ENTER": {"label":"", "type":"static", "command":"", "evaldo":[{"test":true,"then":"PLAY TOGGLE", "or":""}]},
-     "MUTE": {"label":"", "type":"http-rest", "command":"{\"verb\":\"put\",\"call\":\"http://$NaimIp:15081/levels/room?mute=1\", \"message\":{}}"},
-     "UNMUTE": {"label":"", "type":"http-rest", "command":"{\"verb\":\"put\",\"call\":\"http://$NaimIp:15081/levels/room?mute=0\", \"message\":{}}"},
-     "__VOLUMESET": {"label":"", "type":"http-rest", "command":"{\"verb\":\"put\",\"call\":\"http://$NaimIp:15081/levels/room?volume=$VolumePlayed\", \"message\":{}}"}
+     "MUTE": {"label":"", "type":"http-rest", "command":"{\"verb\":\"put\",\"call\":\"http://$NaimIp:15081/levels/room?mute=1\", \"message\":{}}",  "evalwrite":[{"variable":"VolumeSaved","value":"$VolumePlayed"},{"variable":"VolumePlayed","value":0}]},
+     "UNMUTE": {"label":"", "type":"http-rest", "command":"{\"verb\":\"put\",\"call\":\"http://$NaimIp:15081/levels/room?mute=0\", \"message\":{}}",  "evalwrite":[{"variable":"VolumePlayed","value":"$VolumeSaved"}]},
+     "__VOLUMESET": {"label":"", "type":"http-rest", "command":"{\"verb\":\"put\",\"call\":\"http://$NaimIp:15081/levels/room?volume=$VolumePlayed\", \"message\":{}}"},
+     "__PROGRESSSET": {"label":"", "type":"http-get", "command":"DYNAMIK \"http://$NaimIp:15081/nowplaying?cmd=seek&position=\" + Math.round($CurrentDuration*$Progress/100)"}
+
   },
   "sliders":{
-      "VOLUME": {"label":"", "unit" : "db", "listen" : "VolumePlayed", "evaldo":[{"test":true, "then":"__VOLUMESET", "or":""}]}
+      "VOLUME": {"label":"", "unit" : "db", "listen" : "VolumePlayed", "evaldo":[{"test":true, "then":"__VOLUMESET", "or":""}]},
+      "PROGRESS": {"label":"", "unit" : "%", "listen" : "Progress", "evaldo":[{"test":true, "then":"__PROGRESSSET", "or":""}]}
   },
   "directories":{
       "INPUT": {"label":"", "feeders": {
