@@ -375,3 +375,46 @@ Then in the DYNAMIK part, you can see that I added some fancy javascript stuff i
 One fancy thing that is done with the Volumio and is easy to do, is a label displaying something for a shortwhile before returning back to its default value.
 This is achieved by the actionListen. In listen you will put a variable showing the state of the label, on actionLIsten you will show the value of a variable, only when it changes and only for a short while.
 
+
+
+# For Ton O
+
+As discussed, I am looking to create an installer for the next meta.
+First compatibility would be raspbian/raspberryOS/debian.
+
+In order to have the meta running, we need:
+Step 1:
+Node, NPM, and GIT
+The idea would be to take note of the current version of these tools and then install specifically these ones (in case in the future meta don't support the newer versions).
+Then we would need to create a directory to store the meta:
+I propose ~/.meta/
+then npm install jac459/metadriver
+so the meta will be in: ~/.meta/node_modules/@jac459/metadriver
+
+Step 2:
+We need to propose a solution in order to update the meta. The natural thing to do would be a npm install jac459/metadriver from ~/.meta. But it would erase all the activated/deactivated folders, as well as the .config file.
+So we need either to find a better command (just npm install inside metadriver kind of do the trick but then in create a node_modules directory inside the metadriver and I non't know why.
+Another option would be to backup the files temporarly, fresh install and recopy the files... I don't have the proper solution...
+
+Step 3:
+Can be also step 2. This is for the full installation of the metadriver.
+we need in the future to install also mosquito (MQTT Broker). Because the metadriver will be using it a lot.
+
+Step 4:
+to have a menu with multiple options, like start fresh (overriding everything), update and finally, install the full meta including node-red and python3.
+
+Good luck and thank you so much.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
