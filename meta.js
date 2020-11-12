@@ -10,6 +10,8 @@ const activatedModule = path.join(__dirname,'activated');
 const BUTTONHIDE = '__';
 const DATASTOREEXTENSION = 'DataStore.json';
 const DEFAULT = 'default'; //NEEO SDK deviceId default value
+const MQTT = 'mqtt';
+
 var config = {brainip : '', brainport : ''};
 var brainDiscovered = false;
 var brainDiscovered = false;
@@ -374,8 +376,11 @@ function executeDriversCreation (drivers, hubController, deviceId) { //drivers i
         if (driver.jsontcp) {
           controller.addConnection({"name":"jsontcp", "descriptor":driver.jsontcp, "connector":""})
         }
-        if (driver.mqtt) {
-          controller.addConnection({"name":"mqtt", "descriptor":driver.mqtt, "connector":""})
+        if (settings.mqtt) {
+          console.log('creating the connection mqtt')
+          controller.addConnection({"name":"mqtt", "descriptor":settings.mqtt, "connector":""})
+
+          controller.initiateProcessor('mqtt');
         }
         if (driver.repl) {
           controller.addConnection({"name":"repl", "descriptor":driver.repl, "connector":""})
@@ -591,7 +596,6 @@ function executeDriversCreation (drivers, hubController, deviceId) { //drivers i
         )
         console.log("Device " + driver.name + " has been created.")
         driverTable.push(theDevice);  
-        console.log(theDevice);
       });
 
     })

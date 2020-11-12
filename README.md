@@ -15,12 +15,9 @@ Examples of integration:
 #### https://youtu.be/9Z_wd0l7iyM
 #### https://www.youtube.com/watch?v=LN6M7-U_0Bk&t=12s
 
-This readme applies to metadriver Version 0.8 (build 0.8.15.1) release.
+This readme applies to metadriver Version 0.8-Alpha (build 0.8.15) release for advanced users.
 
 #### Latest update
-##### 0.8.15.1
-Few minor bug corrections. 
-##### 0.8.15
 
 Full Discovery feature working on both yamaha and hue/hueGroups drivers.
 No need to enter any IP address, the meta scans the network and find the devices. 
@@ -107,8 +104,6 @@ This command will install the driver and all the dependencies. You need to have 
 Alternatively you can also type: 
 ```npm install jac459/metadriver```
 This will install the latest version of the driver in a folder named node_modules/@jac459/metadriver.
-/!\ If you end up with a GIT error, that means that you don't have GIT installed in your device, the most common way to install it is:
-```sudo apt install git-all```
 
 #### What am I installing? 
 The main dependency you are installing is obviously the ÑEEO libraries. They are automatically installed so you don't need to go to NEEO's github. 

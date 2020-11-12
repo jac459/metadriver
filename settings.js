@@ -1,5 +1,7 @@
 var settings = 
-{'drivers':
+{
+  'mqtt' : 'localhost',
+  'drivers':
   [
     {
       'name':'Brain Navigator', 
@@ -45,7 +47,7 @@ var settings =
         'Zone' : {'label':'My timezone', 'listen':'MyZone'}
       },
       "listeners" : {
-        "Time" : {"type":"http-get", "command":"http://worldtimeapi.org/api/timezone/$MyZone", "pooltime":"1000", "poolduration":"", "queryresult" : "$.", 
+        "Time" : {"type":"http-get", "command":"http://worldtimeapi.org/api/timezone/$MyZone", "pooltime":"10000", "poolduration":"", "queryresult" : "$.", 
           "evalwrite" : [ 
                {"variable" : "MyTime", "value" : "DYNAMIK \"Date : \" + JSON.parse(\"$Result\")[0].datetime.split(\"T\")[0] + \" - Time : \" + JSON.parse(\"$Result\")[0].datetime.split(\"T\")[1].split(\".\")[0]"}
             ]

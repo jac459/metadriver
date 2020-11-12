@@ -133,7 +133,6 @@ class variablesVault {
         //if (!(foundVar.value === value)) {// If the value changed.
           foundVar.value = value; //Write value here
           foundVar.observers.forEach(element => { //invoke all observers
-            console.log(element.theFunction)
             element.theFunction(deviceId, foundVar.value);
           });
         //}

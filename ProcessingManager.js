@@ -1,5 +1,6 @@
 const { exec } = require("child_process");
 const xpath = require('xpath');
+const path = require('path');
 const http = require('http.min');
 const { JSONPath } = require ('jsonpath-plus');
 const io = require('socket.io-client');
@@ -8,7 +9,14 @@ const lodash = require('lodash');
 const { parserXMLString, xmldom } = require("./metaController");
 const mqtt = require('mqtt');
 const got = require('got');
+const settings = require(path.join(__dirname,'settings'));
 const { resolveCname } = require("dns");
+const { connect } = require("socket.io-client");
+const mqttClient = mqtt.connect('mqtt://' + settings.mqtt, {clientId:"meta"}); // Always connect to the local mqtt broker
+mqttClient.on('connect', (result) => {
+  console.log("mqtt connected" + result);
+})
+
 
 //STRATEGY FOR THE COMMAND TO BE USED (HTTPGET, post, websocket, ...) New processor to be added here. This strategy mix both transport and data format (json, soap, ...)
 class ProcessingManager {
@@ -117,8 +125,8 @@ class httprestProcessor {
           }
         }
         else { resolve(params.data); }
-    });
-  }
+      });
+    }
   startListen(params, deviceId) {
     return new Promise(function (resolve, reject) {
       let previousResult = '';
@@ -568,19 +576,15 @@ exports.replProcessor = replProcessor;
 class mqttProcessor {
   initiate(connection) {
     return new Promise(function (resolve, reject) {
-      connection.connector = mqtt.connect('mqtt://' + connection.descriptor, {clientId:"NeeoBrain"}); // Always connect to the local mqtt broker
-      connection.connector.on('connect', function() {
-        console.log('MQTT connected');
-        resolve(connection);
-      })
+      connection.connector = mqttClient;
     }); 
   } 
   process (params) {
     return new Promise(function (resolve, reject) {
-      params.command = JSON.parse(params.command)
-      console.log('MQTT publishing ' + params.command.Message + ' to ' + params.command.Topic);
+      params.command = JSON.parse(params.command);
+      console.log('MQTT publishing ' + params.command.message + ' to ' + params.command.topic);
       try {
-        connection.connector.publish(params.command.Topic, params.command.Message);
+        params.connection.connector.publish(params.command.topic, params.command.message);
         resolve('');
       }
       catch (err) {
@@ -589,19 +593,31 @@ class mqttProcessor {
       }
     })
   }
-  query (data, query) {
+  query(params) {
     return new Promise(function (resolve, reject) {
-      try {
-        //let resultArray = new [];
-        resolve(data.split(query));
+      if (params.query) {
+        try {
+          if (typeof (params.data) == 'string') { params.data = JSON.parse(params.data); }
+          resolve(JSONPath(params.query, params.data));
+        }
+        catch (err) {
+          console.log('error ' + err + ' in JSONPATH ' + params.query + ' processing of :');
+          console.log(params.data);
+        }
       }
-      catch {
-        console.log('error in string.search regex :' + query + ' processing of :' + data)
-      }
-    })
+      else { resolve(params.data); }
+    });
   }
-  listen (command, listener, _listenCallback) {
-    return '';
+  startListen(params, deviceId) {
+    return new Promise(function (resolve, reject) {
+      params.connection.connector.subscribe(params.command, (result) => {console.log(result); });
+      params.connection.connector.on('message', function (topic, message) {
+        if (topic == params.command) {
+          params._listenCallback(message.toString(), params.listener, deviceId);
+        }
+      });
+      resolve('');
+    });
   }
 }
 exports.mqttProcessor = mqttProcessor;

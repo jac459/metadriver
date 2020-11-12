@@ -22,7 +22,7 @@ const REPL = 'repl';
 const WEBSOCKET = 'webSocket';
 const JSONTCP = 'jsontcp';
 const MQTT = 'mqtt';
-
+const MQTTMainTopic = 'meta';
 const WOL = 'wol';
 const { ProcessingManager, httpgetProcessor, httprestProcessor, httpgetSoapProcessor, httppostProcessor, cliProcessor, staticProcessor, webSocketProcessor, jsontcpProcessor, mqttProcessor, replProcessor } = require('./ProcessingManager');
 
@@ -196,9 +196,7 @@ module.exports = function controller(driver) {
         
         //process the value
         let finalValue = self.vault.readVariables(evalW.value, deviceId);
-        console.log(deviceId + " - evalWrite Final VALUE - " + finalValue)
         finalValue = self.assignTo(RESULT, finalValue, result);
-        console.log(deviceId + " - evalWrite Final IS - " + finalValue)
         self.vault.writeVariable(evalW.variable, finalValue, deviceId); 
       });
     }
@@ -302,7 +300,6 @@ module.exports = function controller(driver) {
   
   this.commandProcessor = function(command, commandtype, deviceId) { // process any command according to the target protocole
     return new Promise(function (resolve, reject) {
-     
       self.assignProcessor(commandtype);
       const connection = self.getConnection(commandtype);
       command = self.vault.readVariables(command, deviceId);
@@ -320,6 +317,7 @@ module.exports = function controller(driver) {
     return new Promise(function (resolve, reject) {
 
       self.assignProcessor(commandtype);
+      //TODO Replace by let
       const connection = self.getConnection(commandtype);
       
       command = self.vault.readVariables(command, deviceId);
@@ -442,9 +440,9 @@ module.exports = function controller(driver) {
     self.sensorH.forEach((helper) => {helper.initialise(deviceId);});//No need to cleanup as double addition is protected
 
     self.connectionH.forEach(connection => {//open all driver connections type
-      self.initiateProcessor(connection.name, deviceId);
+      self.initiateProcessor(connection.name);
     });
-    
+   
     self.listeners.forEach(listener => {
       if (listener.deviceId == deviceId) {//we start only the listeners of this device !!!
         self.listenStart(listener, deviceId);
@@ -472,6 +470,7 @@ module.exports = function controller(driver) {
     if (theButton != undefined) {
       theButton = theButton.value;
       if (theButton.type != WOL) { //all the cases
+        self.commandProcessor("{\"topic\":\"" + MQTTMainTopic + "/" + self.name + "\",\"message\":\"" + name + "\"}", MQTT, deviceId)
         if (theButton.command != undefined){ 
           self.actionManager(deviceId, theButton.type, theButton.command, theButton.queryresult, theButton.evaldo, theButton.evalwrite)
           .then(()=>{
@@ -482,9 +481,6 @@ module.exports = function controller(driver) {
            });
         }
       }
-
-
-
       else if (theButton.type == 'wol') {
         console.log(theButton.command);
         wol.wake(theButton.command, function(error) {

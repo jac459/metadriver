@@ -1,0 +1,25 @@
+{"name":"Chromecast", 
+    "manufacturer":"Google",
+    "version":2,
+    "mqtt":"localhost",
+    "type":"Audio", 
+    "listeners" : {
+      "ChromecastStatus" : {"type":"mqtt", "command":"test/message", "queryresult" : "", "evalwrite" : [{"variable" : "Status", "value" : "$Result"}]} 
+    },
+    "variables":{
+      "Status":""
+    },
+    "labels":{  
+      "CurrentStatus" : {"label":" ", "listen":"Status"}
+    },
+    "buttons":{
+      "INITIALISE": {"label": "", "type":"static", "command":""},
+      "CLEANUP": {"label": "", "type":"static", "command":""},
+      "POWER ON": {"label":"", "type":"static", "command":"", "evaldo":[{"test":true,"then":"INITIALISE", "or":""}]},
+      "POWER OFF": {"label":"", "type":"static", "command":"", "evaldo":[{"test":true,"then":"CLEANUP", "or":""}]},
+      "CURSOR LEFT": {"label":"", "type":"mqtt", "command":"{\"topic\":\"test/message\",\"message\":\"coucou from neeo\"}"},
+      "CURSOR RIGHT": {"label":"", "type":"mqtt", "command":"{\"topic\":\"test/message\",\"message\":\"bye bye from neeo\"}"},
+      "CURSOR UP": {"label":"", "type":"http-get", "command":"http://192.168.1.33:6095/controller?action=keyevent&keycode=up"},
+      "CURSOR DOWN": {"label":"", "type":"http-get", "command":"http://192.168.1.33:6095/controller?action=keyevent&keycode=down"}
+    }
+}
