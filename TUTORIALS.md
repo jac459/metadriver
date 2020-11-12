@@ -399,6 +399,7 @@ Another option would be to backup the files temporarly, fresh install and recopy
 Step 3:
 Can be also step 2. This is for the full installation of the metadriver.
 we need in the future to install also mosquito (MQTT Broker). Because the metadriver will be using it a lot.
+https://appcodelabs.com/introduction-to-iot-build-an-mqtt-server-using-raspberry-pi
 
 Step 4:
 to have a menu with multiple options, like start fresh (overriding everything), update and finally, install the full meta including node-red and python3.
