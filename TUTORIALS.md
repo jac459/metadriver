@@ -375,3 +375,5 @@ Then in the DYNAMIK part, you can see that I added some fancy javascript stuff i
 One fancy thing that is done with the Volumio and is easy to do, is a label displaying something for a shortwhile before returning back to its default value.
 This is achieved by the actionListen. In listen you will put a variable showing the state of the label, on actionLIsten you will show the value of a variable, only when it changes and only for a short while.
 
+
+
