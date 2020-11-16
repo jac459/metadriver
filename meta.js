@@ -109,7 +109,6 @@ function createDevices () {
 
 function discoveredDriverListBuilder(inputRawDriverList, outputPreparedDriverList, indent, controller, targetDeviceId) {
   return new Promise (function (resolve, reject) {
-
     if (indent < inputRawDriverList.length) {
       if (inputRawDriverList[indent].dynamicname && inputRawDriverList[indent].dynamicname != "") {
         if (targetDeviceId == undefined || targetDeviceId == inputRawDriverList[indent].dynamicid)
@@ -146,8 +145,8 @@ function instanciationHelper(controller, givenResult, jsonDriver) {
     recontructedDriver = recontructedDriver + tempoResult;
     recontructedDriver = recontructedDriver + slicedDriver[index].split(" DYNAMIK_INST_END")[1];
   }
- // reconstructedDriver = controller.vault.readVariables(recontructedDriver, DEFAULT);
- // console.log(recontructedDriver);
+  // reconstructedDriver = controller.vault.readVariables(recontructedDriver, DEFAULT);
+  // console.log(recontructedDriver);
   return JSON.parse(controller.vault.readVariables(recontructedDriver, DEFAULT));
 }
 
@@ -155,12 +154,10 @@ function discoveryDriverPreparator(controller, driver, deviceId, targetDeviceId)
   return new Promise(function (resolve, reject) {
                       
     if (driver.discover) {
-      let instanciationTable = []
+      let instanciationTable = [];
       controller.initiateProcessor(driver.discover.command.type).then(() => {
         controller.commandProcessor(driver.discover.command.command, driver.discover.command.type, deviceId).then((result)=>{
-          console.log(result);
             controller.queryProcessor(result, driver.discover.command.queryresult, driver.discover.command.type, deviceId).then((result) => {
-            console.log(result);
             if (driver.discover.command.evalwrite) {controller.evalWrite(driver.discover.command.evalwrite, result, deviceId)};
             if (!Array.isArray(result)) {
               let tempo = [];
@@ -183,7 +180,6 @@ function discoveryDriverPreparator(controller, driver, deviceId, targetDeviceId)
 }
 
 function getResgristrationCode(controller, credentials, driver, deviceId){
-     console.log(credentials);
     controller.vault.addVariable("RegistrationCode", credentials.securityCode, deviceId, true)
     registerDevice(controller, driver, deviceId).then((result)=>{
       if (result) {
@@ -337,7 +333,7 @@ function executeDriversCreation (drivers, hubController, deviceId) { //drivers i
               controller.vault.addVariable('DiscoveredDeviceIP', discoDev.ip, currentDeviceId); //Adding a usefull system variable giving the discovered device IP address.
             }
           })
-         }
+        }
       }
 
       if (driver.persistedvariables){
@@ -397,7 +393,7 @@ function executeDriversCreation (drivers, hubController, deviceId) { //drivers i
             },
             (targetDeviceId) => {
               return new Promise(function (resolve, reject) {
-                discoveryDriverPreparator(controller, driver, currentDeviceId, targetDeviceId).then((driverList) => {
+                 discoveryDriverPreparator(controller, driver, currentDeviceId, targetDeviceId).then((driverList) => {
                   const formatedTable = [];
                   discoveredDriverListBuilder(driverList, formatedTable, 0, controller, targetDeviceId).then((outputTable) => {
                     controller.vault.snapshotDataStore();
@@ -594,7 +590,7 @@ function executeDriversCreation (drivers, hubController, deviceId) { //drivers i
             initializeDeviceList: (deviceIds) => {debug('existing devices' + deviceIds)},
           }
         )
-        console.log("Device " + driver.name + " has been created.")
+        console.log("Device " + driver.name + " has been created.");
         driverTable.push(theDevice);  
       });
 
@@ -684,7 +680,6 @@ function runNeeo () {
 
 //MAIN
 find().then(devices => {
-  console.log (devices);
   discoveredDevices = devices;
     getConfig().then(() => {
     createDevices()

@@ -132,12 +132,14 @@
           "ACTION_Play":{"label":"", "commandset": [
             {"type":"http-get", "command":"$VolumioURI/api/v1/commands/?cmd=clearQueue"},
             {"type":"http-get", "command":"$VolumioURI/api/v1/browse?uri=$MyURI", "queryresult":"$.navigation.lists[0].items[*]"},
-            {"type":"http-post", "command":"{\"call\":\"$VolumioURI/api/v1/addToQueue\", \"message\":$Result}", "queryresult":"$.response"},
+            {"type":"http-post", "command":"{\"call\":\"$VolumioURI/api/v1/addToQueue\", \"message\":$Result}", "queryresult":"$.response", "evalwrite":[{"variable":"PlayPayLoad","value":"DYNAMIK encodeURI(JSON.parse(\"$Result\")[0].uri)"}]},
+            {"type":"mqtt", "command":"{\"topic\":\"play\",\"message\":\"$PlayPayLoad\"}"},
             {"type":"http-get", "command":"$VolumioURI/api/v1/commands/?cmd=play", "queryresult":"$.response", "evalwrite":[{"variable":"Playing","value":"Music Started"}]}
             ]},
           "ACTION_Queue":{"label":"", "commandset": [
-            {"type":"http-get", "command":"$VolumioURI/api/v1/browse?uri=$MyURI", "queryresult":"$.navigation.lists[0].items[*]"},
-            {"type":"http-post", "command":"{\"call\":\"$VolumioURI/api/v1/addToQueue\", \"message\":$Result}"}
+            {"type":"http-get", "command":"$VolumioURI/api/v1/browse?uri=$MyURI", "queryresult":"$.navigation.lists[0].items[*]", "evalwrite":[{"variable":"PlayPayLoad","value":"DYNAMIK \"{\\\"app\\\": \\\"DefaultMediaReceiver\\\", \\\"type\\\": \\\"MEDIA\\\",  \\\"media\\\": {\\\"url\\\": \" + JSON.parse(\"$Result\").uri + \\\"}}"}]},
+            {"type":"http-post", "command":"{\"call\":\"$VolumioURI/api/v1/addToQueue\", \"message\":$Result}"},
+            {"type":"mqtt", "command":"{\"topic\":\"play\",\"message\":\"$PlayPayLoad\"}"}
           ]}
         }},
       "Queue": {"label":"My playing queue", 

@@ -32,7 +32,6 @@ class labelHelper {
       return new Promise(function (resolve, reject) {
         if (self.value != theValue) {
           self.value = theValue;
-          console.log(self)
           self.controller.sendComponentUpdate({ uniqueDeviceId: deviceId, component: self.name, value: theValue })
           .catch((err) => {console.log("Label Update Error : " + deviceId + " / " + err) });
         }

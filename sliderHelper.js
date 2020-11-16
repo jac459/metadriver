@@ -1,3 +1,4 @@
+const MQTT = 'mqtt';
 
 class sliderHelper {
   constructor(deviceId, variableListened, evaldo, slidername, controller) {
@@ -14,10 +15,9 @@ class sliderHelper {
     };
     this.update = function (deviceId, theValue) {
       return new Promise(function (resolve, reject) {
-        console.log('updating slider')
         //if (self.value != theValue) {
           self.value = theValue;
-          console.log('updating slider')
+          controller.commandProcessor("{\"topic\":\"" + "/" + controller.name + "\",\"message\":\"{\\\"type\\\":\\\"slider\\\", \\\"name\\\":\\\"" + self.name + "\\\", \\\"value\\\":\\\"" + theValue + "\\\"}\"}", MQTT, deviceId)
           controller.sendComponentUpdate({ uniqueDeviceId: deviceId, component: self.name, value: Math.round(theValue)})
           .then((result) => {console.log("Update performed : new value : " + theValue + " component " + controller.name + "/"+ self.name+"/"+deviceId);console.log(result)})
           .catch((err) => {console.log("Error while trying to update the value : " + theValue+ " in this component : " + controller.name + "/" + deviceId + "/" + self.name + " => " + err); reject(err); });
@@ -27,11 +27,10 @@ class sliderHelper {
     };
     this.set = function (deviceId, theValue) {
       return new Promise(function (resolve, reject) {
-        console.log('setting slider')
         theValue = Math.round(theValue);
         if (self.value != theValue) {
           self.value = theValue;
-          console.log('setting slider')
+          controller.commandProcessor("{\"topic\":\"" + "/" + controller.name + "\",\"message\":\"{\\\"type\\\":\\\"slider\\\", \\\"name\\\":\\\"" + self.name + "\\\", \\\"value\\\":\\\"" + theValue + "\\\"}\"}", MQTT, deviceId)
           controller.sendComponentUpdate({ uniqueDeviceId: deviceId, component: self.name, value: theValue})
           .then((result) => {console.log("Set performed : new value : " + theValue + " component " + controller.name + "/"+ self.name+"/"+deviceId);console.log(result)})
           .catch((err) => {console.log("Error while trying to set the value : " + theValue+ " in this component : " + controller.name + "/" + deviceId + "/" + self.name + " => " + err);});

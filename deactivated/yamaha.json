@@ -2,7 +2,7 @@
   "manufacturer":"Yamaha",
   "type":"AVRECEIVER",
   "version":6,
-  "discovereddevice":{"mac":["68:9e:18"]},
+  "discovereddevice":{"mac":["68:9e:19"]},
   "buttons":{
     "__PREINIT": {"label":"", "type":"static", "command":"", "queryresult":"$.*", "evalwrite":[{"variable":"RegistrationCode","value":"$DiscoveredDeviceIP"}]}
   },
@@ -10,6 +10,7 @@
     "registertype": "SECURITY_CODE",
     "registerheadertext": "Yamaha Network Received",
     "registerdescription": "Please enter the IP address of your device.",
+    "preregistrationcommand":{"type":"http-get", "command":"http://$RegistrationCode/YamahaExtendedControl/v1/system/getDeviceInfo", "queryresult":"$.response_code", "evalwrite":[{"variable":"YamahaIp","value":"$RegistrationCode"}, {"variable":"IsRegistered","value":"DYNAMIK ($Result == 0) ? true : false"}]},
     "registrationcommand":{"type":"http-get", "command":"http://$RegistrationCode/YamahaExtendedControl/v1/system/getDeviceInfo", "queryresult":"$.response_code", "evalwrite":[{"variable":"YamahaIp","value":"$RegistrationCode"}, {"variable":"IsRegistered","value":"DYNAMIK ($Result == 0) ? true : false"}]}
   },
   "persistedvariables":{
@@ -23,7 +24,7 @@
     "command":{"type":"http-get", "command":"http://$YamahaIp/YamahaExtendedControl/v1/system/getDeviceInfo", "queryresult":"$."}
   },
   "template" : {
-    "name":"Smart Receiver", 
+    "name":"Network Receiver", 
     "dynamicname":"DYNAMIK_INST_START DYNAMIK \"Yamaha Network Receiver \" + JSON.parse(\"$Result\").model_name DYNAMIK_INST_END",
     "dynamicid":"DYNAMIK_INST_START DYNAMIK JSON.parse(\"$Result\").device_id DYNAMIK_INST_END",
      "manufacturer":"Yamaha",

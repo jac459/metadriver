@@ -60,42 +60,6 @@ class variablesVault {
       })
     }
 
-
-
-
-
-/*    //add a variable if not already existing
-    this.addVariable = function(name, value, deviceId, persisted) {
-      let internalVariableName = toInternalName(name, deviceId);
-      persisted = persisted || false;
-      if (self.variables.findIndex((elt) => {return elt.name == internalVariableName})<0) {//the variable is new
-        self.variables.push({'name':internalVariableName, 'value':value, 'observers': [], 'persisted':persisted});
-      }
-    }
-
-    this.addPersistedVariable = function(name, value, deviceId) {
-      return new Promise(function (resolve, reject) {
-        try {
-          self.retrieveValueFromDataStore(name, deviceId).then((dsValue) => {
-            if (dsValue != undefined) {
-              self.addVariable(name, value, deviceId, true);//in order to initialise also in memory vault.
-              resolve();
-            }
-            else {
-              self.persistInDataStore(name, deviceId, value).then (()=>{
-                self.addVariable(name, value, deviceId, true);
-                resolve();
-              })
-            }
-          })
-        }
-        catch (err) {
-          console.log('Error in persisting the variables')
-          console.log(err)
-        }
-      })
-    }
-*/
     this.addObserver = function(name, theFunction, deviceId, componentRegistering) { // who listen to variable changes.
       try {
         let internalVariableName = toInternalName(name, deviceId);
@@ -127,9 +91,7 @@ class variablesVault {
       let internalVariableName = toInternalName(name, deviceId);
       let foundVar = self.variables.find(elt => {return elt.name == internalVariableName});
       if (!foundVar) {console.log("The variable you are requesting doesn\'t seems to be properly declared.")}
-      console.log("writing vault " + deviceId + "/" + name + " : " + value);
       if (foundVar) {
-        console.log("Previous value : " + foundVar.value);
         //if (!(foundVar.value === value)) {// If the value changed.
           foundVar.value = value; //Write value here
           foundVar.observers.forEach(element => { //invoke all observers
@@ -145,7 +107,7 @@ class variablesVault {
       if (typeof(preparedResult) == 'object') {
         preparedResult = JSON.stringify(preparedResult);
       }
-      if (typeof(preparedResult) == 'string')
+      if (typeof(preparedResult) == 'string') {
         self.variables.forEach(variable => {
           if (variable.name.startsWith(deviceId+getBuiltNameSeparator())) {//we get the full name including the deviceId
             let token = variablePattern.pre + getExternalName(variable.name);//get only the name variable
@@ -153,7 +115,8 @@ class variablesVault {
               preparedResult = preparedResult.replace(token, variable.value);
             }
           }
-      })
+        })
+      }
       return preparedResult;
     }
 

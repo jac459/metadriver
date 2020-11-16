@@ -2,6 +2,7 @@ const neeoapi = require('neeo-sdk');
 const variablePattern = {'pre':'$','post':''};
 const RESULT = variablePattern.pre + 'Result' + variablePattern.post;
 const BROWSEID = variablePattern.pre + 'NavigationIdentifier' + variablePattern.post;
+const MQTT = 'mqtt';
 
 class directoryHelper {
   constructor(deviceId, dirname, controller) {
@@ -212,17 +213,20 @@ class directoryHelper {
     };
 
     this.handleCurrentAction = function (deviceId, params) {
-      console.log(params);
       return new Promise(function (resolve, reject) {
+          
         //here, the action identifier is the result.  
         let ListIndex = params.actionIdentifier.split("$ListIndex=")[1];
         params.actionIdentifier = params.actionIdentifier.split("$ListIndex=")[0];
         let PastQueryValue = params.actionIdentifier.split("$PastQueryValue=")[1];
+        //MQTT Logging
+        self.controller.commandProcessor("{\"topic\":\"" + "/" + self.controller.name + "\",\"message\":\"{\\\"type\\\":\\\"directory\\\", \\\"name\\\":\\\"" + self.name + "\\\", \\\"value\\\":\\\"" + ListIndex + "\\\"}\"}", MQTT, deviceId)
         params.actionIdentifier = params.actionIdentifier.split("$PastQueryValue=")[0];
         let commandSetIndex = params.actionIdentifier.split("$CommandSet=")[1];
         params.actionIdentifier = params.actionIdentifier.split("$CommandSet=")[0];
-        self.controller.evalWrite(self.feederH[self.currentFeederIndex].commandset[commandSetIndex].evalwrite, PastQueryValue, deviceId);
-         
+        if (self.feederH[self.currentFeederIndex].commandset[commandSetIndex]) {
+          self.controller.evalWrite(self.feederH[self.currentFeederIndex].commandset[commandSetIndex].evalwrite, PastQueryValue, deviceId);
+        }
         //finding the feeder which is actually an action feeder
         let ActionIndex = self.feederH.findIndex((feed) => {return (feed.name == params.actionIdentifier)});
         
@@ -235,6 +239,7 @@ class directoryHelper {
       return new Promise(function (resolve, reject) {
         if (indexCommand < allCommandSet.length){
           let commandSet = allCommandSet[indexCommand]; 
+          self.controller.evalWrite(commandSet.evalwrite, PastQueryValue, deviceId);
           let processedCommand = commandSet.command;
           processedCommand = self.controller.vault.readVariables(processedCommand, deviceId);
           processedCommand = self.controller.assignTo(RESULT, processedCommand, PastQueryValue);

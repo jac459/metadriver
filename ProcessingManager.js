@@ -14,7 +14,7 @@ const { resolveCname } = require("dns");
 const { connect } = require("socket.io-client");
 const mqttClient = mqtt.connect('mqtt://' + settings.mqtt, {clientId:"meta"}); // Always connect to the local mqtt broker
 mqttClient.on('connect', (result) => {
-  console.log("mqtt connected" + result);
+  console.log("mqtt connected");
 })
 
 
@@ -518,10 +518,23 @@ class cliProcessor {
     return new Promise(function (resolve, reject) {
       try {
         //let resultArray = new [];
-        resolve(params.data.split(params.query));
+        if (params.query!=undefined) {
+          if (params.query!="") {
+            let literal = params.query.slice(params.query.indexOf('/')+1, params.query.lastIndexOf('/'));
+            console.log("RegEx literal : " + literal);
+            let modifier = params.query.slice(params.query.lastIndexOf('/')+1);
+            console.log("regEx modifier : " + modifier);
+            let regularEx = new RegExp(literal, modifier);
+            resolve(params.data.toString().match(regularEx));
+          }
+          else {
+            resolve(params.data.toString())
+          }
+        }
+        else {resolve();}
       }
       catch {
-        console.log('error in string.search regex :' + params.query + ' processing of :' + params.data);
+        console.log('error in string.match regex :' + params.query + ' processing of :' + params.data);
       }
     });
   }
@@ -581,10 +594,11 @@ class mqttProcessor {
   } 
   process (params) {
     return new Promise(function (resolve, reject) {
+      console.log(params.command)
       params.command = JSON.parse(params.command);
-      console.log('MQTT publishing ' + params.command.message + ' to ' + params.command.topic);
+      console.log('MQTT publishing ' + params.command.message + ' to ' + settings.mqtt_topic + params.command.topic);
       try {
-        params.connection.connector.publish(params.command.topic, params.command.message);
+        params.connection.connector.publish(settings.mqtt_topic + params.command.topic, params.command.message);
         resolve('');
       }
       catch (err) {
@@ -610,7 +624,7 @@ class mqttProcessor {
   }
   startListen(params, deviceId) {
     return new Promise(function (resolve, reject) {
-      params.connection.connector.subscribe(params.command, (result) => {console.log(result); });
+      params.connection.connector.subscribe(params.command, (result) => {console.log("Subscription MQTT - " + result); });
       params.connection.connector.on('message', function (topic, message) {
         if (topic == params.command) {
           params._listenCallback(message.toString(), params.listener, deviceId);

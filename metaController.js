@@ -8,6 +8,7 @@ const { sensorHelper } = require(path.join(__dirname,'sensorHelper'));
 const { sliderHelper } = require(path.join(__dirname,'sliderHelper'));
 const { directoryHelper } = require(path.join(__dirname,'directoryHelper'));
 const { variablesVault } = require(path.join(__dirname,'variablesVault'));
+const settings = require(path.join(__dirname,'settings'));
 
 const wol = require('wake_on_lan');
 const variablePattern = {'pre':'$','post':''};
@@ -212,7 +213,7 @@ module.exports = function controller(driver) {
           if (evalD.then && evalD.then != '')
           {
            self.onButtonPressed(evalD.then, deviceId);
-          }
+          } 
         }
         else { 
           if (evalD.or && evalD.or != '')
@@ -470,7 +471,7 @@ module.exports = function controller(driver) {
     if (theButton != undefined) {
       theButton = theButton.value;
       if (theButton.type != WOL) { //all the cases
-        self.commandProcessor("{\"topic\":\"" + MQTTMainTopic + "/" + self.name + "\",\"message\":\"" + name + "\"}", MQTT, deviceId)
+        self.commandProcessor("{\"topic\":\"" + "/" + self.name + "\",\"message\":\"{\\\"type\\\":\\\"button\\\", \\\"name\\\":\\\"" + name + "\\\", \\\"value\\\":\\\"\\\"}\"}", MQTT, deviceId)
         if (theButton.command != undefined){ 
           self.actionManager(deviceId, theButton.type, theButton.command, theButton.queryresult, theButton.evaldo, theButton.evalwrite)
           .then(()=>{
@@ -482,7 +483,6 @@ module.exports = function controller(driver) {
         }
       }
       else if (theButton.type == 'wol') {
-        console.log(theButton.command);
         wol.wake(theButton.command, function(error) {
           if (error) {
             console.log(error);

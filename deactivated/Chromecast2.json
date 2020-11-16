@@ -1,0 +1,49 @@
+{ "name":"Chromecast2",
+  "type":"Audio",
+  "persistedvariables":{
+    "ChromecastIp":"",
+    "IsRegistered":true
+  },
+  "version":1,
+  "register":{
+    "registertype": "SECURITY_CODE",
+    "registerheadertext": "Chromecast Registration",
+    "registerdescription": "Please enter the IP address of your device",
+    "registrationcommand":{"type":"static", "command":"$RegistrationCode", "queryresult":"", "evalwrite":[{"variable":"IsRegistered","value":true}]}
+  },
+  "discover":{
+    "welcomeheadertext":"Chromecast2 Driver",
+    "welcomedescription":"powered by meta\nby JAC459",
+    "command":{"type":"CLI", "command":"catt scan", "queryresult":"\\b\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\b", "evalwrite":[{"variable":"ChromecastIp","value":"$Result"}]}
+  },
+  "template" : {
+    "name":"Chromecast2", 
+    "dynamicname":"DYNAMIK_INST_START DYNAMIK JSON.parse(\"$Result\").config.name DYNAMIK_INST_END",
+    "dynamicid":"DYNAMIK_INST_START DYNAMIK JSON.parse(\"$Result\").config.name DYNAMIK_INST_END",
+    "manufacturer":"Badaix",
+    "version":8,
+    "type":"LIGHT",     
+    "variables":{
+      "Status":"",
+      "Mute":"",
+      "VolumePlayed":""
+    },
+
+    "labels":{  
+      "CurrentStatus" : {"label":" ", "listen":"Status"}
+    },
+    "switches":{
+      "POWER" : {"label":"Mute", "listen":"Mute", "evaldo":[{"test":"DYNAMIK $Result", "then":"__UNMUTE", "or":"__MUTE"}]}
+    },
+    "sliders":{
+        "BRIGHTNESS": {"label":"Volume", "unit" : "db", "listen" : "VolumePlayed", "evaldo":[{"test":true, "then":"VOLUMECHANGE", "or":""}]}
+    },
+    "buttons":{
+        "INITIALISE": {"label": "", "type":"static", "command":""},
+        "__MUTE": {"label":"", "type":"jsontcp", "command":"{\"call\":\"Client.SetVolume\", \"message\":{\"id\": \"DYNAMIK_INST_START DYNAMIK JSON.parse(\"$Result\").id DYNAMIK_INST_END\", \"volume\": {\"muted\": true}}}", "evalwrite":[{"variable":"Mute","value":"true"}]},
+        "__UNMUTE": {"label":"", "type":"jsontcp", "command":"{\"call\":\"Client.SetVolume\", \"message\":{\"id\": \"DYNAMIK_INST_START DYNAMIK JSON.parse(\"$Result\").id DYNAMIK_INST_END\", \"volume\": {\"muted\": false}}}", "evalwrite":[{"variable":"Mute","value":"false"}]},
+        "VOLUMECHANGE": {"label":"", "type":"jsontcp", "command":"{\"call\":\"Client.SetVolume\", \"message\":{\"id\": \"DYNAMIK_INST_START DYNAMIK JSON.parse(\"$Result\").id DYNAMIK_INST_END\", \"volume\": {\"percent\": $VolumePlayed}}}"},
+        "CLEANUP": {"label": "", "type":"static", "command":""}
+    }
+  }
+}
