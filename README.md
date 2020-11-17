@@ -17,6 +17,16 @@ Examples of integration:
 
 This readme applies to metadriver Version 0.8-Alpha (build 0.8.15) release for advanced users.
 
+##### upcoming features with v1.0
+- Enhanced MQTT support (listener management), integrated mqtt broker (mosquito). All buttons, switches, sliders and lists actions send a message to meta/drivermane topic.
+ ==> todo. Meta to listen to mqtt topic to take commands from external parties.
+- node-red support through mqtt.
+- new simplified installer (written by Ton) with full support of raspberry pi.
+- capacity to have evaldo in listeners (before only evalwrite) => useful for example to send heartbeat.
+- listener support added for static command.
+- Bug corrected on listeners for discovered devices (duplicate triggered evalwrite).
+
+
 #### Latest update
 
 Full Discovery feature working on both yamaha and hue/hueGroups drivers.
