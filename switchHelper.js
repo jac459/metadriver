@@ -1,3 +1,4 @@
+const MQTT = 'mqtt';
 
 class switchHelper {
   constructor(deviceId, name, variableListened, evaldo, controller) {
@@ -17,7 +18,7 @@ class switchHelper {
       return new Promise(function (resolve, reject) {
         if (self.value != theValue) {
           self.value = theValue;
-          controller.commandProcessor("{\"topic\":\"" + "/" + controller.name + "\",\"message\":\"{\\\"type\\\":\\\"switch\\\", \\\"name\\\":\\\"" + self.name + "\\\", \\\"value\\\":\\\"" + theValue + "\\\"}\"}", MQTT, deviceId)
+          self.controller.commandProcessor("{\"topic\":\"" + self.controller.name + "/" + deviceId + "\",\"message\":\"{\\\"type\\\":\\\"switch\\\", \\\"name\\\":\\\"" + self.name + "\\\", \\\"value\\\":\\\"" + theValue + "\\\"}\"}", MQTT, deviceId)
           self.controller.sendComponentUpdate({ uniqueDeviceId: deviceId, component: self.name, value: theValue })
           .then((result) => {console.log("Updates performed : new value : " + theValue + " component " + controller.name + "/"+ self.name+"/"+deviceId);console.log(result)})
           .catch((err) => {console.log("Error while trying to put the value : " + theValue+ " in this component : " + deviceId + " / " + self.name + " => " + err); reject(err); });
@@ -30,7 +31,7 @@ class switchHelper {
       return new Promise(function (resolve, reject) {
         if (self.value != theValue) {
           self.value = theValue;
-          controller.commandProcessor("{\"topic\":\"" + "/" + controller.name + "\",\"message\":\"{\\\"type\\\":\\\"switch\\\", \\\"name\\\":\\\"" + self.name + "\\\", \\\"value\\\":\\\"" + theValue + "\\\"}\"}", MQTT, deviceId)
+          self.controller.commandProcessor("{\"topic\":\"" + self.controller.name + "/" + deviceId + "\",\"message\":\"{\\\"type\\\":\\\"switch\\\", \\\"name\\\":\\\"" + self.name + "\\\", \\\"value\\\":\\\"" + theValue + "\\\"}\"}", MQTT, deviceId)
           self.controller.sendComponentUpdate({ uniqueDeviceId: deviceId, component: self.name, value: theValue })
           .then((result) => {console.log("Set performed : new value : " + theValue + " component " + controller.name + "/"+ self.name+"/"+deviceId);console.log(result)})
           .catch((err) => {console.log("Error while trying to put the value : " + theValue+ " in this component : " + self.name + " => " + err); reject(err); });

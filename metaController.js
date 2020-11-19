@@ -23,7 +23,6 @@ const REPL = 'repl';
 const WEBSOCKET = 'webSocket';
 const JSONTCP = 'jsontcp';
 const MQTT = 'mqtt';
-const MQTTMainTopic = 'meta';
 const WOL = 'wol';
 const { ProcessingManager, httpgetProcessor, httprestProcessor, httpgetSoapProcessor, httppostProcessor, cliProcessor, staticProcessor, webSocketProcessor, jsontcpProcessor, mqttProcessor, replProcessor } = require('./ProcessingManager');
 
@@ -53,7 +52,7 @@ module.exports = function controller(driver) {
   this.sliderH = []; //slider helper to store all the getter and setter of the dynamically created sliders.
   this.directoryH = []; //directory helper to store all the browse getter and setter of the dynamically created simple directories.
   var self = this;
-   
+
   this.assignDiscoverHubController = function (theHubController) {//Assign the hub in order to send it the notifications
     self.sendComponentUpdate = theHubController.sendComponentUpdate;
     self.connectionH = theHubController.connectionH;
@@ -63,15 +62,38 @@ module.exports = function controller(driver) {
     self.vault.readVariables(params, params.deviceId);
     let listIndent = self.listeners.findIndex((listen) => {return listen.command == params.command});
     if (listIndent < 0) {//the command is new.
-      params.evalwrite.deviceId = params.deviceId;//for dynamic devices, tracking of which variables to write on.
+      if (params.evalwrite) {
+         params.evalwrite.forEach(pEw => {//for dynamic devices, tracking of which variables to write on.
+          pEw.deviceId = params.deviceId;
+        }) 
+      }
+      if (params.evaldo) {
+        params.evaldo.forEach(pEd => {//for dynamic devices, tracking of which variables to write on.
+          pEd.deviceId = params.deviceId;
+        })
+      }
       self.listeners.push(params);
     }
     else {//we forbid addition of a new duplicate command to listen and we add the evalwrite conditions instead.
-      params.evalwrite.forEach(pEw => {
+      if (params.evalwrite) {
+        params.evalwrite.forEach(pEw => {
+          let ewI = self.listeners[listIndent].evalwrite.findIndex((ew) => {console.log(ew);return ((ew.variable == pEw.variable) && (ew.deviceId == pEw.deviceId))});
+          if (ewI < 0) {//prevent duplicate evalwrite
             pEw.deviceId = params.deviceId; //for dynamic devices, tracking of which variables to write on.
             self.listeners[listIndent].evalwrite.push(pEw);
-      });
-      
+          }
+        });
+      }
+      if (params.evaldo) {
+        params.evaldo.forEach(pEd => {
+          console.log('trying to add a new listener evaldo')
+          let edI = self.listeners[listIndent].evaldo.findIndex((ed) => {return ((ed.variable == pEd.variable) && (ed.deviceId == pEd.deviceId))});
+          if (edI < 0) {//prevent duplicate evalwrite
+            pEd.deviceId = params.deviceId; //for dynamic devices, tracking of which variables to write on.
+            self.listeners[listIndent].evaldo.push(pEd);
+          }
+        });
+      }
     }
   }
 
@@ -145,14 +167,14 @@ module.exports = function controller(driver) {
   };
 
   this.dynamicallyAssignSubscription = function(deviceId) {
-    console.log('dynamicallyAssignSubscription');
+    console.log('dynamicallyAssignSubscription '+deviceId);
     //  self.registerInitiationCallback(self.discoverHubController.updateFunction);
     //self.discoverHubController.updateFunction
     
   };
 
    this.registerInitiationCallback = function(deviceId) {//technical function called at device initiation to start some listeners
-    console.log('Initialisation process.');
+    console.log('Initialisation process.' + deviceId);
     self.initialise(deviceId);
   };
  
@@ -286,7 +308,7 @@ module.exports = function controller(driver) {
     });    
   };
 
-  this.wrapUpProcessor = function(commandtype) { // close communication protocoles
+  this.wrapUpProcessor = function(commandtype, deviceId) { // close communication protocoles
     return new Promise(function (resolve, reject) {
 
       self.assignProcessor(commandtype); //to get the correct processing manager.
@@ -322,12 +344,12 @@ module.exports = function controller(driver) {
       const connection = self.getConnection(commandtype);
       
       command = self.vault.readVariables(command, deviceId);
-      const params = {'command' : command, 'listener' : listener, '_listenCallback' : self.onListenExecute, 'connection' : connection};
+      let params = {'command' : command, 'listener' : listener, '_listenCallback' : self.onListenExecute, 'connection' : connection};
       processingManager.startListen(params, deviceId)
-        .then((result) => {
-           resolve(result);
-        })
-        .catch((err) => {reject (err);});
+      .then((result) => {
+          resolve(result);
+      })
+      .catch((err) => {reject (err);});
     });    
   };
 
@@ -396,7 +418,6 @@ module.exports = function controller(driver) {
     return new Promise(function (resolve, reject) {
       try {
         if (listener.deviceId == deviceId) {
-          console.log('Meta: starting listener for device ' + deviceId + ' ' + listener.command);
           self.listenProcessor(listener.command, listener.type, listener, deviceId);
         }
         else {
@@ -434,66 +455,72 @@ module.exports = function controller(driver) {
   };
 
   this.initialise = function(deviceId) {
-    self.sliderH.forEach((helper) => {helper.initialise(deviceId);});//No need to cleanup as double addition is protected
-    self.switchH.forEach((helper) => {helper.initialise(deviceId);});//No need to cleanup as double addition is protected
-    self.imageH.forEach((helper) => {helper.initialise(deviceId);});//No need to cleanup as double addition is protected
-    self.labelH.forEach((helper) => {helper.initialise(deviceId);});//No need to cleanup as double addition is protected
-    self.sensorH.forEach((helper) => {helper.initialise(deviceId);});//No need to cleanup as double addition is protected
+    self.sliderH.forEach((helper) => {if (helper.deviceId == deviceId) {helper.initialise(deviceId);}});//No need to cleanup as double addition is protected
+    self.switchH.forEach((helper) => {if (helper.deviceId == deviceId) {helper.initialise(deviceId);}});//No need to cleanup as double addition is protected
+    self.imageH.forEach((helper) => {if (helper.deviceId == deviceId) {helper.initialise(deviceId);}});//No need to cleanup as double addition is protected
+    self.labelH.forEach((helper) => {if (helper.deviceId == deviceId) {helper.initialise(deviceId);}});//No need to cleanup as double addition is protected
+    self.sensorH.forEach((helper) => {if (helper.deviceId == deviceId) {helper.initialise(deviceId);}});//No need to cleanup as double addition is protected
 
     self.connectionH.forEach(connection => {//open all driver connections type
       self.initiateProcessor(connection.name);
     });
-   
     self.listeners.forEach(listener => {
-      if (listener.deviceId == deviceId) {//we start only the listeners of this device !!!
+        if (listener.deviceId == deviceId) {//we start only the listeners of this device !!!
         self.listenStart(listener, deviceId);
       }
     });
   };
   
   this.onButtonPressed = function(name, deviceId) {
-    console.log('[CONTROLLER]' + name + ' button pressed for device ' + deviceId);
-    if (name == 'INITIALISE') {//Device resources and connection management.
-      self.initialise(deviceId);
-    }
-
-    if (name == 'CLEANUP') {//listener management to listen to other devices. Stop listening on power off.
-      self.listeners.forEach(listener => {
-        if (listener.deviceId == deviceId) {//we stop only the listeners of this device !!!
-          self.stopListenProcessor(listener, deviceId);
-        }
-      });
-      self.connectionH.forEach(connection => {
-        self.wrapUpProcessor(connection.name);
-      });
-    }
-    let theButton = self.buttons[self.buttons.findIndex((button) => {return button.name ==  name && button.deviceId == deviceId;})];
-    if (theButton != undefined) {
-      theButton = theButton.value;
-      if (theButton.type != WOL) { //all the cases
-        self.commandProcessor("{\"topic\":\"" + "/" + self.name + "\",\"message\":\"{\\\"type\\\":\\\"button\\\", \\\"name\\\":\\\"" + name + "\\\", \\\"value\\\":\\\"\\\"}\"}", MQTT, deviceId)
-        if (theButton.command != undefined){ 
-          self.actionManager(deviceId, theButton.type, theButton.command, theButton.queryresult, theButton.evaldo, theButton.evalwrite)
-          .then(()=>{
-            console.log('Action done.');
-          })
-          .catch((err) => { 
-              console.log('Error when processing the command : ' + err);
-           });
-        }
+    return new Promise(function (resolve, reject) {
+      console.log('[CONTROLLER]' + name + ' button pressed for device ' + deviceId);
+      if (name == 'INITIALISE') {//Device resources and connection management.
+        self.initialise(deviceId);
       }
-      else if (theButton.type == 'wol') {
-        wol.wake(theButton.command, function(error) {
-          if (error) {
-            console.log(error);
-          } else {
-            console.log('Success');
-            // done sending packets
+
+      if (name == 'CLEANUP') {//listener management to listen to other devices. Stop listening on power off.
+        self.listeners.forEach(listener => {
+          if (listener.deviceId == deviceId) {//we stop only the listeners of this device !!!
+            self.stopListenProcessor(listener, deviceId);
           }
         });
-        //var magic_packet = wol.createMagicPacket(theButton.command);
+        self.connectionH.forEach(connection => {
+          self.wrapUpProcessor(connection.name);
+        });
       }
-    }
+      let theButton = self.buttons[self.buttons.findIndex((button) => {return button.name ==  name && button.deviceId == deviceId;})];
+      if (theButton != undefined) {
+        theButton = theButton.value;
+        if (theButton.type != WOL) { //all the cases
+          self.commandProcessor("{\"topic\":\"" + self.name + "/" + deviceId + "\",\"message\":\"{\\\"type\\\":\\\"button\\\", \\\"name\\\":\\\"" + name + "\\\"}\"}", MQTT, deviceId)
+          if (theButton.command != undefined){ 
+            self.actionManager(deviceId, theButton.type, theButton.command, theButton.queryresult, theButton.evaldo, theButton.evalwrite)
+            .then(()=>{
+              console.log('Action done.');
+              resolve('Action done.');
+            })
+            .catch((err) => { 
+                console.log('Error when processing the command : ' + err);
+                resolve(err);
+            });
+          }
+          else {resolve("No command in the button.")}
+        }
+        else if (theButton.type == 'wol') {
+          resolve("wol");
+          wol.wake(theButton.command, function(error) {
+            if (error) {
+              console.log(error);
+            } else {
+              console.log('Success');
+              // done sending packets
+            }
+          });
+          //var magic_packet = wol.createMagicPacket(theButton.command);
+        }
+      }
+      else {resolve("no real button pressed")}
+    })
   };
 };
 

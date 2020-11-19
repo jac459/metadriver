@@ -7,16 +7,15 @@ const io = require('socket.io-client');
 const rpc = require('json-rpc2');
 const lodash = require('lodash');
 const { parserXMLString, xmldom } = require("./metaController");
-const mqtt = require('mqtt');
+//const mqtt = require('mqtt');
 const got = require('got');
 const settings = require(path.join(__dirname,'settings'));
 const { resolveCname } = require("dns");
 const { connect } = require("socket.io-client");
-const mqttClient = mqtt.connect('mqtt://' + settings.mqtt, {clientId:"meta"}); // Always connect to the local mqtt broker
-mqttClient.on('connect', (result) => {
-  console.log("mqtt connected");
-})
-
+//const mqttClient = mqtt.connect('mqtt://' + settings.mqtt, {clientId:"meta"}); // Always connect to the local mqtt broker
+//mqttClient.on('connect', (result) => {
+//  console.log("mqtt connected");
+//})
 
 //STRATEGY FOR THE COMMAND TO BE USED (HTTPGET, post, websocket, ...) New processor to be added here. This strategy mix both transport and data format (json, soap, ...)
 class ProcessingManager {
@@ -77,7 +76,6 @@ class httprestProcessor {
         if (params.command.verb == 'post') {
           got.post(params.command.call, {json:params.command.message, responseType: 'json'})
          .then((response) => {
-        //    if (response.body[0].error) {console.log("Error in the post command : " + response.body[0].error); resolve(undefined);}
             resolve(response.body[0]);
           })
           .catch((err) => {
@@ -192,10 +190,9 @@ class httpgetProcessor {
   startListen(params, deviceId) {
     return new Promise(function (resolve, reject) {
       let previousResult = '';
-      console.log('starting listener ' + deviceId);
-      console.log(params);
       clearInterval(params.listener.timer);
       params.listener.timer = setInterval(() => {
+        if (params.command == "") {resolve("")}; //for 
         http(params.command)
           .then(function (result) {
             if (result.data != previousResult) {
@@ -344,7 +341,6 @@ class jsontcpProcessor {
   }
   startListen(params, deviceId) {
     return new Promise(function (resolve, reject) {
-      console.log('Starting to listen to the device.');
       params.socketIO.on(params.command, (result) => { params._listenCallback(result, params.listener, deviceId); });
       resolve('');
     });
@@ -491,8 +487,22 @@ class staticProcessor {
       }
     });
   }
-  listen(params) {
-    return '';
+  startListen(params, deviceId) {
+    return new Promise(function (resolve, reject) {
+      clearInterval(params.listener.timer);
+      params.listener.timer = setInterval(() => {
+        params._listenCallback(params.command, params.listener, deviceId);
+        resolve(params.command)
+      }, (params.listener.pooltime ? params.listener.pooltime : 1000));
+      if (params.listener.poolduration && (params.listener.poolduration != '')) {
+        setTimeout(() => {
+          clearInterval(params.listener.timer);
+        }, params.listener.poolduration);
+      }
+    });
+  }
+  stopListen(params) {
+    clearInterval(params.timer);
   }
 }
 exports.staticProcessor = staticProcessor;
@@ -521,9 +531,8 @@ class cliProcessor {
         if (params.query!=undefined) {
           if (params.query!="") {
             let literal = params.query.slice(params.query.indexOf('/')+1, params.query.lastIndexOf('/'));
-            console.log("RegEx literal : " + literal);
             let modifier = params.query.slice(params.query.lastIndexOf('/')+1);
-            console.log("regEx modifier : " + modifier);
+            console.log("RegEx literal : " + literal + ", regEx modifier : " + modifier);
             let regularEx = new RegExp(literal, modifier);
             resolve(params.data.toString().match(regularEx));
           }
@@ -589,7 +598,8 @@ exports.replProcessor = replProcessor;
 class mqttProcessor {
   initiate(connection) {
     return new Promise(function (resolve, reject) {
-      connection.connector = mqttClient;
+      //nothing to do, it is done globally.
+      //connection.connector = mqttClient;
     }); 
   } 
   process (params) {
@@ -627,11 +637,22 @@ class mqttProcessor {
       params.connection.connector.subscribe(params.command, (result) => {console.log("Subscription MQTT - " + result); });
       params.connection.connector.on('message', function (topic, message) {
         if (topic == params.command) {
+          console.log('message received : ' + message.toString())
           params._listenCallback(message.toString(), params.listener, deviceId);
         }
       });
       resolve('');
     });
   }
+  stopListen(params) {
+    console.log('Stop listening to the device.');
+    //    TODO stop listening
+    //    listener.io.disconnect(listener.socket);
+  };
+  wrapUp(connection) {
+    return new Promise(function (resolve, reject) {
+      resolve(connection);
+    });
+  };
 }
 exports.mqttProcessor = mqttProcessor;

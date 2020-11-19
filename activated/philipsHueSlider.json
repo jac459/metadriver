@@ -1,7 +1,7 @@
 { "name":"Hue Slider",
   "manufacturer":"Philips",
   "type":"AVRECEIVER",
-  "version":1,
+  "version":17,
   "discovereddevice":{"mac":["00:17:88", "EC:B5:FA"]},
   "buttons":{
     "__PREINIT": {"label":"", "type":"static", "command":"", "queryresult":"$.*", "evalwrite":[{"variable":"RegistrationCode","value":"$DiscoveredDeviceIP"}]}

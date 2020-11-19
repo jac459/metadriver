@@ -1,4 +1,4 @@
-const MQTT = 'mqtt';
+ const MQTT = 'mqtt';
 
 class sliderHelper {
   constructor(deviceId, variableListened, evaldo, slidername, controller) {
@@ -15,13 +15,13 @@ class sliderHelper {
     };
     this.update = function (deviceId, theValue) {
       return new Promise(function (resolve, reject) {
-        //if (self.value != theValue) {
+        if (self.value != theValue) {
           self.value = theValue;
-          controller.commandProcessor("{\"topic\":\"" + "/" + controller.name + "\",\"message\":\"{\\\"type\\\":\\\"slider\\\", \\\"name\\\":\\\"" + self.name + "\\\", \\\"value\\\":\\\"" + theValue + "\\\"}\"}", MQTT, deviceId)
+          controller.commandProcessor("{\"topic\":\"" + controller.name + "/" + deviceId + "\",\"message\":\"{\\\"type\\\":\\\"slider\\\", \\\"name\\\":\\\"" + self.name + "\\\", \\\"value\\\":\\\"" + theValue + "\\\"}\"}", MQTT, deviceId)
           controller.sendComponentUpdate({ uniqueDeviceId: deviceId, component: self.name, value: Math.round(theValue)})
           .then((result) => {console.log("Update performed : new value : " + theValue + " component " + controller.name + "/"+ self.name+"/"+deviceId);console.log(result)})
           .catch((err) => {console.log("Error while trying to update the value : " + theValue+ " in this component : " + controller.name + "/" + deviceId + "/" + self.name + " => " + err); reject(err); });
-        //}
+        }
        resolve();
       });
     };
@@ -30,7 +30,8 @@ class sliderHelper {
         theValue = Math.round(theValue);
         if (self.value != theValue) {
           self.value = theValue;
-          controller.commandProcessor("{\"topic\":\"" + "/" + controller.name + "\",\"message\":\"{\\\"type\\\":\\\"slider\\\", \\\"name\\\":\\\"" + self.name + "\\\", \\\"value\\\":\\\"" + theValue + "\\\"}\"}", MQTT, deviceId)
+          console.log(JSON.parse("{\"type\":\"slider\", \"name\":\"" + self.name + "\", \"value\":" + theValue + "}"))
+          controller.commandProcessor("{\"topic\":\"" + controller.name + "/" + deviceId + "\",\"message\":\"{\\\"type\\\":\\\"slider\\\", \\\"name\\\":\\\"" + self.name + "\\\", \\\"value\\\":\\\"" + theValue + "\\\"}\"}", MQTT, deviceId)
           controller.sendComponentUpdate({ uniqueDeviceId: deviceId, component: self.name, value: theValue})
           .then((result) => {console.log("Set performed : new value : " + theValue + " component " + controller.name + "/"+ self.name+"/"+deviceId);console.log(result)})
           .catch((err) => {console.log("Error while trying to set the value : " + theValue+ " in this component : " + controller.name + "/" + deviceId + "/" + self.name + " => " + err);});

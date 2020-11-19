@@ -67,7 +67,7 @@ class variablesVault {
           let observersList = self.variables.find(elt => {return elt.name == internalVariableName}).observers; 
           if (observersList.findIndex(func => {return (func.observer == componentRegistering)}) < 0) {//to avoid adding multiple times an oberver
             observersList.push({"observer":componentRegistering, "theFunction": theFunction});
-           }
+          }
         }
       }
       catch (err) {
