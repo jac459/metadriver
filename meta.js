@@ -694,31 +694,30 @@ function enableMQTT (cont, deviceId) {
   });
   console.log(deviceState.getAllDevices());
 */
-  mqttClient.subscribe(settings.mqtt_topic + cont.name + "/" + deviceId + "/command", () => {});
+  mqttClient.subscribe(settings.mqtt_topic + cont.name + "/command", () => {});
   mqttClient.on('message', function (topic, message) {
-    if (topic == (settings.mqtt_topic + cont.name + "/" + deviceId + "/command")) {
-      console.log('Command message received : ' + message.toString());
       try {
         message = JSON.parse(message);
-        console.log(message);
-        if (message.type == "button") {
-          cont.onButtonPressed(message.name, deviceId);
-        }
-        else if (message.type == "slider") {
-          let sliI = cont.sliderH.findIndex((sli)=>{return sli.name == message.name});
-          if (sliI>=0){
-            cont.sliderH[sliI].set(deviceId, message.value)
+        if (message.deviceId == deviceId) {
+          console.log(message);
+          if (message.type == "button") {
+            cont.onButtonPressed(message.name, deviceId);
           }
-        }
-        else if (message.type == "switch") {
-          let swiI = cont.switchH.findIndex((swi)=>{return swi.name == message.name});
-          if (swiI>=0){
-            cont.sliderH[swiI].set(deviceId, message.value)
+          else if (message.type == "slider") {
+            let sliI = cont.sliderH.findIndex((sli)=>{return sli.name == message.name});
+            if (sliI>=0){
+              cont.sliderH[sliI].set(deviceId, message.value)
+            }
+          }
+          else if (message.type == "switch") {
+            let swiI = cont.switchH.findIndex((swi)=>{return swi.name == message.name});
+            if (swiI>=0){
+              cont.sliderH[swiI].set(deviceId, message.value)
+            }
           }
         }
       }
       catch (err) {console.log('Error while parsing incomming message on: '+settings.mqtt_topic + cont.name + "/command");console.log(err)}
-    }
   });
 }
 

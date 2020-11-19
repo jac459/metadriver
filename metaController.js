@@ -492,7 +492,7 @@ module.exports = function controller(driver) {
       if (theButton != undefined) {
         theButton = theButton.value;
         if (theButton.type != WOL) { //all the cases
-          self.commandProcessor("{\"topic\":\"" + self.name + "/" + deviceId + "\",\"message\":\"{\\\"type\\\":\\\"button\\\", \\\"name\\\":\\\"" + name + "\\\"}\"}", MQTT, deviceId)
+          self.commandProcessor("{\"topic\":\"" + self.name + "\",\"message\":\"{\\\"type\\\":\\\"button\\\", \\\"deviceId\\\":\\\"" + deviceId + "\\\", \\\"name\\\":\\\"" + name + "\\\"}\"}", MQTT, deviceId)
           if (theButton.command != undefined){ 
             self.actionManager(deviceId, theButton.type, theButton.command, theButton.queryresult, theButton.evaldo, theButton.evalwrite)
             .then(()=>{
