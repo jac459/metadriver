@@ -12,6 +12,7 @@ const settings = require(path.join(__dirname,'settings'));
 
 const wol = require('wake_on_lan');
 const variablePattern = {'pre':'$','post':''};
+const BUTTONHIDE = '__';
 const RESULT = variablePattern.pre + 'Result' + variablePattern.post;
 const HTTPGET = 'http-get';
 const HTTPREST = 'http-rest';
@@ -492,7 +493,9 @@ module.exports = function controller(driver) {
       if (theButton != undefined) {
         theButton = theButton.value;
         if (theButton.type != WOL) { //all the cases
-          self.commandProcessor("{\"topic\":\"" + self.name + "\",\"message\":\"{\\\"type\\\":\\\"button\\\", \\\"deviceId\\\":\\\"" + deviceId + "\\\", \\\"name\\\":\\\"" + name + "\\\"}\"}", MQTT, deviceId)
+          if (!name.startsWith(BUTTONHIDE)) {
+            self.commandProcessor("{\"topic\":\"" + self.name + "/" + deviceId + "/button/" + name + "\",\"message\":\"PRESSED\"}", MQTT, deviceId)
+          }
           if (theButton.command != undefined){ 
             self.actionManager(deviceId, theButton.type, theButton.command, theButton.queryresult, theButton.evaldo, theButton.evalwrite)
             .then(()=>{

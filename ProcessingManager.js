@@ -606,13 +606,13 @@ class mqttProcessor {
     return new Promise(function (resolve, reject) {
       console.log(params.command)
       params.command = JSON.parse(params.command);
-      console.log('MQTT publishing ' + params.command.message + ' to ' + settings.mqtt_topic + params.command.topic);
+      console.log('MQTT publishing ' + params.command.message + ' to ' + settings.mqtt_topic + params.command.topic + ' with options : ' + params.command.options);
       try {
-        params.connection.connector.publish(settings.mqtt_topic + params.command.topic, params.command.message);
+        params.connection.connector.publish(settings.mqtt_topic + params.command.topic, params.command.message, (params.command.options ? JSON.parse(params.command.options) : ""));
         resolve('');
       }
       catch (err) {
-        console.log('MQTT not connected!');
+        console.log('Meta found an error processing the MQTT command');
         console.log(err);
       }
     })

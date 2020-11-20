@@ -220,8 +220,8 @@ class directoryHelper {
         params.actionIdentifier = params.actionIdentifier.split("$ListIndex=")[0];
         let PastQueryValue = params.actionIdentifier.split("$PastQueryValue=")[1];
         //MQTT Logging
-        self.controller.commandProcessor("{\"topic\":\"" + self.controller.name + "\",\"message\":\"{\\\"type\\\":\\\"directory\\\", \\\"name\\\":\\\"" + self.name + "\\\", \\\"deviceId\\\":\\\"" + deviceId + "\\\", \\\"value\\\":\\\"" + ListIndex + "\\\"}\"}", MQTT, deviceId)
-       
+        self.controller.commandProcessor("{\"topic\":\"" + self.controller.name + "/" + deviceId + "/directory/" + self.name + "\",\"message\":\"" + ListIndex + "\", \"options\":\"\\\"retain\\\":\\\"true\\\"\"}", MQTT, deviceId)
+
         params.actionIdentifier = params.actionIdentifier.split("$PastQueryValue=")[0];
         let commandSetIndex = params.actionIdentifier.split("$CommandSet=")[1];
         params.actionIdentifier = params.actionIdentifier.split("$CommandSet=")[0];

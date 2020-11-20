@@ -125,7 +125,6 @@ function discoveredDriverListBuilder(inputRawDriverList, outputPreparedDriverLis
         //console.log("On a table of " + inputRawDriverList.length + " discovered devices observation:" + inputRawDriverList[indent].dynamicid + " and target is : " + targetDeviceId)
         //if (targetDeviceId == inputRawDriverList[indent].dynamicid)
         {
-          console.log("WE cREATE tHIS oNE : " + targetDeviceId)
           executeDriverCreation(inputRawDriverList[indent], controller, inputRawDriverList[indent].dynamicid).then((builtdevice) => {
             builtdevice.addCapability("dynamicDevice");
             const discoveredDevice = {
@@ -406,10 +405,8 @@ function executeDriverCreation (driver, hubController, deviceId) {
             },
             (targetDeviceId) => {
               return new Promise(function (resolve, reject) {
-                console.log('DISCOVERY INITIAL CALL IS HERRRRRRE FOR DEVICE '+ targetDeviceId)
                   discoveryDriverPreparator(controller, driver, currentDeviceId, targetDeviceId).then((driverList) => {
                   const formatedTable = [];
-                  console.log("CREATION OF A TABLE OF " + driverList.length + " devices.")
                   discoveredDriverListBuilder(driverList, formatedTable, 0, controller, targetDeviceId).then((outputTable) => {
                     controller.vault.snapshotDataStore();
                     resolve(outputTable); 
@@ -694,28 +691,29 @@ function enableMQTT (cont, deviceId) {
   });
   console.log(deviceState.getAllDevices());
 */
-  mqttClient.subscribe(settings.mqtt_topic + cont.name + "/command", () => {});
-  mqttClient.on('message', function (topic, message) {
+  mqttClient.subscribe(settings.mqtt_topic + cont.name + "/#", () => {});
+  mqttClient.on('message', function (topic, value) {
       try {
-        message = JSON.parse(message);
-        if (message.deviceId == deviceId) {
-          console.log(message);
-          if (message.type == "button") {
-            cont.onButtonPressed(message.name, deviceId);
+        let theTopic = topic.split("/");
+        if (theTopic.length == 6 && theTopic[5] == "set") {
+
+          if (theTopic[3] == "button") {
+            cont.onButtonPressed(theTopic[4], theTopic[2]);
           }
-          else if (message.type == "slider") {
-            let sliI = cont.sliderH.findIndex((sli)=>{return sli.name == message.name});
+          else if (theTopic[3] == "slider") {
+            let sliI = cont.sliderH.findIndex((sli)=>{return sli.name == theTopic[4]});
             if (sliI>=0){
-              cont.sliderH[sliI].set(deviceId, message.value)
-            }
+              cont.sliderH[sliI].set(theTopic[2], value)
+            }   
           }
-          else if (message.type == "switch") {
-            let swiI = cont.switchH.findIndex((swi)=>{return swi.name == message.name});
-            if (swiI>=0){
-              cont.sliderH[swiI].set(deviceId, message.value)
-            }
+          else if (theTopic[3] == "switch") {
+            let sliI = cont.switchH.findIndex((sli)=>{return sli.name == theTopic[4]});
+            if (sliI>=0){
+              cont.switchH[sliI].set(theTopic[2], value)
+            }   
           }
-        }
+
+         }
       }
       catch (err) {console.log('Error while parsing incomming message on: '+settings.mqtt_topic + cont.name + "/command");console.log(err)}
   });
