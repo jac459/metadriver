@@ -10,6 +10,7 @@
     "registertype": "SECURITY_CODE",
     "registerheadertext": "Yamaha Network Received",
     "registerdescription": "Please enter the IP address of your device.",
+    "preregistrationcommand":{"type":"http-get", "command":"http://$RegistrationCode/YamahaExtendedControl/v1/system/getDeviceInfo", "queryresult":"$.response_code", "evalwrite":[{"variable":"YamahaIp","value":"$RegistrationCode"}, {"variable":"IsRegistered","value":"DYNAMIK ($Result == 0) ? true : false"}]},
     "registrationcommand":{"type":"http-get", "command":"http://$RegistrationCode/YamahaExtendedControl/v1/system/getDeviceInfo", "queryresult":"$.response_code", "evalwrite":[{"variable":"YamahaIp","value":"$RegistrationCode"}, {"variable":"IsRegistered","value":"DYNAMIK ($Result == 0) ? true : false"}]}
   },
   "persistedvariables":{

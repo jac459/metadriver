@@ -135,7 +135,13 @@ function discoveredDriverListBuilder(inputRawDriverList, outputPreparedDriverLis
             }
             outputPreparedDriverList.push(discoveredDevice);
             driverTable.push(builtdevice);
-            resolve(outputPreparedDriverList);
+            if (targetDeviceId == undefined) {//initial creation of the driver, need the full list to be returned
+              resolve(discoveredDriverListBuilder(inputRawDriverList, outputPreparedDriverList, indent+1, controller, targetDeviceId));
+            }
+            else {//on the spot creation of a specific driver, we leave after creation.
+              resolve(outputPreparedDriverList);
+            }
+
           })
           
         }//all these else to ensure proper timely construction and not a resolve before end of creation.
@@ -157,7 +163,10 @@ function instanciationHelper(controller, givenResult, jsonDriver) {
   let recontructedDriver = slicedDriver[0];
   for (let index = 1; index < slicedDriver.length; index++) {
     //TODO Correct ugly hack suppressing the escape of quote..
-    let tempoResult = controller.assignTo("$Result", slicedDriver[index].split(" DYNAMIK_INST_END")[0].replace(/\\/g, ""), givenResult);
+    let tempoResult = slicedDriver[index].split(" DYNAMIK_INST_END")[0].replace(/\\/g, "");
+    //let tempoResult = slicedDriver[index].split(" DYNAMIK_INST_END")[0];
+    tempoResult = controller.vault.readVariables(tempoResult, DEFAULT);
+    tempoResult = controller.assignTo("$Result", tempoResult, givenResult);
     recontructedDriver = recontructedDriver + tempoResult;
     recontructedDriver = recontructedDriver + slicedDriver[index].split(" DYNAMIK_INST_END")[1];
   }
@@ -195,7 +204,8 @@ function discoveryDriverPreparator(controller, driver, deviceId, targetDeviceId)
   })
 }
 
-function getResgristrationCode(controller, credentials, driver, deviceId){
+function getRegistrationCode(controller, credentials, driver, deviceId){
+  return new Promise(function (resolve, reject) {
     controller.vault.addVariable("RegistrationCode", credentials.securityCode, deviceId, true)
     registerDevice(controller, driver, deviceId).then((result)=>{
       if (result) {
@@ -205,7 +215,8 @@ function getResgristrationCode(controller, credentials, driver, deviceId){
         resolve(false)
       }
     })
-  }
+  })
+}
 
 function registerDevice(controller, driver, deviceId) {
   return new Promise(function (resolve, reject) {
@@ -223,7 +234,7 @@ function registerDevice(controller, driver, deviceId) {
       }
       else {
         console.log('registration failure')
-        reject(new Error("Meta Registration Process failed."))
+        resolve(false);
       }
     })
   })
@@ -236,7 +247,7 @@ function isDeviceRegistered(controller, driver, deviceId) {
     if (retValue) {resolve(retValue);}
     else {
       registerDevice(controller, driver, deviceId).then((result)=>{
-        console.log('the result is '+result)
+        console.log('the result of the registration process is '+result)
         if (result) {
           resolve(true);
         }
@@ -388,7 +399,7 @@ function executeDriverCreation (driver, hubController, deviceId) {
             description: driver.register.registerdescription,
           },
           {
-            register: (credentials) => getResgristrationCode(controller, credentials, driver, currentDeviceId),
+            register: (credentials) => getRegistrationCode(controller, credentials, driver, currentDeviceId),
             isRegistered: () => {return new Promise(function (resolve, reject) {isDeviceRegistered(controller, driver, currentDeviceId).then((res)=>{resolve(res)})})},
           })
         }
@@ -604,10 +615,9 @@ function executeDriverCreation (driver, hubController, deviceId) {
             }
           )
           console.log("Device " + driver.name + " has been created.");
+          enableMQTT(controller, currentDeviceId);
+          resolve(theDevice);
         });
-        //deviceState.addDevice(currentDeviceId, theDevice);
-        enableMQTT(controller, currentDeviceId);
-        resolve(theDevice);
       })
   })
 }

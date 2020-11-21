@@ -214,13 +214,16 @@ module.exports = function controller(driver) {
 
   
   this.evalWrite = function (evalwrite, result, deviceId) {
+    console.log(evalwrite)
     if (evalwrite) { //case we want to write inside a variable
       evalwrite.forEach(evalW => {
         if (evalW.deviceId) {deviceId = evalW.deviceId} //this is specific for listeners and discovery, when one command should be refreshing data of multiple devices (example hue bulbs)
         
         //process the value
         let finalValue = self.vault.readVariables(evalW.value, deviceId);
+        console.log(finalValue)
         finalValue = self.assignTo(RESULT, finalValue, result);
+        console.log(finalValue)
         self.vault.writeVariable(evalW.variable, finalValue, deviceId); 
       });
     }
