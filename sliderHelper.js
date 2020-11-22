@@ -17,7 +17,7 @@ class sliderHelper {
       return new Promise(function (resolve, reject) {
         if (self.value != theValue) {
           self.value = theValue;
-          controller.commandProcessor("{\"topic\":\"" + controller.name + "/" + deviceId + "/slider/" + self.name + "\",\"message\":\"" + theValue + "\", \"options\":\"{\\\"retain\\\":true}\"}", MQTT, deviceId)
+          controller.commandProcessor("{\"topic\":\"" + controller.name + "/" + deviceId + "/slider/" + self.name + "\",\"message\":\"" + Number(theValue) + "\", \"options\":\"{\\\"retain\\\":true}\"}", MQTT, deviceId)
           controller.sendComponentUpdate({ uniqueDeviceId: deviceId, component: self.name, value: Math.round(theValue)})
           .then((result) => {console.log("Update performed : new value : " + theValue + " component " + controller.name + "/"+ self.name+"/"+deviceId);console.log(result)})
           .catch((err) => {console.log("Error while trying to update the value : " + theValue+ " in this component : " + controller.name + "/" + deviceId + "/" + self.name + " => " + err); reject(err); });
@@ -30,7 +30,7 @@ class sliderHelper {
         theValue = Math.round(theValue);
         if (self.value != theValue) {
           self.value = theValue;
-          controller.commandProcessor("{\"topic\":\"" + controller.name + "/" + deviceId + "/slider/" + self.name + "\",\"message\":\"" + theValue + "\", \"options\":\"{\\\"retain\\\":true}\"}", MQTT, deviceId)
+          controller.commandProcessor("{\"topic\":\"" + controller.name + "/" + deviceId + "/slider/" + self.name + "\",\"message\":\"" + Number(theValue) + "\", \"options\":\"{\\\"retain\\\":true}\"}", MQTT, deviceId)
           controller.sendComponentUpdate({ uniqueDeviceId: deviceId, component: self.name, value: theValue})
           .then((result) => {console.log("Set performed : new value : " + theValue + " component " + controller.name + "/"+ self.name+"/"+deviceId);console.log(result)})
           .catch((err) => {console.log("Error while trying to set the value : " + theValue+ " in this component : " + controller.name + "/" + deviceId + "/" + self.name + " => " + err);});
