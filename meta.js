@@ -645,6 +645,14 @@ function discoverBrain() {
 function setupNeeo() {
   return new Promise(function (resolve, reject) {
     console.log(config)
+    if (process.env.BRAINIP)  { 
+      config.brainip = process.env.BRAINIP;
+      if (process.env.BRAINPORT)
+         config.brainport = process.env.BRAINPORT;
+      console.log("Using brain-IP fromm environment variable:", config);
+      runNeeo();
+      }
+   else
     if (config.brainip == ''){
       discoverBrain().then(() => {
         runNeeo();
