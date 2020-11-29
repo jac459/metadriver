@@ -1,0 +1,60 @@
+{"name":"Yamaha Receiver", 
+    "manufacturer":"Yamaha",
+    "version":10,
+    "type":"AVRECEIVER", 
+    "variables":{
+        "MyStatus":"",
+        "IsMuted":true,
+        "VolumePlayed":50,
+        "InputName":"",
+        "DSPName":"",
+        "InputLabel":"",
+        "InputImage":""
+    },
+    "labels":{
+        "CurrentStatus" : {"label":"status", "listen":"MyStatus"}
+    },
+    "switches":{
+        "MuteSwitch" : {"label":"", "listen":"IsMuted", "evaldo":[{"test":"DYNAMIK $Result", "then":"__MUTEON", "or":"__MUTEOFF"}]}
+    },
+    "listeners":{
+        "YamahaStatus" : {"type":"http-get", "command":"http://192.168.1.24/YamahaExtendedControl/v1/main/getStatus", "pooltime":"1000", "poolduration":"5000", "queryresult" : "$.data", 
+          "evalwrite" : [ 
+           {"variable" : "VolumePlayed","value" : "DYNAMIK Math.round(Number(JSON.parse(\"$Result\").volume)*100/161)"}
+        ]}
+    },
+    "buttons":{
+        "POWER ON": {"label":"", "type":"http-get", "command":"http://192.168.1.24/YamahaExtendedControl/v1/main/setPower?power=on", "queryresult":"$.response_code", "evalwrite":[{"variable":"MyStatus","value":"DYNAMIK ($Result==0)?\"Receiver On\":\"command Failed\""}]},
+        "POWER OFF": {"label":"", "type":"http-get", "command":"http://192.168.1.24/YamahaExtendedControl/v1/main/setPower?power=standby", "queryresult":"$.response_code", "evalwrite":[{"variable":"MyStatus","value":"DYNAMIK ($Result==0)?\"Receiver On\":\"Command Failed\""}]},
+        "VOLUME UP": {"label":"", "type":"static", "command":"", "evalwrite":[{"variable":"VolumePlayed","value":"DYNAMIK (Number($VolumePlayed)<95)?Number($VolumePlayed)+5:100"}]},
+        "VOLUME DOWN": {"label":"", "type":"static", "command":"", "evalwrite":[{"variable":"VolumePlayed","value":"DYNAMIK (Number($VolumePlayed)>5)?Number($VolumePlayed)-5:0"}]},
+        "MUTE TOGGLE": {"label":"", "type":"static", "command":"", "evalwrite":[{"variable":"IsMuted","value":"DYNAMIK ($IsMuted==false)?true:false" }]},
+        "__MUTEON": {"label":"", "type":"http-get", "command":"http://192.168.1.24/YamahaExtendedControl/v1/main/setMute?enable=true", "queryresult":"$.response_code", "evalwrite":[{"variable":"MyStatus","value":"DYNAMIK ($Result==0)?\"Receiver muted\":\"Command failed\""}]},
+        "__MUTEOFF": {"label":"", "type":"http-get", "command":"http://192.168.1.24/YamahaExtendedControl/v1/main/setMute?enable=false", "queryresult":"$.response_code", "evalwrite":[{"variable":"MyStatus","value":"DYNAMIK ($Result==0)?\"Receiver unmuted\":\"Command failed\""}]},
+        "INPUT HDMI 1": {"label":"", "type":"http-get", "command":"http://192.168.1.24/YamahaExtendedControl/v1/main/setInput?input=hdmi1", "queryresult":"$.response_code", "evalwrite":[{"variable":"MyStatus","value":"DYNAMIK ($Result==0)?\"HDMI 1 set\":\"Command Failed\""}]},
+        "INPUT HDMI 2": {"label":"", "type":"http-get", "command":"http://192.168.1.24/YamahaExtendedControl/v1/main/setInput?input=hdmi2", "queryresult":"$.response_code", "evalwrite":[{"variable":"MyStatus","value":"DYNAMIK ($Result==0)?\"HDMI 2 set\":\"Command Failed\""}]},
+        "INPUT HDMI 3": {"label":"", "type":"http-get", "command":"http://192.168.1.24/YamahaExtendedControl/v1/main/setInput?input=hdmi3", "queryresult":"$.response_code", "evalwrite":[{"variable":"MyStatus","value":"DYNAMIK ($Result==0)?\"HDMI 3 set\":\"Command Failed\""}]},
+        "INPUT HDMI 4": {"label":"", "type":"http-get", "command":"http://192.168.1.24/YamahaExtendedControl/v1/main/setInput?input=hdmi4", "queryresult":"$.response_code", "evalwrite":[{"variable":"MyStatus","value":"DYNAMIK ($Result==0)?\"HDMI 4 set\":\"Command Failed\""}]},
+        "INPUT HDMI 5": {"label":"", "type":"http-get", "command":"http://192.168.1.24/YamahaExtendedControl/v1/main/setInput?input=hdmi5", "queryresult":"$.response_code", "evalwrite":[{"variable":"MyStatus","value":"DYNAMIK ($Result==0)?\"HDMI 5 set\":\"Command Failed\""}]},
+        "INPUT HDMI 6": {"label":"", "type":"http-get", "command":"http://192.168.1.24/YamahaExtendedControl/v1/main/setInput?input=hdmi6", "queryresult":"$.response_code", "evalwrite":[{"variable":"MyStatus","value":"DYNAMIK ($Result==0)?\"HDMI 6 set\":\"Command Failed\""}]},
+        "INPUT AV1": {"label":"", "type":"http-get", "command":"http://192.168.1.24/YamahaExtendedControl/v1/main/setInput?input=av1", "queryresult":"$.response_code", "evalwrite":[{"variable":"MyStatus","value":"DYNAMIK ($Result==0)?\"AV 1 set\":\"Command Failed\""}]},
+        "INPUT AV2": {"label":"", "type":"http-get", "command":"http://192.168.1.24/YamahaExtendedControl/v1/main/setInput?input=av2", "queryresult":"$.response_code", "evalwrite":[{"variable":"MyStatus","value":"DYNAMIK ($Result==0)?\"AV 2 set\":\"Command Failed\""}]},
+        "INPUT AV3": {"label":"", "type":"http-get", "command":"http://192.168.1.24/YamahaExtendedControl/v1/main/setInput?input=av3", "queryresult":"$.response_code", "evalwrite":[{"variable":"MyStatus","value":"DYNAMIK ($Result==0)?\"AV 3 set\":\"Command Failed\""}]},
+        "__VOLUMESET": {"label":"", "type":"http-get", "command":"DYNAMIK \"http://192.168.1.24/YamahaExtendedControl/v2/main/setVolume?volume=\" + (Math.round(0 + (161 - 0) * Number($VolumePlayed) / 100).toString())"}
+    },
+    "sliders":{
+        "VOLUME": {"label":"", "unit" : "db", "listen" : "VolumePlayed", "evaldo":[{"test":true, "then":"__VOLUMESET", "or":""}]}
+    },
+    "directories":{
+        "INPUT": {"label":"", "feeders": {
+                "Inputs":{"label":"", "commandset": [{"type":"http-get", "command":"http://192.168.1.24/YamahaExtendedControl/v2/system/getFeatures", "queryresult":"$.system.input_list[*]", "itemname":"DYNAMIK JSON.parse(\"$Result\").id", "itemlabel":"Yamaha input", "itemaction":"InputSet", "itemimage":"DYNAMIK \"https://raw.githubusercontent.com/jac459/metadriver/master/AVReceiver/Input/ThemeStandard/input_\" + JSON.parse(\"$Result\").id + \".jpg\"", "evalwrite":[{"variable":"InputName","value":"DYNAMIK JSON.parse(\"$Result\").id"}]}]},
+                "InputSet":{"label":"", "commandset": [{"type":"http-get", "command":"http://192.168.1.24/YamahaExtendedControl/v1/main/setInput?input=$InputName"}]}
+                  }
+         },
+        "DSP": {"label":"", "feeders": {
+          "DSP": {"label":"", "commandset": [{"type":"http-get", "command":"http://192.168.1.24/YamahaExtendedControl/v1/main/getSoundProgramList", "queryresult":"$.sound_program_list[*]", "itemname":"$Result", "itemlabel":"Yamaha DSP", "itemaction":"DSPSet", "itemimage":"https://raw.githubusercontent.com/jac459/metadriver/master/AVReceiver/DSP/ThemeStandard/$Result_sce.jpg", "evalwrite":[{"variable":"DSPName","value":"$Result"}]}]},
+          "DSPSet": {"label":"", "commandset": [{"type":"http-get", "command":"http://192.168.1.24/YamahaExtendedControl/v1/main/setSoundProgram?program=$DSPName"}]}
+         }
+        } 
+    }
+}

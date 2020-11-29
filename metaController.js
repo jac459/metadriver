@@ -478,12 +478,13 @@ module.exports = function controller(driver) {
   this.onButtonPressed = function(name, deviceId) {
     return new Promise(function (resolve, reject) {
       console.log('[CONTROLLER]' + name + ' button pressed for device ' + deviceId);
-      if (name == 'INITIALISE') {//Device resources and connection management.
+      if (name == '__INITIALISE') {//Device resources and connection management.
         self.initialise(deviceId);
       }
 
-      if (name == 'CLEANUP') {//listener management to listen to other devices. Stop listening on power off.
+      if (name == '__CLEANUP') {//listener management to listen to other devices. Stop listening on power off.
         self.listeners.forEach(listener => {
+          console.log('trying to stop to listen')
           if (listener.deviceId == deviceId) {//we stop only the listeners of this device !!!
             self.stopListenProcessor(listener, deviceId);
           }
@@ -491,6 +492,9 @@ module.exports = function controller(driver) {
         self.connectionH.forEach(connection => {
           self.wrapUpProcessor(connection.name);
         });
+      }
+      if (name == '__PERSIST') {//Device resources and connection management.
+        self.vault.snapshotDataStore();
       }
       let theButton = self.buttons[self.buttons.findIndex((button) => {return button.name ==  name && button.deviceId == deviceId;})];
       if (theButton != undefined) {

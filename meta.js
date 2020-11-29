@@ -347,7 +347,7 @@ function executeDriverCreation (driver, hubController, deviceId) {
       }
       controller.vault.addVariable('NeeoBrainIP', config.brainip, currentDeviceId); //Adding a usefull system variable giving the brain IP address.
 
-      //adding discovered device variable in the vault
+      //adding mac discovered device variable in the vault
       if (driver.discovereddevice){
         if (driver.discovereddevice.mac) {
           driver.discovereddevice.mac.forEach(macAddress => {
@@ -611,7 +611,7 @@ function executeDriverCreation (driver, hubController, deviceId) {
             {
               deviceAdded: (deviceId) => {console.log('device added :' + deviceId);controller.dynamicallyAssignSubscription(deviceId)},
               deviceRemoved: (deviceId) => {console.log('device removed: ' + deviceId);},
-              initializeDeviceList: (deviceIds) => {debug('existing devices' + deviceIds)},
+              initializeDeviceList: (deviceIds) => {console.log("INITIALIZED DEVICES:" + deviceIds)},
             }
           )
           console.log("Device " + driver.name + " has been created.");
@@ -677,8 +677,12 @@ function runNeeo () {
     console.log(__dirname);
     console.log('Trying to start the Meta')
     theBrain = {"name":"neeo","iparray":config.brainip}
+    neeoapi.getRecipesPowerState(neeoSettings.brain)
+    .then((poweredOnKeys) => {
+      console.log('- Power state fetched, powered on recipes:', poweredOnKeys);
+  })
     neeoapi.startServer(neeoSettings)
-      .then(() => {
+      .then((result) => {
         console.log('Driver running, you can search it on the remote control.');
         if (brainDiscovered) {
             fs.writeFile(__dirname + '/config.js', JSON.stringify(config), err => {
@@ -712,6 +716,7 @@ function enableMQTT (cont, deviceId) {
   mqttClient.subscribe(settings.mqtt_topic + cont.name + "/#", () => {});
   mqttClient.on('message', function (topic, value) {
       try {
+
         let theTopic = topic.split("/");
         if (theTopic.length == 6 && theTopic[5] == "set") {
 
@@ -740,6 +745,7 @@ function enableMQTT (cont, deviceId) {
 //MAIN
 //const deviceState = neeoapi.buildDeviceState(2000);
 find().then(devices => {
+  console.log(devices)
   discoveredDevices = devices;
     getConfig().then(() => {
       mqttClient = mqtt.connect('mqtt://' + settings.mqtt, {clientId:"meta"}); // Always connect to the local mqtt broker

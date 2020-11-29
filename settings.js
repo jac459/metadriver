@@ -32,35 +32,6 @@ var settings =
               }
           }
       }
-    },
-    {
-      'name':'Clock', 
-      'manufacturer':'JAC',
-      'version':1,
-      'type':'AVRECEIVER',
-      'filename':'meta-core.json',
-      'variables':{
-          'MyZone':'Africa/Abidjan',
-          'MyTime':''
-      },
-      'labels':{
-        'Time' : {'label':'Current Time', 'listen':'MyTime'},
-        'Zone' : {'label':'My timezone', 'listen':'MyZone'}
-      },
-      "listeners" : {
-        "Time" : {"type":"http-get", "command":"http://worldtimeapi.org/api/timezone/$MyZone", "pooltime":"10000", "poolduration":"", "queryresult" : "$.", 
-          "evalwrite" : [ 
-               {"variable" : "MyTime", "value" : "DYNAMIK \"Date : \" + JSON.parse(\"$Result\")[0].datetime.split(\"T\")[0] + \" - Time : \" + JSON.parse(\"$Result\")[0].datetime.split(\"T\")[1].split(\".\")[0]"}
-            ]
-        }
-      },
-      'directories':{
-          'TimeZone': {'label':'', 'feeders': {
-              'TimeZone':{'label':'TimeZone list', 'commandset': [{'type':'http-get', 'command':'http://worldtimeapi.org/api/timezone', 'queryresult':'$.*', 'itemname':'$Result', 'itemtype': 'listitem', 'itemaction':'TimeZoneSet', 'itemlabel':'Zone', 'itemimage':'https://raw.githubusercontent.com/jac459/metadriver/master/AVReceiver/rooms.jpg', "evalwrite":[{"variable":"MyZone","value":"$Result"}]}]},
-              "TimeZoneSet":{"label":"", "commandset": [{"type":"static", "command":""}]}
-            }
-          }
-        }
     }
   ]
 }

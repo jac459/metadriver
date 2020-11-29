@@ -1,0 +1,17 @@
+{"name":"Tuto REPL", 
+    "manufacturer":"READ-EVAL-PRINT-LOOP",
+    "version":1,
+    "connection":"node",
+    "type":"AVRECEIVER", 
+    "variables":{
+      "LabelStatus":"Default value"
+    },
+    "labels":{
+      "CurrentStatus" : {"label":"status", "listen":"LabelStatus"}
+    },  
+   
+    "buttons":{
+      "CURSOR LEFT": {"label":"", "type":"static", "command":"It works on the left", "evalwrite":[{"variable":"LabelStatus","value":"$Result"}]},
+      "CURSOR RIGHT": {"label":"", "type":"static", "command":"On the right too", "evalwrite":[{"variable":"LabelStatus","value":"$Result"}]}
+    }
+}

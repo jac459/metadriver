@@ -1,0 +1,33 @@
+{"name":"DataStore Demonstrator", 
+    "manufacturer":"jac",
+    "version":14,
+    "type":"AVRECEIVER", 
+    "variables":{
+        "MyStatus":""
+    },
+    "persistedvariables":{
+        "MyOtherStatus":"",
+        "MyPersistedStatus":""
+    },
+    "labels":{
+        "CurrentHDMI" : {"label":"CurrentHDMI", "listen":"MyPersistedStatus"},
+        "CurrentAV" : {"label":"CurrentAV", "listen":"MyOtherStatus"}
+    },
+    
+    "buttons":{
+        "INITIALISE": {"label": "", "type":"static", "command":""},
+        "CLEANUP": {"label": "", "type":"static", "command":""},
+         "POWER ON": {"label":"", "type":"static", "command":"", "evaldo":[{"test":true,"then":"INITIALISE", "or":""}]},
+        "POWER OFF": {"label":"", "type":"static", "command":"", "evaldo":[{"test":true,"then":"CLEANUP", "or":""}]},
+    
+        "INPUT HDMI 1": {"label":"", "type":"static", "command":"hdmi1", "queryresult":"", "evalwrite":[{"variable":"MyPersistedStatus","value":"$Result"}]},
+        "INPUT HDMI 2": {"label":"", "type":"static", "command":"hdmi2", "queryresult":"", "evalwrite":[{"variable":"MyPersistedStatus","value":"$Result"}]},
+        "INPUT HDMI 3": {"label":"", "type":"static", "command":"hdmi3", "queryresult":"", "evalwrite":[{"variable":"MyPersistedStatus","value":"$Result"}]},
+        "INPUT HDMI 4": {"label":"", "type":"static", "command":"hdmi4", "queryresult":"", "evalwrite":[{"variable":"MyPersistedStatus","value":"$Result"}]},
+        "INPUT HDMI 5": {"label":"", "type":"static", "command":"hdmi5", "queryresult":"", "evalwrite":[{"variable":"MyPersistedStatus","value":"$Result"}]},
+        "INPUT HDMI 6": {"label":"", "type":"static", "command":"hdmi6", "queryresult":"", "evalwrite":[{"variable":"MyPersistedStatus","value":"$Result"}]},
+        "INPUT AV1": {"label":"", "type":"static", "command":"av1", "queryresult":"", "evalwrite":[{"variable":"MyOtherStatus","value":"$Result"}]},
+        "INPUT AV2": {"label":"", "type":"static", "command":"av2", "queryresult":"", "evalwrite":[{"variable":"MyOtherStatus","value":"$Result"}]},
+        "INPUT AV3": {"label":"", "type":"static", "command":"av3", "queryresult":"", "evalwrite":[{"variable":"MyOtherStatus","value":"$Result"}]}
+     }
+}

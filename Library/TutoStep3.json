@@ -1,0 +1,31 @@
+{"name":"Tuto Step3", 
+    "manufacturer":"Your Name",
+    "version":4,
+    "type":"AVRECEIVER", 
+    "variables":{
+      "LabelStatus":"Default value",
+      "Power":"",
+      "AlbumURI": "",
+      "URI1": "https://raw.githubusercontent.com/jac459/metadriver/master/AVReceiver/DSP/ThemeStandard/chamber_sce.jpg",
+      "URI2": "https://raw.githubusercontent.com/jac459/metadriver/master/AVReceiver/DSP/ThemeStandard/surr_decoder_sce.jpg"
+    },
+    "labels":{
+      "Currentstatus" : {"label":"status", "listen":"LabelStatus"}
+    },  
+    "images":{
+           "Albumcover" : {"label":"", "size" : "large", "listen":"AlbumURI"},
+           "Albumthumb" : {"label":"", "size" : "small", "listen":"AlbumURI"}
+           },
+       
+    "switches":{
+      "Powerswitch" : {"label":"", "listen":"Power", "evaldo":[{"test":"DYNAMIK $Result", "then":"__SHOWIMAGE1", "or":"__SHOWIMAGE2"}]}
+    },
+    "buttons":{
+      "CURSOR LEFT": {"label":"", "type":"static", "command":"It works on the left", "evalwrite":[{"variable":"LabelStatus","value":"$Result"}]},
+      "CURSOR RIGHT": {"label":"", "type":"static", "command":"On the right too", "evalwrite":[{"variable":"LabelStatus","value":"$Result"}]},
+      "CURSOR UP": {"label":"", "type":"static", "command":true, "evalwrite":[{"variable":"Power","value":"DYNAMIK $Result"}], "evaldo":[{"test":true, "then":"__SHOWIMAGE1", "or":""}]},
+      "CURSOR DOWN": {"label":"", "type":"static", "command":false, "evalwrite":[{"variable":"Power","value":"DYNAMIK $Result"}], "evaldo":[{"test":true, "then":"__SHOWIMAGE2", "or":""}]},
+      "__SHOWIMAGE1": {"label":"", "type":"static", "command":"", "evalwrite":[{"variable":"AlbumURI","value":"$URI1"}]},
+      "__SHOWIMAGE2": {"label":"", "type":"static", "command":"", "evalwrite":[{"variable":"AlbumURI","value":"$URI2"}]}
+    }
+}
