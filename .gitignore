@@ -5,3 +5,4 @@ pictures
 .vscode
 *.md
 *-DataStore.json
+activated/*.*
