@@ -17,9 +17,9 @@
     "#USER",
     "/"
   ],
-  "_resolved": "github:jac459/metadriver#9de0156887cfc686966df6c6b7d5ea785e3ca810",
+  "_resolved": "github:jac459/metadriver#8f36247e48d85c74a3d64ecc2ea4171c416064ae",
   "_spec": "jac459/metadriver",
-  "_where": "/home/pi",
+  "_where": "/home/pi/.meta",
   "author": {
     "name": "jac459"
   },

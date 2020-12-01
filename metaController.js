@@ -404,6 +404,8 @@ module.exports = function controller(driver) {
             }
             result.push(cell);
           }
+          console.log("after query result")
+          console.log(result)
           resolve(result);
         }
     });

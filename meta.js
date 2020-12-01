@@ -184,11 +184,13 @@ function discoveryDriverPreparator(controller, driver, deviceId, targetDeviceId)
         controller.commandProcessor(driver.discover.command.command, driver.discover.command.type, deviceId).then((result)=>{
             controller.queryProcessor(result, driver.discover.command.queryresult, driver.discover.command.type, deviceId).then((result) => {
             if (driver.discover.command.evalwrite) {controller.evalWrite(driver.discover.command.evalwrite, result, deviceId)};
+            console.log(result)
             if (!Array.isArray(result)) {
               let tempo = [];
               tempo.push(result);
               result = tempo;
             }
+            console.log(result)
             result.forEach(element => {
               driverInstance = instanciationHelper(controller, element, driver.template);
               instanciationTable.push(driverInstance);

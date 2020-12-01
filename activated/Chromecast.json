@@ -2,26 +2,32 @@
   "manufacturer":"Google",
   "type":"Audio",
   "version":14,
-   "variables":{
-    "IsRegistered":"",
-    "ChromecastName":"",
+  "variables":{
+    "IsRegistered":false,
     "RegistrationCode":""
+  },
+  "persistedvariables":{
+    "ChromecastNames":[]
   },
   "register":{
     "registertype": "SECURITY_CODE",
     "registerheadertext": "Chromecast",
     "registerdescription": "Please provide a (unique) name for your device.",
-    "registrationcommand":{"type":"static", "command":"$RegistrationCode", "queryresult":"", "evalwrite":[{"variable":"ChromecastName","value":"$Result"}, {"variable":"IsRegistered","value":false}]}
+    "registrationcommand":{"type":"static", "command":"$RegistrationCode", "queryresult":"", "evalwrite":[
+      {"variable":"ChromecastNames","value":"DYNAMIK var chro = []; if ($ChromecastNames != undefined) {chro = $ChromecastNames}; if (\"$Result\".length>0 && chro.findIndex((element) => {return element.toString() == \"$Result\"})<0) {chro.push(\"$Result\")}; chro"}, 
+      {"variable":"IsRegistered","value":false}
+      ]
+    }
   },
   "discover":{
     "welcomeheadertext":"Chromecast Driver",
     "welcomedescription":"powered by meta\nby JAC459",
-    "command":{"type":"static", "command":"$ChromecastName", "evalwrite":[{"variable":"IsRegistered","value":false}]}
+    "command":{"type":"static", "command":"DYNAMIK $ChromecastNames"}
   },
   "template" : {
     "name":"Chromecast", 
-    "dynamicname":"DYNAMIK_INST_START $ChromecastName DYNAMIK_INST_END",
-    "dynamicid":"DYNAMIK_INST_START $ChromecastName DYNAMIK_INST_END",
+    "dynamicname":"DYNAMIK_INST_START $Result DYNAMIK_INST_END",
+    "dynamicid":"DYNAMIK_INST_START $Result DYNAMIK_INST_END",
     "manufacturer":"Google",
     "version":14,
     "type":"Audio",

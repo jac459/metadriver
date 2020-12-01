@@ -85,7 +85,7 @@ class httprestProcessor {
             reject(err);
           });
         }
-        if (params.command.verb == 'put') {
+        else if (params.command.verb == 'put') {
           console.log('final address')
           console.log(params.command.call)
           got.put(params.command.call, {json:params.command.message, responseType: 'json'})
@@ -100,12 +100,25 @@ class httprestProcessor {
             reject(err);
           });
         }
+        else if (params.command.verb == 'get') {
+          got(params.command.call)
+          .then(function (result) {
+            console.log("before query result")
+            console.log(result.body.length)
+            console.log(result.body)
+          
+            resolve(result.body);
+          })
+          .catch((err) => {
+            reject(err);
+          });
+        }
       }
       catch (err) {
         console.log('Meta Error during rest command processing.')
         console.log(err)
       }
-      });
+     });
     }
     query(params) {
       return new Promise(function (resolve, reject) {
@@ -163,9 +176,9 @@ class httpgetProcessor {
   }
   process(params) {
     return new Promise(function (resolve, reject) {
-      http(params.command)
+      got(params.command)
         .then(function (result) {
-          resolve(result.data);
+          resolve(result.body);
         })
         .catch((err) => {
           reject(err);
