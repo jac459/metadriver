@@ -1,6 +1,6 @@
 {
   "_from": "github:jac459/metadriver",
-  "_id": "@jac459/metadriver@1.0.0",
+  "_id": "@jac459/metadriver@1.0.1",
   "_inBundle": false,
   "_integrity": "",
   "_location": "/@jac459/metadriver",
@@ -17,7 +17,7 @@
     "#USER",
     "/"
   ],
-  "_resolved": "github:jac459/metadriver#8f36247e48d85c74a3d64ecc2ea4171c416064ae",
+  "_resolved": "github:jac459/metadriver#dbc481e2e89d5fc24de110ccc828faaad3e33d4c",
   "_spec": "jac459/metadriver",
   "_where": "/home/pi/.meta",
   "author": {
@@ -70,5 +70,5 @@
     "start": "node meta.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "version": "1.0.0"
+  "version": "1.0.1"
 }

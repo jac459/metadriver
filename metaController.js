@@ -443,7 +443,7 @@ module.exports = function controller(driver) {
           self.queryProcessor(result, queryresult, commandtype, deviceId).then((result) => {
             if (Array.isArray(result)) {
               result = result[0];
-            }
+            } //Suppression to manage actually real table needs (yamaha Markus)
             if (evalwrite) {self.evalWrite(evalwrite, result, deviceId);}
             if (evaldo) {self.evalDo(evaldo, result, deviceId);}
             resolve(result);

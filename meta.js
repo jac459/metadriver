@@ -340,6 +340,9 @@ function executeDriverCreation (driver, hubController, deviceId) {
         if (driver.icon) {
             theDevice.setIcon(driver.icon)
         }
+        if (driver.alwayson) {
+          theDevice.addCapability("alwaysOn");
+        }
         
        //CREATING VARIABLES
        for (var prop in driver.variables) { // Initialisation of the variables
@@ -421,7 +424,7 @@ function executeDriverCreation (driver, hubController, deviceId) {
                   discoveryDriverPreparator(controller, driver, currentDeviceId, targetDeviceId).then((driverList) => {
                   const formatedTable = [];
                   discoveredDriverListBuilder(driverList, formatedTable, 0, controller, targetDeviceId).then((outputTable) => {
-                    controller.vault.snapshotDataStore();
+                    //controller.vault.snapshotDataStore(); JAC TO TEST 
                     resolve(outputTable); 
                   })
                 })

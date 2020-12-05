@@ -172,7 +172,9 @@ class directoryHelper {
                 self.controller.queryProcessor(result, commandSet.queryresult, commandSet.type, deviceId).then ((tempResultList) => {
                   let resultList = [];
                   if (!Array.isArray(tempResultList)) {//must be an array so make it an array if not
+                    if (tempResultList) {
                     resultList.push(tempResultList);
+                    }
                   }
                   else {resultList = tempResultList;}
 

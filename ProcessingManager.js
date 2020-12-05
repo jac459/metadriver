@@ -547,7 +547,13 @@ class cliProcessor {
             let modifier = params.query.slice(params.query.lastIndexOf('/')+1);
             console.log("RegEx literal : " + literal + ", regEx modifier : " + modifier);
             let regularEx = new RegExp(literal, modifier);
-            resolve(params.data.toString().match(regularEx));
+            let result = params.data.toString().match(regularEx);
+           // if (result != null) {
+              resolve(params.data.toString().match(regularEx));
+           // }
+           // else {
+           //   resolve();
+           // }
           }
           else {
             resolve(params.data.toString())
