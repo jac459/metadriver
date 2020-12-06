@@ -749,6 +749,7 @@ function enableMQTT (cont, deviceId) {
 
 //MAIN
 //const deviceState = neeoapi.buildDeviceState(2000);
+process.chdir(__dirname);
 find().then(devices => {
   console.log(devices)
   discoveredDevices = devices;
