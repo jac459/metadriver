@@ -652,10 +652,15 @@ function discoverBrain() {
     })
 }
 
-function setupNeeo() {
+function setupNeeo(forceDiscovery) {
   return new Promise(function (resolve, reject) {
     console.log(config)
-    if (process.env.BRAINIP)  { 
+    if (forceDiscovery) {
+      discoverBrain().then(() => {
+        runNeeo();
+      })
+    }
+    else if (process.env.BRAINIP)  { 
       config.brainip = process.env.BRAINIP;
       if (process.env.BRAINPORT)
          config.brainport = process.env.BRAINPORT;
@@ -663,15 +668,15 @@ function setupNeeo() {
       runNeeo();
     }
    else
-    if (config.brainip == ''){
+   if (config.brainip == ''){
       discoverBrain().then(() => {
         runNeeo();
       })
-    }
-    else {
-      runNeeo();
-    }
-    resolve();
+   }
+   else {
+     runNeeo();
+   }
+     resolve();
   })
 }
 
@@ -687,10 +692,10 @@ function runNeeo () {
     console.log(__dirname);
     console.log('Trying to start the Meta')
     theBrain = {"name":"neeo","iparray":config.brainip}
-    neeoapi.getRecipesPowerState(neeoSettings.brain)
+ /*   neeoapi.getRecipesPowerState(neeoSettings.brain)
     .then((poweredOnKeys) => {
       console.log('- Power state fetched, powered on recipes:', poweredOnKeys);
-  })
+  })*/
     neeoapi.startServer(neeoSettings)
       .then((result) => {
         console.log('Driver running, you can search it on the remote control.');
@@ -709,7 +714,7 @@ function runNeeo () {
           console.log('Failed running Neeo with error: ' + err);
           config.brainport = Number(config.brainport)+1;
           console.log('trying to increment port:', config.brainport);
-          runNeeo();
+          setupNeeo(true);
       });
     })
 
