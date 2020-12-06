@@ -46,32 +46,37 @@ function getHelper (HelpTable, prop, deviceId) {
 
 function getIndividualActivatedDrivers(files, driverList, driverIterator) {
   return new Promise(function (resolve, reject) {
-    if (driverIterator < files.length) {
-      if (!files[driverIterator].endsWith(DATASTOREEXTENSION)){ //To separate from datastore
-        console.log('Activating drivers :' + files[driverIterator])
-        fs.readFile(path.join(activatedModule,files[driverIterator]), (err, data) => {
-          if (data) {
-            try {
-              const driver = JSON.parse(data);
-              driver.filename = files[driverIterator];
-              driverList.push(driver);
+    if (files) {
+      if (driverIterator < files.length) {
+        if (!files[driverIterator].endsWith(DATASTOREEXTENSION)){ //To separate from datastore
+          console.log('Activating drivers :' + files[driverIterator])
+          fs.readFile(path.join(activatedModule,files[driverIterator]), (err, data) => {
+            if (data) {
+              try {
+                const driver = JSON.parse(data);
+                driver.filename = files[driverIterator];
+                driverList.push(driver);
+              }
+              catch (err) {
+                console.log('Error while parsing driver : ' + files[driverIterator]);
+                console.log(err);
+              }
             }
-            catch (err) {
-              console.log('Error while parsing driver : ' + files[driverIterator]);
-              console.log(err);
+            if (err) {
+              console.log('Error while loading the driver file : ' + files[driverIterator]);
+              console.log(err);        
             }
-          }
-          if (err) {
-            console.log('Error while loading the driver file : ' + files[driverIterator]);
-            console.log(err);        
-          }
-          resolve(getIndividualActivatedDrivers(files, driverList, driverIterator+1));
-        })
-      }
-      else {resolve(getIndividualActivatedDrivers(files, driverList, driverIterator+1));}
-    } 
-    else { 
-      resolve(driverList) }
+            resolve(getIndividualActivatedDrivers(files, driverList, driverIterator+1));
+          })
+        }
+        else {resolve(getIndividualActivatedDrivers(files, driverList, driverIterator+1));}
+      } 
+      else { 
+        resolve(driverList)
+       }
+    }
+    else {resolve([])
+    }
   })
 }
 
@@ -656,7 +661,7 @@ function setupNeeo() {
          config.brainport = process.env.BRAINPORT;
       console.log("Using brain-IP fromm environment variable:", config);
       runNeeo();
-      }
+    }
    else
     if (config.brainip == ''){
       discoverBrain().then(() => {
