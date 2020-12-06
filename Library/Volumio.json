@@ -53,8 +53,8 @@
     },
 
     "buttons":{
-      "INITIALISE": {"label": "", "type":"static", "command":""},
-      "CLEANUP": {"label": "", "type":"static", "command":""},
+      "__INITIALISE": {"label": "", "type":"static", "command":""},
+      "__CLEANUP": {"label": "", "type":"static", "command":""},
       "__DIRECTPLAY": {"label":"", "type":"static", "command":"", "evalwrite":[{"variable":"MyPlayMode","value":"ACTION_Play"}, {"variable":"DirectPlay","value":"false"}]},
       "__PUTINQUEUE": {"label":"", "type":"static", "command":"", "evalwrite":[{"variable":"MyPlayMode","value":"ACTION_Queue"}, {"variable":"DirectPlay","value":"true"}]},
       "VOLUME UP": {"label":"", "type":"static", "command":"", "evalwrite":[{"variable":"VolumePlayed","value":"DYNAMIK (Number($VolumePlayed)<95)?Number($VolumePlayed)+5:100"}], "evaldo":[{"test":true, "then":"__VOLUMESET", "or":""}]},
@@ -62,8 +62,8 @@
       "STOP": {"label":"", "type":"http-get", "command":"$VolumioURI/api/v1/commands/?cmd=stop", "queryresult":"$.response", "evalwrite":[{"variable":"Playing","value":"Music Stopped"}]},
       "PLAY": {"label":"", "type":"http-get", "command":"$VolumioURI/api/v1/commands/?cmd=play", "queryresult":"$.response", "evalwrite":[{"variable":"Playing","value":"Music Started"}]},
       "PLAY TOGGLE": {"label":"", "type":"http-get", "command":"$VolumioURI/api/v1/commands/?cmd=toggle", "queryresult":"$.response", "evalwrite":[{"variable":"Playing","value":"Ready"}]},
-      "POWER ON": {"label":"", "type":"static", "command":"", "evaldo":[{"test":true,"then":"INITIALISE", "or":""}]},
-      "POWER OFF": {"label":"", "type":"static", "command":"", "evaldo":[{"test":true,"then":"CLEANUP", "or":""}]},
+      "POWER ON": {"label":"", "type":"static", "command":"", "evaldo":[{"test":true,"then":"__INITIALISE", "or":""}]},
+      "POWER OFF": {"label":"", "type":"static", "command":"", "evaldo":[{"test":true,"then":"__CLEANUP", "or":""}]},
       "CURSOR LEFT": {"label":"", "type":"static", "command":"", "evaldo":[{"test":true,"then":"PREVIOUS", "or":""}]},
       "CURSOR RIGHT": {"label":"", "type":"static", "command":"", "evaldo":[{"test":true,"then":"NEXT", "or":""}]},
       "CURSOR ENTER": {"label":"", "type":"static", "command":"", "evaldo":[{"test":true,"then":"PLAY TOGGLE", "or":""}]},
@@ -145,8 +145,8 @@
       "Queue": {"label":"My playing queue", 
         "feeders": {
           "Queue":{"label":"Queue", "commandset": [
-            {"type":"static", "command":"[{\"image\":\"\"}]", "itemtype":"tile", "itemaction":"ACTION_Clear","itemimage":"https://raw.githubusercontent.com/jac459/metadriver/master/pictures/clear.jpg"},
-            {"type":"http-get", "command":"$VolumioURI/api/v1/getQueue", "queryresult":"$.queue[*]", "itemname":"DYNAMIK JSON.parse(\"$Result\").name", "itemlabel":"DYNAMIK JSON.parse(\"$Result\").artist", "itemaction":"ACTION_Play", "itemimage":"DYNAMIK (!JSON.parse(\"$Result\").albumart.startsWith(\"http\") ? (\"$VolumioURI\" + JSON.parse(\"$Result\").albumart) : JSON.parse(\"$Result\").albumart)"}
+            {"type":"static", "command":"[{\"image\":\"\"}]", "itemUI":"reload", "itemtype":"tile", "itemaction":"ACTION_Clear","itemimage":"https://raw.githubusercontent.com/jac459/metadriver/master/pictures/clear.jpg"},
+            {"type":"http-get", "command":"$VolumioURI/api/v1/getQueue", "queryresult":"$.queue[*]", "itemUI":"reload", "itemname":"DYNAMIK JSON.parse(\"$Result\").name", "itemlabel":"DYNAMIK JSON.parse(\"$Result\").artist", "itemaction":"ACTION_Play", "itemimage":"DYNAMIK (!JSON.parse(\"$Result\").albumart.startsWith(\"http\") ? (\"$VolumioURI\" + JSON.parse(\"$Result\").albumart) : JSON.parse(\"$Result\").albumart)"}
           ]},
           "ACTION_Play":{"label":"", "commandset": [{"type":"http-get", "command":"$VolumioURI/api/v1/commands/?cmd=play&N=$ListIndex", "queryresult":"", "itemname":"DYNAMIK JSON.parse(\"$Result\").title", "itemaction":"", "itemlabel":"Recipe name", "itemimage":"$AlbumArtURI"}]},
           "ACTION_Clear":{"label":"", "commandset": [{"type":"http-get", "command":"$VolumioURI/api/v1/commands/?cmd=clearQueue", "queryresult":"", "itemname":"DYNAMIK JSON.parse(\"$Result\").title", "itemlabel":"Recipe name", "itemaction":"Evaldo", "itemimage":"$AlbumArtURI"}]}

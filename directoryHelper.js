@@ -129,7 +129,7 @@ class directoryHelper {
                 neeoList.addListTiles(tiles);
               }
               else {
-                neeoList.addListItem({
+                 neeoList.addListItem({
                   title: cacheList[i].name,
                   label: cacheList[i].label,
                   thumbnailUri: cacheList[i].image,

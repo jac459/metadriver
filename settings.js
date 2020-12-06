@@ -48,12 +48,12 @@ var settings =
             "commandset": [
               {"type":"static", "command":"{}", "itemtype":"tile", "itemimage":"DYNAMIK \"https://raw.githubusercontent.com/jac459/metadriver/master/pictures/Drivers/\" + \"$ActivatedName\".split(\"activated/\")[1].split(\".json\")[0] + \".jpg\""},
               {"type":"static", "command":"[{\"name\":\"Refresh\", \"label\":\"Refresh Driver\", \"imageurl\":\"https://raw.githubusercontent.com/jac459/metadriver/master/pictures/refresh.jpg\",\"navigation\":\"RefreshAction\"}, {\"name\":\"Delete\", \"label\":\"Delete Driver\", \"imageurl\":\"https://raw.githubusercontent.com/jac459/metadriver/master/pictures/delete.jpg\",\"navigation\":\"DeleteAction\"}]", 
-                "queryresult":"$.*", "itemname":"DYNAMIK JSON.parse(\"$Result\").name", "itemlabel":"DYNAMIK \"$ActivatedName\".split(\"activated/\")[1].split(\".json\")[0]", "itemimage":"DYNAMIK JSON.parse(\"$Result\").imageurl",
+                "queryresult":"$.*", "itemname":"DYNAMIK JSON.parse(\"$Result\").name", "itemUI" : "goBack", "itemlabel":"DYNAMIK \"$ActivatedName\".split(\"activated/\")[1].split(\".json\")[0]", "itemimage":"DYNAMIK JSON.parse(\"$Result\").imageurl",
                 "itemaction":"DYNAMIK JSON.parse(\"$Result\").navigation",
               }]
           },
-          'RefreshAction':{'label':'Refresh Driver Data', 'commandset': [{'type':'cli', 'command':"DYNAMIK \"rm \" + \"$ActivatedName\".replace(\".json\", \"-DataStore.json\")", "itemUI" : "goBack"}]},
-          'DeleteAction':{'label':'Deactivate the Driver', 'commandset': [{'type':'cli', 'command':"rm $ActivatedName", "itemUI" : "goBack", "itemimage":""}]},
+          'RefreshAction':{'label':'Refresh Driver Data', 'commandset': [{'type':'cli', 'command':"DYNAMIK \"rm \" + \"$ActivatedName\".replace(\".json\", \"-DataStore.json\")"}]},
+          'DeleteAction':{'label':'Deactivate the Driver', 'commandset': [{'type':'cli', 'command':"rm $ActivatedName", "itemimage":""}]},
           
           'Library':{'label':'Drivers list', 'commandset': [
             {'type':'cli', 'command':'find ./$CoreLibrary -maxdepth 1 -name \'*.json\' -not -name \'*-DataStore.json\'', 'queryresult':'/^.\/$CoreLibrary\/.*/gm', 'itemname':'DYNAMIK "$Result".split("$CoreLibrary/")[1]', 'itemtype': 'listitem', "itemlabel":"Core Driver","itemimage":"DYNAMIK \"https://raw.githubusercontent.com/jac459/metadriver/master/pictures/Drivers/\" + \"$Result\".split(\"$CoreLibrary/\")[1].split(\".json\")[0] + \".jpg\"", 'evalnext':[{'test':true, 'then':'LibraryChoice', 'or':''}], 'evalwrite':[{'variable':'LibraryName','value':'$Result'}]},
@@ -64,7 +64,7 @@ var settings =
               {"type":"static", "command":"{}", "itemtype":"tile", "itemimage":"DYNAMIK \"https://raw.githubusercontent.com/jac459/metadriver/master/pictures/Drivers/\" + \"$LibraryName\".split(\"/\")[\"$LibraryName\".split(\"/\").length-1].split(\".json\")[0] + \".jpg\""},
               {"type":"static", "command":"[{\"name\":\"Activate\", \"label\":\"Activate Driver\", \"imageurl\":\"https://raw.githubusercontent.com/jac459/metadriver/master/pictures/play.jpg\",\"navigation\":\"ActivateAction\"}]", 
                 "queryresult":"$.*", "itemname":"DYNAMIK JSON.parse(\"$Result\").label", "itemlabel":"DYNAMIK \"$LibraryName\".split(\"/\")[\"$LibraryName\".split(\"/\").length-1].split(\".json\")[0]", "itemimage":"DYNAMIK JSON.parse(\"$Result\").imageurl",
-                "itemaction":"DYNAMIK JSON.parse(\"$Result\").navigation",
+                "itemaction":"DYNAMIK JSON.parse(\"$Result\").navigation","itemUI" : "goBack"
               }]
           },
           'ActivateAction':{'label':'', 'commandset': [{'type':'cli', 'command':"DYNAMIK \"cp \" + \"$LibraryName \" + \"./activated/\" + \"$LibraryName\".split(\"/\")[\"$LibraryName\".split(\"/\").length-1]", "itemUI" : "goBack"}]},
@@ -74,7 +74,7 @@ var settings =
               {"type":"static", "command":"{}", "itemtype":"tile", "itemimage":"https://raw.githubusercontent.com/jac459/metadriver/master/pictures/warning.jpg"},
               {"type":"static", "command":"[{\"name\":\"Restart\", \"label\":\"Restart Meta\", \"imageurl\":\"https://raw.githubusercontent.com/jac459/metadriver/master/pictures/button.jpg\",\"navigation\":\"RestartMeta\"}]", 
                 "queryresult":"$.*", "itemname":"DYNAMIK JSON.parse(\"$Result\").label", "itemlabel":"UI will be unresponsive for 1 min. This wil apply your change", "itemimage":"DYNAMIK JSON.parse(\"$Result\").imageurl",
-                "itemaction":"DYNAMIK JSON.parse(\"$Result\").navigation",
+                "itemaction":"DYNAMIK JSON.parse(\"$Result\").navigation","itemUI" : "goBack", 
               }]
           },
           'RestartMeta':{'label':'', 'commandset': [{'type':'cli', 'command':"pm2 restart meta", "itemUI" : "goBack"}]},

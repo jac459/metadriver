@@ -214,7 +214,6 @@ module.exports = function controller(driver) {
 
   
   this.evalWrite = function (evalwrite, result, deviceId) {
-    console.log(evalwrite)
     if (evalwrite) { //case we want to write inside a variable
       evalwrite.forEach(evalW => {
         if (evalW.deviceId) {deviceId = evalW.deviceId} //this is specific for listeners and discovery, when one command should be refreshing data of multiple devices (example hue bulbs)
@@ -404,8 +403,6 @@ module.exports = function controller(driver) {
             }
             result.push(cell);
           }
-          console.log("after query result")
-          console.log(result)
           resolve(result);
         }
     });
@@ -415,6 +412,8 @@ module.exports = function controller(driver) {
   this.onListenExecute = function (result, listener, deviceId) {
     process.stdout.write('.');  
     self.queryProcessor(result, listener.queryresult, listener.type, deviceId).then((result) => {
+      console.log('MY LITSTENER')
+      console.log(listener)
        if (listener.evalwrite) {self.evalWrite(listener.evalwrite, result, deviceId);}
        if (listener.evaldo) {self.evalDo(listener.evaldo, result, deviceId);}
     });

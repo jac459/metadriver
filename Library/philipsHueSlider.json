@@ -49,8 +49,8 @@
         "BRIGHTNESS": {"label":"Brightness", "unit" : "Lux", "listen" : "Brightness", "evaldo":[{"test":true, "then":"__BRIGHTNESSCHANGE", "or":""}]}
     },
     "buttons":{
-        "POWER ON": {"label":"", "type":"http-rest", "command":"{\"verb\":\"put\",\"call\":\"http://$HueBridgeIp/api/$HueUserName/lights/$LightNumber/state\", \"message\":{\"on\": true}}", "evaldo":[{"test":true,"then":"INITIALISE", "or":""}]},
-        "POWER OFF": {"label":"", "type":"http-rest", "command":"{\"verb\":\"put\",\"call\":\"http://$HueBridgeIp/api/$HueUserName/lights/$LightNumber/state\", \"message\":{\"on\": false}}", "evalwrite":[{"variable":"Brightness","value":0}], "evaldo":[{"test":true,"then":"CLEANUP", "or":""}]},
+        "POWER ON": {"label":"", "type":"http-rest", "command":"{\"verb\":\"put\",\"call\":\"http://$HueBridgeIp/api/$HueUserName/lights/$LightNumber/state\", \"message\":{\"on\": true}}", "evaldo":[{"test":true,"then":"__INITIALISE", "or":""}]},
+        "POWER OFF": {"label":"", "type":"http-rest", "command":"{\"verb\":\"put\",\"call\":\"http://$HueBridgeIp/api/$HueUserName/lights/$LightNumber/state\", \"message\":{\"on\": false}}", "evalwrite":[{"variable":"__Brightness","value":0}], "evaldo":[{"test":true,"then":"__CLEANUP", "or":""}]},
         "CURSOR RIGHT": {"label":"", "type":"static", "command":"", "evalwrite":[{"variable":"Brightness","value":"DYNAMIK (Number($Brightness)<95)?Number($Brightness)+5:100"}], "evaldo":[{"test":true, "then":"__BRIGHTNESSCHANGE", "or":""}]},
         "CURSOR LEFT": {"label":"", "type":"static", "command":"", "evalwrite":[{"variable":"Brightness","value":"DYNAMIK (Number($Brightness)>5)?Number($Brightness)-5:0"}], "evaldo":[{"test":true, "then":"__BRIGHTNESSCHANGE", "or":""}]},
         "__BRIGHTNESSCHANGE": {"label":"", "type":"http-rest", "command":"DYNAMIK \"{\\\"verb\\\":\\\"put\\\",\\\"call\\\":\\\"http://$HueBridgeIp/api/$HueUserName/lights/$LightNumber/state\\\", \\\"message\\\":{\\\"on\\\": \" + ($Brightness<6?false:true) + \"}}\"", "evaldo":[{"test":"$Brightness>5","then":"__BRIGHTNESSCHANGE2", "or":""}]},

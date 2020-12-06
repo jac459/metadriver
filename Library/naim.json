@@ -39,8 +39,8 @@
       "CurrentStatus" : {"label":" ", "listen":"MyStatus", "actionlisten":"VolumePlayedDisplay"}
   },
   "buttons":{
-     "POWER ON": {"label":"", "type":"http-rest", "command":"{\"verb\":\"put\",\"call\":\"http://$NaimIp:15081/power?system=on\", \"message\":{}}", "evaldo":[{"test":true,"then":"INITIALISE", "or":""}]},
-     "POWER OFF": {"label":"", "type":"http-rest", "command":"{\"verb\":\"put\",\"call\":\"http://$NaimIp:15081/power?system=lona\", \"message\":{}}", "evaldo":[{"test":true,"then":"CLEANUP", "or":""}]},
+     "POWER ON": {"label":"", "type":"http-rest", "command":"{\"verb\":\"put\",\"call\":\"http://$NaimIp:15081/power?system=on\", \"message\":{}}", "evaldo":[{"test":true,"then":"__INITIALISE", "or":""}]},
+     "POWER OFF": {"label":"", "type":"http-rest", "command":"{\"verb\":\"put\",\"call\":\"http://$NaimIp:15081/power?system=lona\", \"message\":{}}", "evaldo":[{"test":true,"then":"__CLEANUP", "or":""}]},
      "PLAY TOGGLE": {"label":"", "type":"http-get", "command":"http://$NaimIp:15081/nowplaying?cmd=playpause"},
      "PREVIOUS": {"label":"", "type":"http-get", "command":"http://$NaimIp:15081/nowplaying?cmd=previous"},
      "NEXT": {"label":"", "type":"http-get", "command":"http://$NaimIp:15081/nowplaying?cmd=next"},
