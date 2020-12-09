@@ -87,6 +87,7 @@ Version 0.7.3 brings some minor bug fixes as well as:
 - Control any device with MQTT.
 - Wake On Lan
 ### Neeo Special features:
+- all meta drivers graphical components are available through mqtt allowing to control the neeo through HA, Homey or HomeAssistant.
 - Device Discovery (examples for Philips Hue bulbs and groups, Snapcast driver)
 - Basic registration with security code. (example for Philips Hue and Yamaha Network Receiver)
 
