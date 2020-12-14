@@ -1,6 +1,6 @@
 {
   "_from": "github:jac459/metadriver",
-  "_id": "@jac459/metadriver@1.0.3",
+  "_id": "@jac459/metadriver@1.0.5",
   "_inBundle": false,
   "_integrity": "",
   "_location": "/@jac459/metadriver",
@@ -70,5 +70,5 @@
     "start": "node meta.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "version": "1.0.3"
+  "version": "1.0.5"
 }

@@ -750,7 +750,18 @@ function enableMQTT (cont, deviceId) {
               cont.switchH[sliI].set(theTopic[2], value)
             }   
           }
-
+          else if (theTopic[3] == "image") {
+            let imaI = cont.imageH.findIndex((ima)=>{return ima.name == theTopic[4]});
+            if (imaI>=0){
+              cont.imageH[imaI].set(theTopic[2], value)
+            }   
+          }
+          else if (theTopic[3] == "label") {
+            let labI = cont.labelH.findIndex((lab)=>{return lab.name == theTopic[4]});
+            if (labI>=0){
+              cont.labelH[labI].set(theTopic[2], value)
+            }   
+          }
          }
       }
       catch (err) {console.log('Error while parsing incomming message on: '+settings.mqtt_topic + cont.name + "/command");console.log(err)}
