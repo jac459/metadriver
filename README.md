@@ -15,26 +15,33 @@ Examples of integration:
 #### https://youtu.be/9Z_wd0l7iyM
 #### https://www.youtube.com/watch?v=LN6M7-U_0Bk&t=12s
 
-This readme applies to metadriver Version 0.8-Alpha (build 0.8.15) release for advanced users.
+/!\ The meta is now in V1.0 Beta and can be freely and secured downloaded /!\
+
+## Abstract
+
+More than a driver, the meta is an extension platform for the neeo remote and is now fully packaged with the meta Installer from Ton O and using preliminary work from Dennis and Niels to root the brain.
+The platform as build provides the following key features:
+- capacity to run custom drivers directly in the brain (drivers are softwares adding support of new devices for the neeo)
+- development platform allowing fast creation of complex Neeo drivers
+- capacity to install/uninstall drivers directly from your remote
+- built-in super rich interoperability platform to allow easy connection to any of your devices (TV, Avr, media player, lights, ...)
+- Full intefrstion with HA, node-red, home assistant through MQTT.
+- meta is bundled natively with Mqtt broker and node-red in order to allow easy new drivers creation relying on node-red rich integration library.
 
 #### Latest update
 
-Full Discovery feature working on both yamaha and hue/hueGroups drivers.
-No need to enter any IP address, the meta scans the network and find the devices. 
-Bug (nasty) corrected on hue bulbs state listener. 
+Current version is v1.0.4
 
-##### New Features
+- Full Discovery feature allowing to automatically discover the IP of your devices.
 - Enhanced support for HTTP-REST (incl. PUT) 
 - Extended jsonpath support (new framework and multithreaded execution) 
 - Fully working registration support for security code. 
 - Sample registration devices: snapcast, Philips hue with color pick, yamaha network receiver with model detection. 
 - Refined polling activation for device listening.
 - Refined resource management for discovered devices. 
+
 ##### known bugs and limitations
-- Depending on the way the driver is installed and overrides a previous version you can end up with a "component not found" bug preventing update of components in the remote (labels, sliders). 
-==> this bug is currently my public enemy number one. If it happens to you please note exactly what you did before it happens and write to me through github issues ideally or the telegram group (link in the drivers in brain repo).
-- Power off doesn't exit the recipe for lights hue (you need to press home). 
-- Further resource management improvement can be done to the dynamically discovered resources. 
+- known so far.
 
 Version 0.8.1 brings some bug fixes as well as:
 - Architecture refactoring with creation of a Variable Vault (centralized)
@@ -80,6 +87,7 @@ Version 0.7.3 brings some minor bug fixes as well as:
 - Control any device with MQTT.
 - Wake On Lan
 ### Neeo Special features:
+- all meta drivers graphical components are available through mqtt allowing to control the neeo through HA, Homey or HomeAssistant.
 - Device Discovery (examples for Philips Hue bulbs and groups, Snapcast driver)
 - Basic registration with security code. (example for Philips Hue and Yamaha Network Receiver)
 
