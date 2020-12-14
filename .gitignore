@@ -6,3 +6,4 @@ pictures
 *.md
 *-DataStore.json
 activated/*.*
+!activated/Clock.json
