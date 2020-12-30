@@ -90,8 +90,7 @@ function getIndividualActivatedDrivers(files, driverList, driverIterator) {
     if (files) {
       if (driverIterator < files.length) {
         if (!files[driverIterator].endsWith(DATASTOREEXTENSION)){ //To separate from datastore
-          metaLog(LogAlways,'Activating drivers');
-
+          metaLog(LogAlways,'Activating drivers: ' + files[driverIterator]);
           fs.readFile(path.join(activatedModule,files[driverIterator]), (err, data) => {
             if (data) {
               try {
