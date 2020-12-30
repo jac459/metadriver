@@ -22,7 +22,6 @@ const LogText = ['Info','Warning', 'Error', 'Fatal','Always','Huh?']
 
 var config = {brainip : '', brainport : ''};
 var brainDiscovered = false;
-var brainDiscovered = false;
 var driverTable = [];
 var localDevices = [];
 exports.localDevices = localDevices;
@@ -36,13 +35,23 @@ var mqttClient;
 function metaMessage(msgStruct) {  
 
   var mySeverity = settings.LogSeverity;   // get the log-severitylevel frrom settings.json
-  // if ( mySeverity == '' )                   // Not there, assume LogAlways, only the higest messages will be shown
+
+  if ( mySeverity == '' )                   // Not there, assume LogAlways, only the higest messages will be shown
      mySeverity = LogAlways;    //
+     mySeverity = LogInfo;  
   if (process.env.LogSeverity)             // Did the user override this setting during runtime?
      mySeverity = process.env.LogSeverity; // yes, use this value
 
   if (msgStruct.severity >= mySeverity)              // Do we need to log this?
-      console.log((new Date()).toLocaleString() + " " + msgStruct.component + (msgStruct.deviceid ?  " "+msgStruct.deviceid : "") +  ": " + LogText[msgStruct.severity] + " " + msgStruct.message );
+    if (Array.isArray(msgStruct.message))
+       for (var msg in msgStruct.message)         
+           console.log((new Date()).toLocaleString() + " " + msgStruct.component + (msgStruct.deviceid ?  " "+msgStruct.deviceid : "") +  ": " + LogText[msgStruct.severity] + " " + msg );
+    else
+	console.log((new Date()).toLocaleString() + " " + msgStruct.component + (msgStruct.deviceid ?  " "+msgStruct.deviceid : "") +  ": " + LogText[msgStruct.severity] + " " + msgStruct.message );
+  else
+    console.log("Suppressing msg " + msgStruct.message);
+
+
 }
 
 function metaLog(errorLevel, mymessage) {
@@ -694,7 +703,7 @@ function discoverBrain() {
 
 function setupNeeo(forceDiscovery) {
   return new Promise(function (resolve, reject) {
-    metaLog(LogInfo,config);
+    metaLog(LogInfo,JSON.stringify(config));
     if (forceDiscovery) {
       discoverBrain().then(() => {
         runNeeo();
@@ -704,7 +713,7 @@ function setupNeeo(forceDiscovery) {
       config.brainip = process.env.BRAINIP;
       if (process.env.BRAINPORT)
          config.brainport = process.env.BRAINPORT;
-         metaLog(LogWarning,"Using brain-IP from environment variable:" + config);
+      metaLog(LogWarning,"Using brain-IP from environment variable:" + config);
       runNeeo();
     }
    else
