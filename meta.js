@@ -3,41 +3,51 @@ const path = require('path');
 const settings = require(path.join(__dirname,'settings'));
 const neeoapi = require("neeo-sdk");
 const metacontrol = require(path.join(__dirname,'metaController'));
-const find = require('local-devices');
+const dnssd = require('dnssd');
 
 const fs = require('fs');
 const activatedModule = path.join(__dirname,'activated');
 const BUTTONHIDE = '__';
 const DATASTOREEXTENSION = 'DataStore.json';
 const DEFAULT = 'default'; //NEEO SDK deviceId default value
-const MQTT = 'mqtt';
 const mqtt = require('mqtt');
+const { metaMessage, LOG_TYPE } = require("./metaMessage");
 
 var config = {brainip : '', brainport : ''};
 var brainDiscovered = false;
-var brainDiscovered = false;
 var driverTable = [];
-var discoveredDevices = undefined;
+var localDevices = [];
+exports.localDevices = localDevices;
+exports.neeoBrainIp = config.brainip;
 var mqttClient;
-//const mqttClient = mqtt.connect('mqtt://' + settings.mqtt, {clientId:"meta"}); // Always connect to the local mqtt broker
-//mqttClient.on('connect', (result) => {
-//  console.log("mqtt connected");
-//})
+
+function metaLog(message) {
+  let initMessage = { component:'meta', type:LOG_TYPE.INFO, content:'', deviceid: null };
+  let myMessage = {...initMessage, ...message}
+  return metaMessage (myMessage);
+} 
 
 function getConfig() {
   return new Promise(function (resolve, reject) {
     fs.readFile(__dirname + '/config.js', (err, data) => {
-      if (err) {console.log('No config file, the initial setup will be launched');resolve(null);}
-      else { 
+      if (err) {
+        metaLog({type:LOG_TYPE.ERROR, content:'No config file, the initial setup will be launched'});
+        resolve(null);
+        }
+      else {
         if (data && (data != '')) {
-          config = JSON.parse(data);  
+          config = JSON.parse(data);
           resolve(config);
         }
         else {
           resolve (config);}
       }
-    })
+    }) 
   })
+}
+        
+function getHelper (HelpTable, prop, deviceId) {
+  return HelpTable[HelpTable.findIndex((item) => { return (item.name==prop && item.deviceId==deviceId) })];
 }
 
 function getHelper (HelpTable, prop, deviceId) {
@@ -49,7 +59,7 @@ function getIndividualActivatedDrivers(files, driverList, driverIterator) {
     if (files) {
       if (driverIterator < files.length) {
         if (!files[driverIterator].endsWith(DATASTOREEXTENSION)){ //To separate from datastore
-          console.log('Activating drivers :' + files[driverIterator])
+          metaLog({content:'Activating drivers: ' + files[driverIterator]});
           fs.readFile(path.join(activatedModule,files[driverIterator]), (err, data) => {
             if (data) {
               try {
@@ -58,14 +68,14 @@ function getIndividualActivatedDrivers(files, driverList, driverIterator) {
                 driverList.push(driver);
               }
               catch (err) {
-                console.log('Error while parsing driver : ' + files[driverIterator]);
-                console.log(err);
+                metaLog({type:LOG_TYPE.ERROR, content:' Parsing driver : ' + files[driverIterator]});
+                metaLog({type:LOG_TYPE.ERROR, content:err});
               }
             }
             if (err) {
-              console.log('Error while loading the driver file : ' + files[driverIterator]);
-              console.log(err);        
-            }
+              metaLog({type:LOG_TYPE.ERROR, content:' Loading the driver file : ' + files[driverIterator]});
+              metaLog({type:LOG_TYPE.ERROR, content:err});
+          }
             resolve(getIndividualActivatedDrivers(files, driverList, driverIterator+1));
           })
         }
@@ -82,9 +92,9 @@ function getIndividualActivatedDrivers(files, driverList, driverIterator) {
 
 function getActivatedDrivers() {
   return new Promise(function (resolve, reject) {
-    console.log("Searching drivers in : " + activatedModule);
+    metaLog({content:'Searching drivers in : ' + activatedModule});
     fs.readdir(activatedModule, (err, files) => {
-      console.log('drivers found');
+      metaLog({content:'drivers found'});
       var driverList = [];
       getIndividualActivatedDrivers(files, driverList,0).then((list) => {
         resolve(list);
@@ -101,8 +111,8 @@ function getDataStorePath(filename) {
     else {return null;}
   }
   catch (err) {
-    console.log('META error, your path (' + filename + ') given seems to be wrong :');
-    console.log(err);
+   // metaLog(LogError,'META error, your path (' + filename + ') given seems to be wrong :');
+   // metaLog(LogError,err);
   }
 }
 
@@ -127,8 +137,6 @@ function discoveredDriverListBuilder(inputRawDriverList, outputPreparedDriverLis
     if (indent < inputRawDriverList.length) {
       if (inputRawDriverList[indent].dynamicname && inputRawDriverList[indent].dynamicname != "") {
         if (targetDeviceId == undefined || targetDeviceId == inputRawDriverList[indent].dynamicid)
-        //console.log("On a table of " + inputRawDriverList.length + " discovered devices observation:" + inputRawDriverList[indent].dynamicid + " and target is : " + targetDeviceId)
-        //if (targetDeviceId == inputRawDriverList[indent].dynamicid)
         {
           executeDriverCreation(inputRawDriverList[indent], controller, inputRawDriverList[indent].dynamicid).then((builtdevice) => {
             builtdevice.addCapability("dynamicDevice");
@@ -177,6 +185,9 @@ function instanciationHelper(controller, givenResult, jsonDriver) {
   }
   // reconstructedDriver = controller.vault.readVariables(recontructedDriver, DEFAULT);
   // console.log(recontructedDriver);
+  metaLog({type:LOG_TYPE.VERBOSE, content:'recontructedDriver'});
+  metaLog({type:LOG_TYPE.VERBOSE, content:recontructedDriver});
+
   return JSON.parse(controller.vault.readVariables(recontructedDriver, DEFAULT));
 }
 
@@ -189,13 +200,13 @@ function discoveryDriverPreparator(controller, driver, deviceId, targetDeviceId)
         controller.commandProcessor(driver.discover.command.command, driver.discover.command.type, deviceId).then((result)=>{
             controller.queryProcessor(result, driver.discover.command.queryresult, driver.discover.command.type, deviceId).then((result) => {
             if (driver.discover.command.evalwrite) {controller.evalWrite(driver.discover.command.evalwrite, result, deviceId)};
-            console.log(result)
+                metaLog({deviceid: deviceId, type:LOG_TYPE.VERBOSE, content:'discovery Driver Preparation, query result'});
+                metaLog({deviceid: deviceId, type:LOG_TYPE.VERBOSE, content:result});
             if (!Array.isArray(result)) {
               let tempo = [];
               tempo.push(result);
               result = tempo;
             }
-            console.log(result)
             result.forEach(element => {
               driverInstance = instanciationHelper(controller, element, driver.template);
               instanciationTable.push(driverInstance);
@@ -230,17 +241,18 @@ function registerDevice(controller, driver, deviceId) {
     controller.actionManager(DEFAULT, driver.register.registrationcommand.type, driver.register.registrationcommand.command, 
                           driver.register.registrationcommand.queryresult, '', driver.register.registrationcommand.evalwrite)
     .then((result) => {
-      console.log('Result of the registration command: ')
-      console.log(result)
+      metaLog({deviceid: deviceId, type:LOG_TYPE.VERBOSE, content:'Result of the registration command: '});
+      metaLog({deviceid: deviceId, type:LOG_TYPE.VERBOSE, content:result});
+
       controller.reInitVariablesValues(deviceId);
       controller.reInitConnectionsValues(deviceId);
       controller.vault.snapshotDataStore();
       if (controller.vault.getValue("IsRegistered", deviceId)) {
-        console.log('registration success')
+        metaLog({deviceid: deviceId, type:LOG_TYPE.INFO, content:"Registration success"});
         resolve(true);
       }
       else {
-        console.log('registration failure')
+        metaLog({deviceid: deviceId, type:LOG_TYPE.WARNING, content:'Registration Failure'});
         resolve(false);
       }
     })
@@ -250,11 +262,11 @@ function registerDevice(controller, driver, deviceId) {
 function isDeviceRegistered(controller, driver, deviceId) {
   return new Promise(function (resolve, reject) {
     let retValue = controller.vault.getValue("IsRegistered", deviceId);
-    console.log('is registered ? : ' + retValue)
+    metaLog({deviceid: deviceId, type:LOG_TYPE.VERBOSE, content:'is registered ? : ' + retValue});
     if (retValue) {resolve(retValue);}
     else {
       registerDevice(controller, driver, deviceId).then((result)=>{
-        console.log('the result of the registration process is '+result)
+        metaLog({deviceid: deviceId, type:LOG_TYPE.VERBOSE, content:'the result of the registration process is '+result});
         if (result) {
           resolve(true);
         }
@@ -355,9 +367,9 @@ function executeDriverCreation (driver, hubController, deviceId) {
           controller.vault.addVariable(prop, driver.variables[prop], currentDeviceId)
         }
       }
-      controller.vault.addVariable('NeeoBrainIP', config.brainip, currentDeviceId); //Adding a usefull system variable giving the brain IP address.
+ //     controller.vault.addVariable('NeeoBrainIP', config.brainip, currentDeviceId); //Adding a usefull system variable giving the brain IP address.
 
-      //adding mac discovered device variable in the vault
+      /*adding mac discovered device variable in the vault
       if (driver.discovereddevice){
         if (driver.discovereddevice.mac) {
           driver.discovereddevice.mac.forEach(macAddress => {
@@ -367,7 +379,7 @@ function executeDriverCreation (driver, hubController, deviceId) {
             }
           })
         }
-      }
+      }*/
 
       if (driver.persistedvariables){
         for (var prop in driver.persistedvariables) { // Initialisation of the variables to be persisted
@@ -390,7 +402,7 @@ function executeDriverCreation (driver, hubController, deviceId) {
         controller.addConnection({"name":"jsontcp", "descriptor":driver.jsontcp, "connector":""})
       }
       if (settings.mqtt) {
-        console.log('creating the connection mqtt')
+        metaLog({deviceid: deviceId, type:LOG_TYPE.INFO, content:'Creating the connection MQTT'});
         controller.addConnection({"name":"mqtt", "descriptor":settings.mqtt, "connector":mqttClient})//early loading
         //controller.initiateProcessor('mqtt');
       }
@@ -417,7 +429,7 @@ function executeDriverCreation (driver, hubController, deviceId) {
   
         //DISCOVERY  
         if (driver.discover) {
-          console.log('Starting discovery process for ' + currentDeviceId);
+          metaLog({deviceid: currentDeviceId, type:LOG_TYPE.INFO, content:'Starting discovery process.'});
           theDevice.enableDiscovery(
             {
               headerText: driver.discover.welcomeheadertext,
@@ -472,7 +484,6 @@ function executeDriverCreation (driver, hubController, deviceId) {
             const myMuteSwitch = controller.switchH[controller.directoryH.findIndex((helper) => {return (helper.name == driver.players[prop].IsMuted)})]
             const myShuffleSwitch = controller.switchH[controller.directoryH.findIndex((helper) => {return (helper.name == driver.players[prop].IsShuffle)})]
             const myRepeatSwitch = controller.switchH[controller.directoryH.findIndex((helper) => {return (helper.name == driver.players[prop].IsRepeat)})]
-
             theDevice.addPlayerWidget({
               rootDirectory: {
                 name: 'Collection', 
@@ -482,7 +493,6 @@ function executeDriverCreation (driver, hubController, deviceId) {
                   action:(deviceId, params) => {myDirectory.handleAction(deviceId,params)},
                 }
               },
-
               queueDirectory: {
                 name: 'Queue', 
                 label: 'Playing Queue', 
@@ -491,7 +501,6 @@ function executeDriverCreation (driver, hubController, deviceId) {
                   action:(deviceId, params) => {myQueueDirectory.handleAction(deviceId,params)},
                 }
               },
-
               volumeController: { 
                 getter:(deviceId) => {myVolume.get(deviceId)},
                 setter:(deviceId, params) => {myVolume.set(deviceId,params)},
@@ -619,12 +628,19 @@ function executeDriverCreation (driver, hubController, deviceId) {
           theDevice.registerInitialiseFunction(() => {controller.registerInitiationCallback(currentDeviceId)});
           theDevice.registerDeviceSubscriptionHandler(
             {
-              deviceAdded: (deviceId) => {console.log('device added :' + deviceId);controller.dynamicallyAssignSubscription(deviceId)},
-              deviceRemoved: (deviceId) => {console.log('device removed: ' + deviceId);},
-              initializeDeviceList: (deviceIds) => {console.log("INITIALIZED DEVICES:" + deviceIds)},
+              deviceAdded: (deviceId) => {
+                  metaLog({deviceid: deviceId, type:LOG_TYPE.INFO, content:'device added'});
+                  controller.dynamicallyAssignSubscription(deviceId,false);
+              },
+              deviceRemoved: (deviceId) => {
+                metaLog({deviceid: deviceId, type:LOG_TYPE.INFO, content:'device removed'});
+              },
+              initializeDeviceList: (deviceIds) => {
+                metaLog({deviceid: deviceId, type:LOG_TYPE.INFO, content:"INITIALIZED DEVICES:" + deviceIds});
+              },
             }
           )
-          console.log("Device " + driver.name + " has been created.");
+          metaLog({deviceid: deviceId, type:LOG_TYPE.INFO, content:"Device " + driver.name + " has been created."});
           enableMQTT(controller, currentDeviceId);
           resolve(theDevice);
         });
@@ -636,17 +652,17 @@ function executeDriverCreation (driver, hubController, deviceId) {
         
 function discoverBrain() {
   return new Promise(function (resolve, reject) {
-    console.log('Trying to discover a NEEO Brain...');
-    brainDiscovered = true;
+    metaLog({type:LOG_TYPE.INFO, content:"Trying to discover a NEEO Brain..."});
+ 
+     brainDiscovered = true;
     neeoapi.discoverOneBrain()
       .then((brain) => {
-        console.log('- Brain discovered:', brain.name);
-        console.log('at IP: ' + brain.iparray)
+        metaLog({type:LOG_TYPE.INFO, content:"Brain Discovered at IP : " + brain.iparray.toString()});
         config.brainip = brain.iparray.toString();
          resolve();
       })
       .catch ((err) => {
-        console.log("Brain couldn't be discovered, check if it is on and on the same wifi network: " + err);
+     //   metaLog(LogFatal,"Brain couldn't be discovered, check if it is on and on the same wifi network: " + err);
         reject();
       })
     })
@@ -654,7 +670,6 @@ function discoverBrain() {
 
 function setupNeeo(forceDiscovery) {
   return new Promise(function (resolve, reject) {
-    console.log(config)
     if (forceDiscovery) {
       discoverBrain().then(() => {
         runNeeo();
@@ -664,7 +679,7 @@ function setupNeeo(forceDiscovery) {
       config.brainip = process.env.BRAINIP;
       if (process.env.BRAINPORT)
          config.brainport = process.env.BRAINPORT;
-      console.log("Using brain-IP fromm environment variable:", config);
+         metaLog({type:LOG_TYPE.WARNING, content:"Using brain-IP from environment variable:" + config});
       runNeeo();
     }
    else
@@ -689,31 +704,29 @@ function runNeeo () {
       name: "metadriver",
       devices: driverTable
     };
-    console.log(__dirname);
-    console.log('Trying to start the Meta')
+    metaLog({type:LOG_TYPE.INFO, content:"Current directory: " + __dirname});
+    metaLog({type:LOG_TYPE.INFO, content:"Trying to start the meta."});
+    
     theBrain = {"name":"neeo","iparray":config.brainip}
- /*   neeoapi.getRecipesPowerState(neeoSettings.brain)
-    .then((poweredOnKeys) => {
-      console.log('- Power state fetched, powered on recipes:', poweredOnKeys);
-  })*/
+ 
     neeoapi.startServer(neeoSettings)
       .then((result) => {
-        console.log('Driver running, you can search it on the remote control.');
+        metaLog({type:LOG_TYPE.INFO, content:"Driver running, you can search it on the neeo app."});
         if (brainDiscovered) {
             fs.writeFile(__dirname + '/config.js', JSON.stringify(config), err => {
               if (err) {
-                  console.log('Error writing configuration file', err);
-              } else {
-                  console.log('Initial configuration saved.');
-              }
+                metaLog({type:LOG_TYPE.ERROR, content:"Error writing the config file. " + err});
+                 } else {
+                  metaLog({type:LOG_TYPE.INFO, content:"Initial configuration saved"});
+                }
               resolve();
             })
           }
       })
       .catch(err => {
-          console.log('Failed running Neeo with error: ' + err);
+          metaLog({type:LOG_TYPE.ERROR, content:'Failed running Neeo with error: ' + err});
           config.brainport = Number(config.brainport)+1;
-          console.log('trying to increment port:', config.brainport);
+          metaLog({type:LOG_TYPE.ERROR, content:'trying to increment port:' + config.brainport});
           setupNeeo(true);
       });
     })
@@ -721,13 +734,7 @@ function runNeeo () {
 }
 
 function enableMQTT (cont, deviceId) {
-/*  neeoapi.getRecipes("192.168.1.26")
-  .then((poweredOnKeys) => {
- //   console.log('- Power state fetched, powered on recipes:', poweredOnKeys);
-    poweredOnKeys[1].action.powerOn("test");
-  });
-  console.log(deviceState.getAllDevices());
-*/
+
   mqttClient.subscribe(settings.mqtt_topic + cont.name + "/#", () => {});
   mqttClient.on('message', function (topic, value) {
       try {
@@ -764,27 +771,41 @@ function enableMQTT (cont, deviceId) {
           }
          }
       }
-      catch (err) {console.log('Error while parsing incomming message on: '+settings.mqtt_topic + cont.name + "/command");console.log(err)}
+      catch (err) {
+        metaLog({type:LOG_TYPE.ERROR, content:'Parsing incomming message on: '+settings.mqtt_topic + cont.name + "/command"});
+        metaLog({type:LOG_TYPE.ERROR, content:err});
+      }
   });
 }
 
 //MAIN
-//const deviceState = neeoapi.buildDeviceState(2000);
 process.chdir(__dirname);
-find().then(devices => {
-  console.log(devices)
-  discoveredDevices = devices;
-    getConfig().then(() => {
-      mqttClient = mqtt.connect('mqtt://' + settings.mqtt, {clientId:"meta"}); // Always connect to the local mqtt broker
-      mqttClient.setMaxListeners(0); //CAREFULL OF MEMORY LEAKS HERE.
-      mqttClient.on('connect', (result) => {
-      createDevices()
-      .then (() => {
-        setupNeeo().then(() => {
-        })
+
+const browser = dnssd.Browser(dnssd.all(),{resolve:true});
+browser.on('serviceUp', (service) => {
+  let tempBro = dnssd.Browser(dnssd.tcp(service.name));
+  tempBro.on('serviceUp', (service) => {
+    localDevices.push({name:service.name, fullname:service.fullname, type:service.type, domain:service.domain, host:service.host, port:service.port, addresses:service.addresses })
+    tempBro.stop();
+  });
+  tempBro.start();
+});
+
+browser.start();
+setTimeout(() => {
+  browser.stop();
+  metaLog({type:LOG_TYPE.INFO, content:localDevices});
+}, 30000);
+
+getConfig().then(() => {
+    mqttClient = mqtt.connect('mqtt://' + settings.mqtt, {clientId:"meta"}); // Always connect to the local mqtt broker
+    mqttClient.setMaxListeners(0); //CAREFULL OF MEMORY LEAKS HERE.
+    mqttClient.on('connect', (result) => {
+    createDevices()
+    .then (() => {
+      setupNeeo().then(() => {
       })
     })
   })
 })
-
 
