@@ -3,6 +3,15 @@ const variablePattern = {'pre':'$','post':''};
 const RESULT = variablePattern.pre + 'Result' + variablePattern.post;
 const BROWSEID = variablePattern.pre + 'NavigationIdentifier' + variablePattern.post;
 const MQTT = 'mqtt';
+//LOGGING SETUP AND WRAPPING
+//Disable the NEEO library console warning.
+const { metaMessage, LOG_TYPE } = require("./metaMessage");
+console.error = console.info = console.debug = console.warn = console.trace = console.dir = console.dirxml = console.group = console.groupEnd = console.time = console.timeEnd = console.assert = console.profile = function() {};
+function metaLog(message) {
+  let initMessage = { component:'directoryHelper', type:LOG_TYPE.INFO, content:'', deviceId: null };
+  let myMessage = {...initMessage, ...message}
+  return metaMessage (myMessage);
+} 
 
 class directoryHelper {
   constructor(deviceId, dirname, controller) {
@@ -53,7 +62,7 @@ class directoryHelper {
         //Take the good feeder:
         //Take the good commandset:
         let PastQueryValue = params.browseIdentifier.split("$PastQueryValue=")[1];
-        console.log('PastQueryValue' + JSON.stringify(PastQueryValue))
+        metaLog({type:LOG_TYPE.VERBOSE, content:'PastQueryValue' + JSON.stringify(PastQueryValue), deviceId:deviceId});
         params.browseIdentifier = params.browseIdentifier.split("$PastQueryValue=")[0];
         let commandSetIndex = params.browseIdentifier.split("$CommandSet=")[1];
         params.browseIdentifier = params.browseIdentifier.split("$CommandSet=")[0];
@@ -63,7 +72,7 @@ class directoryHelper {
       else if (params.history != undefined && params.history.length>0 && params.offset==0 && self.previousOffset == 0) {//case where we browse backward
         self.currentFeederIndex = self.browseHistory[params.history.length];
         if (self.currentFeederIndex == undefined) {self.currentFeederIndex = 0;}
-        console.log('current feeder' + self.currentFeederIndex)
+        metaLog({type:LOG_TYPE.VERBOSE, content:'current feeder' + self.currentFeederIndex, deviceId:deviceId});
       }
       else if ( params.offset != undefined && params.offset>0) {
         self.previousOffset = params.offset;
@@ -89,17 +98,13 @@ class directoryHelper {
     };
 
     this.fetchCurrentList = function (deviceId, allconfigs, params) {
-      console.log("params: " + JSON.stringify(params));
-      console.log("browseIdentifier: " + params.browseIdentifier);
-      console.log("actionIdentifier: " + params.actionIdentifier);
-      console.log("current feeder: " + self.currentFeederIndex);
+      metaLog({type:LOG_TYPE.VERBOSE, content:"params: " + JSON.stringify(params) + " - browseIdentifier: " + params.browseIdentifier + " - actionIdentifier: " + params.actionIdentifier + " - current feeder: " + self.currentFeederIndex, deviceId:deviceId});
       let cacheList = [];
       return new Promise(function (resolve, reject) {
         
 //        self.currentCommandResult = [];//initialise as new commands will be done now.
 
         self.fillTheList(deviceId, cacheList, allconfigs, params, 0, 0).then((cacheList) => {//cacheList, allconfigs, params, indentCommand
-            //console.log(cacheList);
             //Feed the neeo list
             let neeoList;
             neeoList = neeoapi.buildBrowseList({
@@ -159,7 +164,8 @@ class directoryHelper {
             let commandSet = allconfigs.commandset[indentCommand];
             let processedCommand = self.controller.assignTo(BROWSEID, commandSet.command, params.browseIdentifier);
             processedCommand = self.controller.vault.readVariables(processedCommand, deviceId);
-            console.log('Final processed Command:' + processedCommand);
+            metaLog({type:LOG_TYPE.VERBOSE, content:'Final processed Command:', deviceId:deviceId});
+            metaLog({type:LOG_TYPE.VERBOSE, content:processedCommand, deviceId:deviceId});
             self.controller.commandProcessor(processedCommand, commandSet.type, deviceId)
               .then((result) => {
                 rName = self.controller.vault.readVariables(commandSet.itemname, deviceId); //ensure that the item name chain has the variable interpreted (except $Result)
@@ -194,8 +200,8 @@ class directoryHelper {
                 
               })
               .catch(function (err) {
-                console.log("Fetching error: ");
-                console.log(err);
+                metaLog({type:LOG_TYPE.ERROR, content:'Fetching Error', deviceId:deviceId});
+                metaLog({type:LOG_TYPE.ERROR, content:err, deviceId:deviceId});
               });
           }
           else {
@@ -250,18 +256,17 @@ class directoryHelper {
           while (processedCommand != processedCommand.replace("$ListIndex", ListIndex)) { // Manage Index values
             processedCommand = processedCommand.replace("$ListIndex", ListIndex);
           } 
-          console.log(processedCommand);
+          metaLog({type:LOG_TYPE.VERBOSE, content:processedCommand, deviceId:deviceId});
           self.controller.commandProcessor(processedCommand, commandSet.type, deviceId)
             .then((resultC) => {
-              console.log(resultC);
           
               self.controller.queryProcessor(resultC, commandSet.queryresult, commandSet.type, deviceId)
               .then ((result) => {
-                console.log(result)
                 resolve(self.executeAllActions(deviceId, result, ListIndex, allCommandSet, indexCommand+1))
               })
               .catch ((err) => {
-                console.log("Error while parsing the command result.")
+                metaLog({type:LOG_TYPE.ERROR, content:"Error while parsing the command result.", deviceId:deviceId});
+                metaLog({type:LOG_TYPE.ERROR, content:err, deviceId:deviceId});
                 resolve(err);
               })
           })

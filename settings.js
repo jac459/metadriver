@@ -2,7 +2,7 @@ var settings =
 {
   'mqtt' : 'localhost',
   'mqtt_topic' : 'meta/',
-  'LogSeverity' : 4,
+  'LogSeverity' : "INFO",
   'drivers':
   [
     {

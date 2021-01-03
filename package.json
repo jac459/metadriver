@@ -43,7 +43,8 @@
     "wake_on_lan": "^1.0.0",
     "xml2js": "^0.4.23",
     "xmldom": "^0.3.0",
-    "xpath": "0.0.27"
+    "xpath": "0.0.27",
+    "dnssd": " ^0.4.10"
   },
   "deprecated": false,
   "description": "full customizable driver to control any device with neeo (including list and device monitoring)",
