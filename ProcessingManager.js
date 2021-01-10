@@ -10,12 +10,16 @@ const { parserXMLString, xmldom } = require("./metaController");
 //const mqtt = require('mqtt');
 const got = require('got');
 const settings = require(path.join(__dirname,'settings'));
-const { resolveCname } = require("dns");
 const { connect } = require("socket.io-client");
-//const mqttClient = mqtt.connect('mqtt://' + settings.mqtt, {clientId:"meta"}); // Always connect to the local mqtt broker
-//mqttClient.on('connect', (result) => {
-//  console.log("mqtt connected");
-//})
+//LOGGING SETUP AND WRAPPING
+//Disable the NEEO library console warning.
+const { metaMessage, LOG_TYPE } = require("./metaMessage");
+console.error = console.info = console.debug = console.warn = console.trace = console.dir = console.dirxml = console.group = console.groupEnd = console.time = console.timeEnd = console.assert = console.profile = function() {};
+function metaLog(message) {
+  let initMessage = { component:'processingManager', type:LOG_TYPE.INFO, content:'', deviceId: null };
+  let myMessage = {...initMessage, ...message}
+  return metaMessage (myMessage);
+} 
 
 //STRATEGY FOR THE COMMAND TO BE USED (HTTPGET, post, websocket, ...) New processor to be added here. This strategy mix both transport and data format (json, soap, ...)
 class ProcessingManager {
@@ -79,34 +83,32 @@ class httprestProcessor {
             resolve(response.body[0]);
           })
           .catch((err) => {
-            console.log('Post request didn\'t work : ')
-            console.log(params);
-            console.log(err);
+            metaLog({type:LOG_TYPE.ERROR, content:'Post request didn\'t work : '});
+            metaLog({type:LOG_TYPE.ERROR, content:params});
+            metaLog({type:LOG_TYPE.ERROR, content:err});
             reject(err);
           });
         }
         else if (params.command.verb == 'put') {
-          console.log('final address')
-          console.log(params.command.call)
+          metaLog({type:LOG_TYPE.VERBOSE, content:'Put http request. Final address:'});
+          metaLog({type:LOG_TYPE.VERBOSE, content:params.command.call});
           got.put(params.command.call, {json:params.command.message, responseType: 'json'})
           .then((response) => {
-       //     if (response.body[0].error) {console.log("Error in the put command : " + response.body[0].error); resolve(undefined);}
             resolve(response.body[0]);
           })
           .catch((err) => {
-            console.log('Put request didn\'t work : ')
-            console.log(params);
-            console.log(err);
+            metaLog({type:LOG_TYPE.ERROR, content:'Put request didn\'t work : '});
+            metaLog({type:LOG_TYPE.ERROR, content:params});
+            metaLog({type:LOG_TYPE.ERROR, content:err});
             reject(err);
           });
         }
         else if (params.command.verb == 'get') {
           got(params.command.call)
           .then(function (result) {
-            console.log("before query result")
-            console.log(result.body.length)
-            console.log(result.body)
-          
+            metaLog({type:LOG_TYPE.VERBOSE, content:'result of Request Get before query result, request size and content'});
+            metaLog({type:LOG_TYPE.VERBOSE, content:result.body.length});
+            metaLog({type:LOG_TYPE.VERBOSE, content:result.body});
             resolve(result.body);
           })
           .catch((err) => {
@@ -115,8 +117,8 @@ class httprestProcessor {
         }
       }
       catch (err) {
-        console.log('Meta Error during rest command processing.')
-        console.log(err)
+        metaLog({type:LOG_TYPE.ERROR, content:'Meta Error during the rest command processing'});
+        metaLog({type:LOG_TYPE.ERROR, content:err});
       }
      });
     }
@@ -124,15 +126,12 @@ class httprestProcessor {
       return new Promise(function (resolve, reject) {
         if (params.query) {
           try {
-            console.log('QUERY DISPLAY')
-            console.log(params)
-            console.log(JSONPath(params.query, params.data))
+            metaLog({type:LOG_TYPE.VERBOSE, content:'Rest command query processing, parameters, result JSON path: '+ JSONPath(params.query, params.data)});
             if (typeof (params.data) == 'string') { params.data = JSON.parse(params.data); }
             resolve(JSONPath(params.query, params.data));
           }
           catch (err) {
-            console.log('error ' + err + ' in JSONPATH ' + params.query + ' processing of :');
-            console.log(params.data);
+            metaLog({type:LOG_TYPE.ERROR, content:'HTTP Error ' + err + ' in JSONPATH ' + params.query + ' processing of :' + params.data});
           }
         }
         else { resolve(params.data); }
@@ -151,7 +150,8 @@ class httprestProcessor {
             //}
             resolve('');
           })
-          .catch((err) => { console.log(err); });
+          .catch((err) => { metaLog({type:LOG_TYPE.ERROR, content:err});
+; });
       }, (params.listener.pooltime ? params.listener.pooltime : 1000));
       if (params.listener.poolduration && (params.listener.poolduration != '')) {
         setTimeout(() => {
@@ -193,9 +193,8 @@ class httpgetProcessor {
           resolve(JSONPath(params.query, params.data));
         }
         catch (err) {
-          console.log('error ' + err + ' in JSONPATH ' + params.query + ' processing of :');
-          console.log(params.data);
-      }
+          metaLog({type:LOG_TYPE.ERROR, content:err});
+        }
       }
       else { resolve(params.data); }
     });
@@ -214,18 +213,20 @@ class httpgetProcessor {
             }
             resolve('');
           })
-          .catch((err) => { console.log(err); });
-      }, (params.listener.pooltime ? params.listener.pooltime : 1000));
-      if (params.listener.poolduration && (params.listener.poolduration != '')) {
-        setTimeout(() => {
-          clearInterval(params.listener.timer);
-        }, params.listener.poolduration);
-      }
-    });
-  }
-  stopListen(params) {
-    clearInterval(params.timer);
-  }
+          .catch((err) => { 
+            metaLog({type:LOG_TYPE.ERROR, content:err});
+           });
+        }, (params.listener.pooltime ? params.listener.pooltime : 1000));
+        if (params.listener.poolduration && (params.listener.poolduration != '')) {
+          setTimeout(() => {
+            clearInterval(params.listener.timer);
+          }, params.listener.poolduration);
+        }
+      });
+    }
+    stopListen(params) {
+      clearInterval(params.timer);
+    }
 }
 exports.httpgetProcessor = httpgetProcessor;
 class webSocketProcessor {
@@ -239,8 +240,8 @@ class webSocketProcessor {
         resolve(connection);
       }
       catch (err) {
-        console.log('Error while intenting connection to the target device.');
-        console.log(err);
+        metaLog({type:LOG_TYPE.ERROR, content:'Error while intenting connection to the target device.'});
+        metaLog({type:LOG_TYPE.ERROR, content:err});
       }
     }); //to avoid opening multiple
   }
@@ -264,8 +265,7 @@ class webSocketProcessor {
         }
       }
       catch (err) {
-        console.log('error ' + err + ' in JSONPATH ' + params.query + ' processing of :');
-        console.log(params.data);
+        metaLog({type:LOG_TYPE.ERROR, content:err});
       }
     });
   }
@@ -313,11 +313,12 @@ class jsontcpProcessor {
       let mySocket = rpc.Client.$create(1705, connection.descriptor, null, null);
       mySocket.connectSocket(function (err, conn) {
         if (err) {
-          console.log('Error connecting to the target device.');
-          console.log(err);
+          metaLog({type:LOG_TYPE.ERROR, content:'Error connecting to the target device.'});
+          metaLog({type:LOG_TYPE.ERROR, content:err});
         }
         if (conn) {
-          connection.connector = conn; console.log('connection to the device successful');
+          connection.connector = conn; 
+          metaLog({type:LOG_TYPE.VERBOSE, content:'Connection to the JSONTCP device successful'});
           resolve(connection);
         }
       });
@@ -330,7 +331,9 @@ class jsontcpProcessor {
 
       if (params.command.call) {
         params.connection.connector.call(params.command.call, params.command.message, function (err, result) {
-          if (err) { console.log(err); }
+          if (err) { 
+            metaLog({type:LOG_TYPE.ERROR, content:err});
+          }
           resolve(result);
         });
 
@@ -348,7 +351,7 @@ class jsontcpProcessor {
         }
       }
       catch (err) {
-        console.log('error ' + err + ' in JSONPATH ' + params.query + ' processing of :' + params.data);
+        metaLog({type:LOG_TYPE.ERROR, content:err});
       }
     });
   }
@@ -359,9 +362,7 @@ class jsontcpProcessor {
     });
   }
   stopListen(params) {
-    console.log('Stop listening to the device.');
-    //    TODO stop listening
-    //    listener.io.disconnect(listener.socket);
+    metaLog({type:LOG_TYPE.INFO, content:'Stop listening to the device.'});
   }
 }
 exports.jsontcpProcessor = jsontcpProcessor;
@@ -380,7 +381,7 @@ function convertXMLTable2JSON(TableXML, indent, TableJSON) {
 
       }
       else {
-        console.log(err);
+        metaLog({type:LOG_TYPE.ERROR, content:err});
       }
     });
   });
@@ -404,7 +405,6 @@ class httpgetSoapProcessor {
     return new Promise(function (resolve, reject) {
       if (params.query) {
         try {
-          //console.log('RAW XPATH Return elt 0: ' + data);
           var doc = new xmldom().parseFromString(params.data);
           //console.log('RAW XPATH Return elt 0.1: ' + doc);
           //console.log('RAW XPATH Return elt 0.1: ' + query);
@@ -413,13 +413,13 @@ class httpgetSoapProcessor {
           //console.log('RAW XPATH Return elt 2: ' + nodes.toString());
           let JSonResult = [];
           convertXMLTable2JSON(nodes, 0, JSonResult).then((result) => {
-            console.log('Result of conversion +> ');
-            console.log(result);
+   //         console.log('Result of conversion +> ');
+     //       console.log(result);
             resolve(result);
           });
         }
         catch (err) {
-          console.log('error ' + err + ' in XPATH ' + params.query + ' processing of :' + params.data);
+          metaLog({type:LOG_TYPE.ERROR, content:err});
         }
       }
       else { resolve(params.data); }
@@ -444,7 +444,7 @@ class httppostProcessor {
           .then(function (result) {
             resolve(result.data);
           })
-          .catch((err) => { console.log("Error in the post command: "); console.log(err); reject(err); });
+          .catch((err) => {  metaLog({type:LOG_TYPE.ERROR, content:err});reject(err); });
       }
       else { reject('no post command provided or improper format'); }
     });
@@ -455,7 +455,7 @@ class httppostProcessor {
         resolve(JSONPath(params.query, JSON.parse(params.data)));
       }
       catch (err) {
-        console.log('error ' + err + ' in JSONPATH ' + params.query + ' processing of :' + params.data);
+        metaLog({type:LOG_TYPE.ERROR, content:err});
       }
     });
   }
@@ -495,7 +495,7 @@ class staticProcessor {
         }
       }
       catch {
-        console.log('Value is not JSON after processed by query: ' + params.query + ' returning as text:' + params.data);
+        metaLog({type:LOG_TYPE.INFO, content:'Value is not JSON after processed by query: ' + params.query + ' returning as text:' + params.data});
         resolve(params.data)
       }
     });
@@ -545,9 +545,9 @@ class cliProcessor {
           if (params.query!="") {
             let literal = params.query.slice(params.query.indexOf('/')+1, params.query.lastIndexOf('/'));
             let modifier = params.query.slice(params.query.lastIndexOf('/')+1);
-            console.log("RegEx literal : " + literal + ", regEx modifier : " + modifier);
+            metaLog({type:LOG_TYPE.VERBOSE, content:"RegEx literal : " + literal + ", regEx modifier : " + modifier});
             let regularEx = new RegExp(literal, modifier);
-            let result = params.data.toString().match(regularEx);
+           // let result = params.data.toString().match(regularEx);
            // if (result != null) {
               resolve(params.data.toString().match(regularEx));
            // }
@@ -562,7 +562,8 @@ class cliProcessor {
         else {resolve();}
       }
       catch {
-        console.log('error in string.match regex :' + params.query + ' processing of :' + params.data);
+        metaLog({type:LOG_TYPE.ERROR, content:'error in string.match regex :' + params.query + ' processing of :' + params.data});
+        metaLog({type:LOG_TYPE.ERROR, content:err});
       }
     });
   }
@@ -582,17 +583,15 @@ class replProcessor {
         resolve(connection);
       }
       catch (err) {
-        console.log('Error while intenting connection to the target device.');
-        console.log(err);
+        metaLog({type:LOG_TYPE.ERROR, content:'Error while intenting connection to the target device.'});
+        metaLog({type:LOG_TYPE.ERROR, content:err});
       }
     });
   }
   process(params) {
     return new Promise(function (resolve, reject) {
       if (params.interactiveCLIProcess) {
-        console.log('call interactive');
         params.interactiveCLIProcess.stdin.write(params.command + '\n');
-        console.log('call interactive done');
         resolve('Finished ' + params.command);
       }
     });
@@ -604,7 +603,7 @@ class replProcessor {
         resolve(params.data.split(params.query));
       }
       catch {
-        console.log('error in string.search regex :' + params.query + ' processing of :' + params.data);
+        metaLog({type:LOG_TYPE.ERROR, content:err});
       }
     });
   }
@@ -623,16 +622,33 @@ class mqttProcessor {
   } 
   process (params) {
     return new Promise(function (resolve, reject) {
-      console.log(params.command)
+      metaLog({type:LOG_TYPE.VERBOSE, content:'MQTT Processing'});
+      metaLog({type:LOG_TYPE.VERBOSE, content:params.command});
       params.command = JSON.parse(params.command);
-      console.log('MQTT publishing ' + params.command.message + ' to ' + settings.mqtt_topic + params.command.topic + ' with options : ' + params.command.options);
-      try {
-        params.connection.connector.publish(settings.mqtt_topic + params.command.topic, params.command.message, (params.command.options ? JSON.parse(params.command.options) : ""));
-        resolve('');
+      if (params.command.message) {// here we publish into a topic
+        metaLog({type:LOG_TYPE.VERBOSE, content:'MQTT publishing ' + params.command.message + ' to ' + settings.mqtt_topic + params.command.topic + ' with options : ' + params.command.options});
+        try {
+          params.connection.connector.publish(settings.mqtt_topic + params.command.topic, params.command.message, (params.command.options ? JSON.parse(params.command.options) : ""));
+          resolve('');
+        }
+        catch (err) {
+          metaLog({type:LOG_TYPE.ERROR, content:'Meta found an error processing the MQTT command'});
+          metaLog({type:LOG_TYPE.ERROR, content:err});
+        }
       }
-      catch (err) {
-        console.log('Meta found an error processing the MQTT command');
-        console.log(err);
+      else if (params.command.topic) {//here we get a value from a topic
+        params.connection.connector.subscribe(params.command.topic, (result) => {metaLog({type:LOG_TYPE.VERBOSE, content:'Subscription MQTT : '+ result})});
+        params.connection.connector.on('message', function (topic, message) {
+          if (topic == params.command.topic) {
+            metaLog({type:LOG_TYPE.VERBOSE, content:'message received : ' + message.toString()});
+            params.connection.connector.unsubscribe(params.command.topic);
+            resolve(message.toString());
+          }
+        });
+      }
+      else {
+        metaLog({type:LOG_TYPE.ERROR, content:"Meta Error: Your command MQTT seems incorrect"});
+        metaLog({type:LOG_TYPE.ERROR, content:err});
       }
     })
   }
@@ -644,8 +660,8 @@ class mqttProcessor {
           resolve(JSONPath(params.query, params.data));
         }
         catch (err) {
-          console.log('error ' + err + ' in JSONPATH ' + params.query + ' processing of :');
-          console.log(params.data);
+          metaLog({type:LOG_TYPE.ERROR, content:'error ' + err + ' in JSONPATH ' + params.query + ' processing of :'});
+          metaLog({type:LOG_TYPE.ERROR, content:params.data});
         }
       }
       else { resolve(params.data); }
@@ -653,10 +669,10 @@ class mqttProcessor {
   }
   startListen(params, deviceId) {
     return new Promise(function (resolve, reject) {
-      params.connection.connector.subscribe(params.command, (result) => {console.log("Subscription MQTT - " + result); });
+      params.connection.connector.subscribe(params.command, (result) => {metaLog({type:LOG_TYPE.VERBOSE, content:'Subscription MQTT : '+ result})});
       params.connection.connector.on('message', function (topic, message) {
         if (topic == params.command) {
-          console.log('message received : ' + message.toString())
+          metaLog({type:LOG_TYPE.VERBOSE, content:'message received : ' + message.toString()});
           params._listenCallback(message.toString(), params.listener, deviceId);
         }
       });
@@ -664,9 +680,7 @@ class mqttProcessor {
     });
   }
   stopListen(params) {
-    console.log('Stop listening to the device.');
-    //    TODO stop listening
-    //    listener.io.disconnect(listener.socket);
+    metaLog({type:LOG_TYPE.INFO, content:'Stop listening to the MQTT device.'});
   };
   wrapUp(connection) {
     return new Promise(function (resolve, reject) {

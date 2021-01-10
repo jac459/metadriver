@@ -3,7 +3,17 @@ const fs = require('fs');
 const { templateSettings } = require('lodash');
 const INTERNALNAMESEPARATOR = '_@_';
 const variablePattern = {'pre':'$','post':''};
+const meta = require(path.join(__dirname,'meta'));
 
+//LOGGING SETUP AND WRAPPING
+//Disable the NEEO library console warning.
+const { metaMessage, LOG_TYPE } = require("./metaMessage");
+console.error = console.info = console.debug = console.warn = console.trace = console.dir = console.dirxml = console.group = console.groupEnd = console.time = console.timeEnd = console.assert = console.profile = function() {};
+function metaLog(message) {
+  let initMessage = { component:'variablesVault', type:LOG_TYPE.INFO, content:'', deviceId: null };
+  let myMessage = {...initMessage, ...message}
+  return metaMessage (myMessage);
+} 
 
 function toInternalName(name, deviceId) {
   return (deviceId + INTERNALNAMESEPARATOR + name);
@@ -63,17 +73,19 @@ class variablesVault {
     this.addObserver = function(name, theFunction, deviceId, componentRegistering) { // who listen to variable changes.
       try {
         let internalVariableName = toInternalName(name, deviceId);
+        metaLog({type:LOG_TYPE.VERBOSE, content:"New observer for : " + internalVariableName, deviceId:deviceId});
         if (name != undefined && name != '' && theFunction != undefined && theFunction) {
           let observersList = self.variables.find(elt => {return elt.name == internalVariableName}).observers; 
           if (observersList.findIndex(func => {return (func.observer == componentRegistering)}) < 0) {//to avoid adding multiple times an oberver
             observersList.push({"observer":componentRegistering, "theFunction": theFunction});
+            metaLog({type:LOG_TYPE.VERBOSE, content:"New observer : " + componentRegistering + " " + name, deviceId:deviceId});
           }
         }
       }
       catch (err) {
-        console.log("It seems that you haven\'t created the variable yet, you can't observe it.");
-        console.log(err)
-      }
+        metaLog({type:LOG_TYPE.WARNING, content:"It seems that you haven\'t created the variable yet, you can't observe it.", deviceId:deviceId});
+        metaLog({type:LOG_TYPE.WARNING, content:err, deviceId:deviceId});
+       }
     }
 
     this.getValue = function(name, deviceId) {
@@ -88,9 +100,12 @@ class variablesVault {
     }
 
     this.writeVariable = function(name, value, deviceId) {//deviceId necessary as push to components.
+      metaLog({type:LOG_TYPE.VERBOSE, content:"Writing in variable: " + name + " value: " + value,deviceId:deviceId});
       let internalVariableName = toInternalName(name, deviceId);
       let foundVar = self.variables.find(elt => {return elt.name == internalVariableName});
-      if (!foundVar) {console.log("The variable you are requesting doesn\'t seems to be properly declared.")}
+      if (!foundVar) {
+        metaLog({type:LOG_TYPE.WARNING, content:"The variable you are requesting doesn\'t seems to be properly declared: " + name,deviceId:deviceId});
+      }
       if (foundVar) {
         //if (!(foundVar.value === value)) {// If the value changed.
           foundVar.value = value; //Write value here
@@ -99,11 +114,18 @@ class variablesVault {
           });
         //}
       }
-      else {console.log("Variable " + name + " with device " + deviceId + " not found. Can't assign value.")}
+      else {
+        metaLog({type:LOG_TYPE.WARNING, content:"Variable " + name + " with device " + deviceId + " not found. Can't assign value.", deviceId:deviceId});
+      }
     }
 
     this.readVariables = function(inputChain, deviceId) { //replace in the input chain, all the variables found of the same deviceId
       let preparedResult = inputChain;
+      if (inputChain && typeof inputChain === 'string') {
+        preparedResult = preparedResult.replace(/\$LocalDevices/g, JSON.stringify(meta.localDevices));
+        preparedResult = preparedResult.replace(/\$NeeoBrainIP/g, JSON.stringify(meta.neeoBrainIp));
+      }
+      
       if (typeof(preparedResult) == 'object') {
         preparedResult = JSON.stringify(preparedResult);
       }
@@ -146,18 +168,18 @@ class variablesVault {
                   resolve(JSON.parse(data));
                 }
                 catch (err) {
-                  console.log('Your Datastore ' + self.dataStore + ' doesn\'t seems to have a good JSON format')
-                  console.log(err);
+                  metaLog({type:LOG_TYPE.ERROR, content:'Your Datastore ' + self.dataStore + ' doesn\'t seems to have a good JSON format'});
+                  metaLog({type:LOG_TYPE.ERROR, content:err});
                 }
               }
               else {resolve(undefined);}
               if (err) {
                 if (err.code == 'ENOENT') {
-                  console.log('This device has no dataStore.')
+                  metaLog({type:LOG_TYPE.INFO, content:'This device has no dataStore.'});
                 }
                 else {
-                  console.log('Error accessing the datastore file.')
-                  console.log(err)
+                  metaLog({type:LOG_TYPE.ERROR, content:'Error accessing the datastore file.'});
+                  metaLog({type:LOG_TYPE.ERROR, content:err});
                 }
               }
             })
@@ -167,8 +189,8 @@ class variablesVault {
           }
         }
         catch (err) {
-          console.log("Could not access the datastore.")
-          console.log(err)
+          metaLog({type:LOG_TYPE.ERROR, content:"Could not access the datastore."});
+          metaLog({type:LOG_TYPE.ERROR, content:err});
         }
       })
     }
@@ -185,10 +207,10 @@ class variablesVault {
             });
           fs.writeFile(self.dataStore, JSON.stringify(tempDS), err => {
             if (err) {
-              console.log('Error writing in the datastore');
-              console.log(err);
+              metaLog({type:LOG_TYPE.ERROR, content:"Error writing in the datastore"});
+              metaLog({type:LOG_TYPE.ERROR, content:err});
             } else {
-              console.log("DataStore persisted");
+              metaLog({type:LOG_TYPE.INFO, content:"Datastore Persisted"});
             }
               resolve();
             })

@@ -15,9 +15,9 @@
     "Zone" : {"label":"My timezone", "listen":"MyZone"}
   },
   "listeners" : {
-    "Time" : {"type":"static", "command":"", "pooltime":"3000", "poolduration":"", "queryresult" : "$.", 
+    "Time" : {"type":"static", "command":"", "pooltime":"10000", "poolduration":"", "queryresult" : "$.", 
       "evalwrite" : [ 
-           {"variable" : "MyTime", "value" : "DYNAMIK let d = new Date(Date.now() +Number(\"$MyOffset\")); d.toDateString() + \" \" + \"--\".repeat(Math.round(d.getHours()*0.5))+(d.getHours()<10?(\"0\"+d.getHours()):d.getHours())+\"--\".repeat(Math.round((24-d.getHours())*0.5))+ \"|\" + \"--\".repeat(Math.round(d.getMinutes()/3))+(d.getMinutes()<10?(\"0\"+d.getMinutes()):d.getMinutes())+\"--\".repeat(Math.round((60-d.getMinutes())/3)) + \" \" + \"||\".repeat(Math.round(d.getSeconds()*1.7))+\"--\".repeat(Math.round((60-d.getSeconds())*0.6))"}
+           {"variable" : "MyTime", "value" : "DYNAMIK let d = new Date(Date.now() +Number(\"$MyOffset\")); d.toDateString() + \" \" + \"--\".repeat(Math.round(d.getHours()*0.5))+(d.getHours()<10?(\"0\"+d.getHours()):d.getHours())+\"--\".repeat(Math.round((24-d.getHours())*0.5))+ \"|\" + \"--\".repeat(Math.round(d.getMinutes()/3))+(d.getMinutes()<10?(\"0\"+d.getMinutes()):d.getMinutes())+\"--\".repeat(Math.round((60-d.getMinutes())/3))"}
         ]
     }
   },

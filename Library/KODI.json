@@ -1,7 +1,7 @@
 {"name":"Kodi player",
     "manufacturer":"Kodi",
     "version":1,
-    "type":"MEDIAPLAYER",
+    "type":"AVRECEIVER",
     "buttons":{
        "POWER ON": {"label":"", "type":"static", "command":""},
        "POWER OFF": {"label":"", "type":"static", "command":""},
@@ -26,5 +26,11 @@
        "MENU": {"label":"", "type":"static", "command":""},
        "SELECT": {"label":"", "type":"static", "command":""},
        "MUTE TOGGLE": {"label":"", "type":"static", "command":""}
-    }
-  }
+    },
+    "directories":{
+      "MOVIES": {"label":"", "feeders": {
+              "Inputs":{"label":"", "commandset": [{"type":"mqtt", "command":"{\"topic\":\"meta/kodi\"}", "queryresult":"$.result.movies.*", "itemname":"DYNAMIK JSON.parse(\"$Result\").label"}]}
+           }
+      }
+  }  
+}

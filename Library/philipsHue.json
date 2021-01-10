@@ -2,9 +2,8 @@
   "manufacturer":"Philips",
   "type":"LIGHT",
   "version":6,
-  "discovereddevice":{"mac":["00:17:88", "EC:B5:FA"]},
   "buttons":{
-    "__PREINIT": {"label":"", "type":"static", "command":"", "queryresult":"$.*", "evalwrite":[{"variable":"RegistrationCode","value":"$DiscoveredDeviceIP"}]}
+    "__PREINIT": {"label":"", "type":"static", "command":"[$LocalDevices]", "queryresult":"$.*", "evalwrite":[{"variable":"RegistrationCode","value":"DYNAMIK JSON.parse(\"$Result\").find(elt => elt.name.startsWith(\"Philips Hue \")).addresses[0]"}]}
   },
   "register":{
     "registertype": "SECURITY_CODE",

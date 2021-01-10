@@ -2,21 +2,11 @@
   "manufacturer":"Yamaha",
   "type":"AVRECEIVER",
   "version":6,
-  "discovereddevice":{"mac":["68:9e:19"]},
+  "variables":{
+    "YamahaIp":""
+  },
   "buttons":{
-    "__PREINIT": {"label":"", "type":"static", "command":"", "queryresult":"$.*", "evalwrite":[{"variable":"RegistrationCode","value":"$DiscoveredDeviceIP"}]}
-  },
-  "register":{
-    "registertype": "SECURITY_CODE",
-    "registerheadertext": "Yamaha Network Received",
-    "registerdescription": "Please enter the IP address of your device.",
-    "preregistrationcommand":{"type":"http-get", "command":"http://$RegistrationCode/YamahaExtendedControl/v1/system/getDeviceInfo", "queryresult":"$.response_code", "evalwrite":[{"variable":"YamahaIp","value":"$RegistrationCode"}, {"variable":"IsRegistered","value":"DYNAMIK ($Result == 0) ? true : false"}]},
-    "registrationcommand":{"type":"http-get", "command":"http://$RegistrationCode/YamahaExtendedControl/v1/system/getDeviceInfo", "queryresult":"$.response_code", "evalwrite":[{"variable":"YamahaIp","value":"$RegistrationCode"}, {"variable":"IsRegistered","value":"DYNAMIK ($Result == 0) ? true : false"}]}
-  },
-  "persistedvariables":{
-    "RegistrationCode":"",
-    "YamahaIp":"",
-    "IsRegistered":""
+    "__PREINIT": {"label":"", "type":"static", "command":"$LocalDevices", "queryresult":"$[?(@.fullname=='Hometheater._http._tcp.local.')]", "evalwrite":[{"variable":"YamahaIp","value":"DYNAMIK JSON.parse(\"$Result\").addresses[0]"}]}
   },
   "discover":{
     "welcomeheadertext":"Yamaha Network Receiver",
