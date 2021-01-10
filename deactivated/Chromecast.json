@@ -10,7 +10,7 @@
   "template" : {
     "name":"Chromecast", 
     "dynamicname":"DYNAMIK_INST_START DYNAMIK JSON.parse(\"$Result\").name DYNAMIK_INST_END",
-    "dynamicid":"DYNAMIK_INST_START DYNAMIK JSON.parse(\"$Result\").addresses[0] DYNAMIK_INST_END",
+    "dynamicid":"DYNAMIK_INST_START DYNAMIK JSON.parse(\"$Result\").addresses[0] + \" - \" + JSON.parse(\"$Result\").name DYNAMIK_INST_END",
     "manufacturer":"Google",
     "version":15,
     "type":"Audio",
@@ -38,8 +38,7 @@
       "Connector" : {"label":"CATT <=> MQTT", "listen":"Connector", "evalwrite":[{"variable":"Connector", "value":"DYNAMIK (\"$Connector\" == \"true\") ? \"false\":\"true\""}]}
     },
     "sliders":{
-      "SEEK": {"label":"Seek", "unit" : "%", "listen" : "Seek", "evaldo":[{"test":"DYNAMIK $Connector", "then":"__SEEK_MQTT", "or":"__SEEK_CATT"}]},
-      "VOLUME": {"label":"Volume", "unit" : "db", "listen" : "VolumePlayed", "evaldo":[{"test":true, "then":"__VOLUMESET", "or":""}]}
+      "VOLUME": {"label":"Volume", "unit" : "db", "listen" : "VolumePlayed"}
     },
     "buttons":{
       "__VOLUMESET": {"label":"", "type":"static", "command":""},
@@ -47,17 +46,10 @@
       "CLEANUP": {"label": "", "type":"static", "command":""},
       "POWER ON": {"label":"", "type":"static", "command":"", "evaldo":[{"test":true,"then":"INITIALISE", "or":""}]},
       "POWER OFF": {"label":"", "type":"static", "command":"", "evaldo":[{"test":true,"then":"CLEANUP", "or":""}]},
-      "VOLUME UP": {"label":"", "type":"static", "command":"", "evalwrite":[{"variable":"VolumePlayed","value":"DYNAMIK (Number($VolumePlayed)<95)?Number($VolumePlayed)+5:100"}], "evaldo":[{"test":true, "then":"__VOLUMESET", "or":""}]},
-      "VOLUME DOWN": {"label":"", "type":"static", "command":"", "evalwrite":[{"variable":"VolumePlayed","value":"DYNAMIK (Number($VolumePlayed)>5)?Number($VolumePlayed)-5:0"}], "evaldo":[{"test":true, "then":"__VOLUMESET", "or":""}]},
-      "__STATUS_MQTT": {"label":"", "type":"mqtt", "command":"{\"topic\":\"Chromecast/command\", \"message\":\"{\\\"ip\\\":\\\"$MyChromecastIp\\\", \\\"status\\\":\\\"true\\\"}\"}", "queryresult":""},
-      "__SEEK_CATT": {"label":"", "type":"cli", "command":"catt -d $MyChromecastIp seek $Seek", "queryresult":"", "evalwrite":[{"variable":"Status","value":"$Result"}]},
-      "__SEEK_MQTT": {"label":"", "type":"mqtt", "command":"{\"topic\":\"Chromecast/command\", \"message\":\"{\\\"ip\\\":\\\"$MyChromecastIp\\\", \\\"contentType\\\":\\\"audio/mp3\\\", \\\"url\\\":\\\"$MusicURI\\\", \\\"seek\\\":\\\"$Seek\\\"}\"}", "queryresult":"", "evalwrite":[{"variable":"Status","value":"$Result"}]},
-      "STOP": {"label":"", "type":"static", "command":"", "queryresult":"", "evaldo":[{"test":"DYNAMIK $Connector", "then":"__STOP_MQTT", "or":"__STOP_CATT"}]},
-      "__STOP_CATT": {"label":"", "type":"cli", "command":"catt -d $MyChromecastIp stop", "queryresult":"", "evalwrite":[{"variable":"Status","value":"$Result"}]},
-      "__STOP_MQTT": {"label":"", "type":"mqtt", "command":"{\"topic\":\"Chromecast/command\", \"message\":\"{\\\"ip\\\":\\\"$MyChromecastIp\\\", \\\"contentType\\\":\\\"audio/mp3\\\"}\"}", "queryresult":"", "evalwrite":[{"variable":"Status","value":"$Result"}]},
+      "VOLUME UP": {"label":"", "type":"static", "command":"", "evalwrite":[{"variable":"VolumePlayed","value":"DYNAMIK (Number($VolumePlayed)<95)?Number($VolumePlayed)+5:100"}]},
+      "VOLUME DOWN": {"label":"", "type":"static", "command":"", "evalwrite":[{"variable":"VolumePlayed","value":"DYNAMIK (Number($VolumePlayed)>5)?Number($VolumePlayed)-5:0"}]},
+       "STOP": {"label":"", "type":"static", "command":"", "queryresult":"", "evaldo":[{"test":"DYNAMIK $Connector", "then":"__STOP_MQTT", "or":"__STOP_CATT"}]},
       "PLAY": {"label":"", "type":"static", "command":"", "queryresult":"", "evaldo":[{"test":"DYNAMIK $Connector", "then":"__PLAY_MQTT", "or":"__PLAY_CATT"}]},
-      "__PLAY_CATT": {"label":"", "type":"cli", "command":"catt -d $MyChromecastIp cast $MusicURI", "queryresult":"", "evalwrite":[{"variable":"Status","value":"$Result"}]},
-      "__PLAY_MQTT": {"label":"", "type":"mqtt", "command":"{\"topic\":\"Chromecast/command\", \"message\":\"{\\\"ip\\\":\\\"$MyChromecastIp\\\", \\\"contentType\\\":\\\"audio/mp3\\\", \\\"url\\\":\\\"$MusicURI\\\"}\"}", "queryresult":"", "evalwrite":[{"variable":"Status","value":"$Result"}]}
      }
   }
 }
