@@ -30,7 +30,18 @@ The platform as build provides the following key features:
 
 #### Latest update
 
-Current version is v1.0.4
+Upcoming v1.0.8 #Creator Edition 
+
+- Vastly improved discovery with mDNS technology allowing to detect softwares as well as hardware (Kodi, Spotify, Chromecast, ...)
+- Improved multibrain management
+- Largely improved log for better debugging when creating new driver (part 1)
+- Braon installer Install Python3! (Great to enable some complex drivers like broadlink)
+If time allows:
+- improved log part 2
+- Imitial Kodi driver? (To he confirmed by Ton)
+- Imitial Broadlimk support
+
+Current version is v1.0.7
 
 - Full Discovery feature allowing to automatically discover the IP of your devices.
 - Enhanced support for HTTP-REST (incl. PUT) 
@@ -41,7 +52,7 @@ Current version is v1.0.4
 - Refined resource management for discovered devices. 
 
 ##### known bugs and limitations
-- known so far.
+- none so far.
 
 Version 0.8.1 brings some bug fixes as well as:
 - Architecture refactoring with creation of a Variable Vault (centralized)
