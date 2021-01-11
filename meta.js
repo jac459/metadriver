@@ -13,13 +13,14 @@ const DEFAULT = 'default'; //NEEO SDK deviceId default value
 const mqtt = require('mqtt');
 const { metaMessage, LOG_TYPE, initialiseLogComponents, initialiseLogSeverity } = require("./metaMessage");
 
-var config = {brainip : '', brainport : ''};
+config = [{brainip : '', brainport : ''}];
+function returnBrainIp() { return config.brainip;}
 var brainDiscovered = false;
 var brainConsoleGivenIP = undefined;
 var driverTable = [];
 var localDevices = [];
 exports.localDevices = localDevices;
-exports.neeoBrainIp = config.brainip;
+exports.neeoBrainIp = returnBrainIp;
 var mqttClient;
 
 //LOGGING SETUP AND WRAPPING
@@ -661,7 +662,7 @@ function discoverBrain() {
   return new Promise(function (resolve, reject) {
     metaLog({type:LOG_TYPE.INFO, content:"Trying to discover a NEEO Brain..."});
  
-     brainDiscovered = true;
+    brainDiscovered = true;
     neeoapi.discoverOneBrain()
       .then((brain) => {
         metaLog({type:LOG_TYPE.INFO, content:"Brain Discovered at IP : " + brain.iparray.toString()});
@@ -712,7 +713,6 @@ function runNeeo () {
     metaLog({type:LOG_TYPE.INFO, content:"Current directory: " + __dirname});
     metaLog({type:LOG_TYPE.INFO, content:"Trying to start the meta."});
     
-    theBrain = {"name":"neeo","iparray":config.brainip}
     neeoapi.startServer(neeoSettings)
       .then((result) => {
         metaLog({type:LOG_TYPE.INFO, content:"Driver running, you can search it on the neeo app."});

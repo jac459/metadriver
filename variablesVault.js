@@ -123,7 +123,7 @@ class variablesVault {
       let preparedResult = inputChain;
       if (inputChain && typeof inputChain === 'string') {
         preparedResult = preparedResult.replace(/\$LocalDevices/g, JSON.stringify(meta.localDevices));
-        preparedResult = preparedResult.replace(/\$NeeoBrainIP/g, JSON.stringify(meta.neeoBrainIp));
+        preparedResult = preparedResult.replace(/\$NeeoBrainIP/g, meta.neeoBrainIp());
       }
       
       if (typeof(preparedResult) == 'object') {

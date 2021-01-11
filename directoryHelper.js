@@ -214,6 +214,7 @@ class directoryHelper {
 
     this.handleAction = function (deviceId, params) {
       return new Promise(function (resolve, reject) {
+        metaLog({type:LOG_TYPE.VERBOSE, content:params, deviceId:deviceId});
         self.handleCurrentAction(deviceId, params)
           .then((action) => { resolve(action); })
           .catch((err) => { reject(err); });
