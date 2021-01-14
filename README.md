@@ -2,6 +2,10 @@ As I am working quite a lot on this driver nowadays, don't hesitate to supporte 
 
 https://www.paypal.me/jac459
 
+Now Ton is highly contributing to the project and should place a paypal here:
+
+{{PAYPAL account to go ther}}
+
 # metadriver
 Programmable driver for NEEO to control any device and generate complex integration.
 Examples of integration:
@@ -25,22 +29,24 @@ The platform as build provides the following key features:
 - development platform allowing fast creation of complex Neeo drivers
 - capacity to install/uninstall drivers directly from your remote
 - built-in super rich interoperability platform to allow easy connection to any of your devices (TV, Avr, media player, lights, ...)
-- Full intefrstion with HA, node-red, home assistant through MQTT.
+- Full interation with HA, node-red, home assistant through MQTT.
 - meta is bundled natively with Mqtt broker and node-red in order to allow easy new drivers creation relying on node-red rich integration library.
 
 #### Latest update
 
-Upcoming v1.0.8 #Creator Edition 
+v1.1.7 #Creator Edition 
 
 - Vastly improved discovery with mDNS technology allowing to detect softwares as well as hardware (Kodi, Spotify, Chromecast, ...)
 - Improved multibrain management
-- Largely improved log for better debugging when creating new driver (part 1)
-- Braon installer Install Python3! (Great to enable some complex drivers like broadlink)
-If time allows:
-- improved log part 2
-- Imitial Kodi driver? (To he confirmed by Ton)
-- Imitial Broadlimk support
-
+- Largely improved log for better debugging when creating new driver
+- Brain installer Install Python3! (Great to enable some complex drivers like broadlink)
+- Bundled drivers:
+  - Denon AVR
+  - Samsung TV
+  - Broadlink TV (with learn function)
+  - Chromecast 
+  - Neeo Brain IR Feature for TV (with basic learn function)
+  
 Current version is v1.0.7
 
 - Full Discovery feature allowing to automatically discover the IP of your devices.
