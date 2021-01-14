@@ -628,7 +628,7 @@ class mqttProcessor {
       if (params.command.message) {// here we publish into a topic
         metaLog({type:LOG_TYPE.VERBOSE, content:'MQTT publishing ' + params.command.message + ' to ' + settings.mqtt_topic + params.command.topic + ' with options : ' + params.command.options});
         try {
-          params.connection.connector.publish(settings.mqtt_topic + params.command.topic, params.command.message, (params.command.options ? JSON.parse(params.command.options) : ""));
+          params.connection.connector.publish(params.command.topic, params.command.message, (params.command.options ? JSON.parse(params.command.options) : ""));
           resolve('');
         }
         catch (err) {

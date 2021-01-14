@@ -2,7 +2,7 @@
   "name": "Chromecast",
   "manufacturer": "Google",
   "type": "Audio",
-  "version": 16,
+  "version": 17,
   "discover": {
     "welcomeheadertext": "Chromecast Driver",
     "welcomedescription": "powered by meta\nby JAC459",
@@ -31,6 +31,20 @@
       "Sound": false,
       "VolumePlayed": "",
       "Connector": false
+    },
+    "listeners" : {
+      "ChromecastStatusPing" : {"type": "mqtt",
+        "command": "{\"topic\":\"meta/Chromecast/$MyChromecastIp:$MyChromecastPort/status\", \"message\":true}", "pooltime":"3000", "poolduration":"",   "queryresult" : "$."
+      },
+      "ChromecastStatus" : {"type": "mqtt",
+        "command": "Chromecast/$MyChromecastIp:$MyChromecastPort/status",   "queryresult" : "$.",
+        "evalwrite": [
+          {
+            "variable": "Status",
+            "value": "DYNAMIK JSON.parse(\"$Result\")"
+          }
+        ]
+      }
     },
     "images": {
       "AlbumCover": {
@@ -171,7 +185,7 @@
             "commandset": [
               {
                 "type": "mqtt",
-                "command": "{\"topic\":\"Chromecast/$MyChromecastIp:$MyChromecastPort/url\", \"message\":\"$MusicURI\"}"
+                "command": "{\"topic\":\"meta/Chromecast/$MyChromecastIp:$MyChromecastPort/url\", \"message\":\"$MusicURI\"}"
               }
             ]
           }

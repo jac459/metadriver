@@ -730,9 +730,7 @@ function runNeeo () {
       })
       .catch(err => {
            metaLog({type:LOG_TYPE.ERROR, content:'Failed running Neeo with error: ' + err});
-          config.brainport = Number(config.brainport)+1;
-          metaLog({type:LOG_TYPE.ERROR, content:'trying to increment port:' + config.brainport});
-          setupNeeo(true);
+           process.exit(1);
       });
     })
 }

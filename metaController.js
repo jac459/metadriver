@@ -445,6 +445,7 @@ module.exports = function controller(driver) {
     return new Promise(function (resolve, reject) {
       try {
         if (listener.deviceId == deviceId) {
+          metaLog({type:LOG_TYPE.VERBOSE, content:'Initialising the listener:' + listener.command + ' - ' + listener.type, deviceId:deviceId});
           self.listenProcessor(listener.command, listener.type, listener, deviceId);
         }
         else {
@@ -482,6 +483,8 @@ module.exports = function controller(driver) {
   };
 
   this.initialise = function(deviceId) {
+    metaLog({type:LOG_TYPE.VERBOSE, content:'Initialising the device driver.', deviceId:deviceId});
+
     self.sliderH.forEach((helper) => {if (helper.deviceId == deviceId) {helper.initialise(deviceId);}});//No need to cleanup as double addition is protected
     self.switchH.forEach((helper) => {if (helper.deviceId == deviceId) {helper.initialise(deviceId);}});//No need to cleanup as double addition is protected
     self.imageH.forEach((helper) => {if (helper.deviceId == deviceId) {helper.initialise(deviceId);}});//No need to cleanup as double addition is protected
@@ -492,7 +495,7 @@ module.exports = function controller(driver) {
       self.initiateProcessor(connection.name);
     });
     self.listeners.forEach(listener => {
-        if (listener.deviceId == deviceId) {//we start only the listeners of this device !!!
+      if (listener.deviceId == deviceId) {//we start only the listeners of this device !!!
         self.listenStart(listener, deviceId);
       }
     });
