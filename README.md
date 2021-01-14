@@ -4,7 +4,7 @@ https://www.paypal.me/jac459
 
 Now Ton is highly contributing to the project and should place a paypal here:
 
-{{PAYPAL account to go ther}}
+{{PAYPAL account to go there}}
 
 # metadriver
 Programmable driver for NEEO to control any device and generate complex integration.
