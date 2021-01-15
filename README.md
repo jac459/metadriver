@@ -1,3 +1,6 @@
+![alt text](https://raw.githubusercontent.com/jac459/metadriver/master/pictures/meta.jpg)
+
+
 As I am working quite a lot on this driver nowadays, don't hesitate to supporte me to buy coffee. More coffees help me getting awake longer time and being more productive :-). 
 
 https://www.paypal.me/jac459
@@ -20,9 +23,6 @@ Examples of integration:
 #### https://www.youtube.com/watch?v=LN6M7-U_0Bk&t=12s
 
 /!\ The meta is now in V1.0 Beta and can be freely and secured downloaded /!\
-
-![alt text](https://raw.githubusercontent.com/jac459/metadriver/master/pictures/meta.jpg)
-
 
 ## Abstract
 
