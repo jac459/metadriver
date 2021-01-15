@@ -114,21 +114,17 @@ Version 0.7.3 brings some minor bug fixes as well as:
 
 ## Install
 
-This driver is based on Node.js technology, therefore you need to install node.js first on your computer: https://nodejs.org/en/download/. At time of writing this article (Q3 - 2020) this driver support the latest version of node.js. 
-Note: this driver can be directly installed on the Neeo brain provided that you root it first. Please consult the following repository to get more information: https://github.com/jac459/NeeoDriversInBrain.
-Note that installing the driver in the brain is more complex overall and it is recommended to start by using a computer or a raspberry ideally.
+As of the current version, meta and his ecosystem is mainly supported as installed directly on the neeo brain.
+This is a tedious and complex setup process that has been fully streamlined by a ready to use installer :
+https://github.com/jac459/neeo2021onward/blob/main/Meta%20running%20in%20Brain/Install%20meta%20plus%20requirements%20in%20Brain.txt
 
-##### Option 1
-In order to install, look at the right of your screen to see the release section and click on TAG. Then choose the latest release (currently alpha 1).
-Download the zip of the repository and unzip/unrar in your target computer (or brain).
-Go to the created folder and type:
-```npm install```
-This command will install the driver and all the dependencies. You need to have an internet access in order to download the dependencies.
+In a very few step you can have all installed inside your neeo brain.
 
-##### Option 2
-Alternatively you can also type: 
-```npm install jac459/metadriver```
-This will install the latest version of the driver in a folder named node_modules/@jac459/metadriver.
+Before doing so, you need your neeo brain to be rooted using this link:
+https://github.com/jac459/NeeoDriversInBrain
+
+If you want a full explanation of the process step by step and easy to follow, just watch these videos:
+https://www.youtube.com/channel/UCnEEvHd5TZiC-3OWmK6Vyog?view_as=subscriber
 
 #### What am I installing? 
 The main dependency you are installing is obviously the ÑEEO libraries. They are automatically installed so you don't need to go to NEEO's github. 
@@ -138,6 +134,13 @@ To run the driver, you can either type:
 ```npm start```
 or
 ```node meta```
+
+Finally, you install node-red
+https://nodered.org/
+Mosquitto Mqtt broker
+https://mosquitto.org/
+and python.
+https://www.python.org/
 
 ## How this driver work ?
 This driver is a Meta driver. That means that in fact it is not really a driver but an engine in order to create dynamically drivers. 
