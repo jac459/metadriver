@@ -21,6 +21,9 @@ Examples of integration:
 
 /!\ The meta is now in V1.0 Beta and can be freely and secured downloaded /!\
 
+![alt text](https://raw.githubusercontent.com/jac459/metadriver/master/pictures/meta.jpg)
+
+
 ## Abstract
 
 More than a driver, the meta is an extension platform for the neeo remote and is now fully packaged with the meta Installer from Ton O and using preliminary work from Dennis and Niels to root the brain.
@@ -108,9 +111,9 @@ Version 0.7.3 brings some minor bug fixes as well as:
 - Device Discovery (examples for Philips Hue bulbs and groups, Snapcast driver)
 - Basic registration with security code. (example for Philips Hue and Yamaha Network Receiver)
 
-#### Release Plan
+#### Overall Ecosystem
 
-![alt text](https://raw.githubusercontent.com/jac459/metadriver/master/pictures/releaseplan.jpg)
+![alt text](https://raw.githubusercontent.com/jac459/metadriver/master/pictures/meta%20ecosystem.jpg)
 
 ## Install
 
