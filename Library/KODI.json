@@ -1,8 +1,33 @@
-{"name":"Kodi player",
-    "manufacturer":"Kodi",
-    "version":1,
-    "type":"AVRECEIVER",
-    "buttons":{
+{
+   "name": "KODI",
+   "manufacturer": "JAC&Ton",
+   "type": "AVRECEIVER",
+   "version": 1,
+   "discover": {
+     "welcomeheadertext": "Kodi Driver",
+     "welcomedescription": "powered by meta\nby JAC459",
+     "command": {
+       "type": "static",
+       "command": "$LocalDevices",
+       "queryresult": [
+         "$.*[?(@.name=='xbmc-jsonrpc')]^"
+       ]
+     }
+   },
+   "template": {
+   "name": "KODI",
+   "manufacturer": "JAC&Ton",
+   "type": "AVRECEIVER",
+   "version": 1,
+     "dynamicname": "DYNAMIK_INST_START DYNAMIK JSON.parse(\"$Result\").name DYNAMIK_INST_END",
+     "dynamicid": "DYNAMIK_INST_START DYNAMIK JSON.parse(\"$Result\").addresses[0] + \":\" + JSON.parse(\"$Result\").port DYNAMIK_INST_END",
+     "manufacturer": "Jac and Ton",
+     "version": 1,
+     "type": "AVRECEIVER",
+     "variables": {
+       "MyKODIIp": "DYNAMIK_INST_START DYNAMIK JSON.parse(\"$Result\").addresses[0] DYNAMIK_INST_END",
+       "MyKODIPort": "DYNAMIK_INST_START DYNAMIK JSON.parse(\"$Result\").port DYNAMIK_INST_END"}, 
+     "buttons":{
        "POWER ON": {"label":"", "type":"static", "command":""},
        "POWER OFF": {"label":"", "type":"static", "command":""},
        "VOLUME UP": {"label":"", "type":"static", "command":""},
@@ -16,7 +41,9 @@
        "CURSOR ENTER": {"label":"", "type":"static", "command":""},
        "PAGE UP": {"label":"", "type":"static", "command":""},
        "PAGE DOWN": {"label":"", "type":"static", "command":""},
-       "OSD": {"label":"", "type":"static", "command":""},
+       "TVShows": {"label":"", "type":"static", "command":""},
+       "Movies": {"label":"", "type":"static", "command":""}, 
+       "Music": {"label":"", "type":"static", "command":""},           
        "PLAY": {"label":"", "type":"static", "command":""},
        "STOP": {"label":"", "type":"static", "command":""},
        "LANGUAGE": {"label":"", "type":"static", "command":""},
@@ -26,11 +53,9 @@
        "MENU": {"label":"", "type":"static", "command":""},
        "SELECT": {"label":"", "type":"static", "command":""},
        "MUTE TOGGLE": {"label":"", "type":"static", "command":""}
-    },
-    "directories":{
-      "MOVIES": {"label":"", "feeders": {
-              "Inputs":{"label":"", "commandset": [{"type":"mqtt", "command":"{\"topic\":\"meta/kodi\"}", "queryresult":"$.result.movies.*", "itemname":"DYNAMIK JSON.parse(\"$Result\").label"}]}
-           }
-      }
-  }  
-}
+    } 
+ }
+ 
+ 
+   }
+ 
