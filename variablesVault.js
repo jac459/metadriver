@@ -123,6 +123,7 @@ class variablesVault {
       let preparedResult = inputChain;
       if (inputChain && typeof inputChain === 'string') {
         preparedResult = preparedResult.replace(/\$LocalDevices/g, JSON.stringify(meta.localDevices));
+        preparedResult = preparedResult.replace(/\$LocalByMacDevices/g, JSON.stringify(meta.localByMacDevices));
         preparedResult = preparedResult.replace(/\$NeeoBrainIP/g, meta.neeoBrainIp());
       }
       
@@ -202,6 +203,7 @@ class variablesVault {
             let tempDS = [];
             self.variables.forEach((varI) => {
               if (varI.persisted) {
+                metaLog({type:LOG_TYPE.VERBOSE, content:"Saving inside the datastore : " + {"name":varI.name, "value":varI.value}});
                 tempDS.push({"name":varI.name, "value":varI.value})
               }
             });

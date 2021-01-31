@@ -1,3 +1,4 @@
+
 //LOGGING SETUP AND WRAPPING
 //Disable the NEEO library console warning.
 const { metaMessage, LOG_TYPE } = require("./metaMessage");

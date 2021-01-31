@@ -3,13 +3,17 @@ const path = require('path');
 const settings = require(path.join(__dirname,'settings'));
 const neeoapi = require("neeo-sdk");
 const metacontrol = require(path.join(__dirname,'metaController'));
+
+//Discovery tools
 const dnssd = require('dnssd2');
+const find = require('local-devices');
 
 const fs = require('fs');
-const activatedModule = path.join(__dirname,'activated');
+var activatedModule = path.join(__dirname,'activated');
+if (settings.drivers[0].variables.ActivatedLib) {activatedModule = settings.drivers[0].variables.ActivatedLib;}
 const BUTTONHIDE = '__';
 const DATASTOREEXTENSION = 'DataStore.json';
-const DEFAULT = 'default'; //NEEO SDK deviceId default value
+const DEFAULT = 'default'; //NEEO SDK deviceId default value for devices
 const mqtt = require('mqtt');
 const { metaMessage, LOG_TYPE, initialiseLogComponents, initialiseLogSeverity } = require("./metaMessage");
 
@@ -19,7 +23,9 @@ var brainDiscovered = false;
 var brainConsoleGivenIP = undefined;
 var driverTable = [];
 var localDevices = [];
+var localByMacDevices = [];
 exports.localDevices = localDevices;
+exports.localByMacDevices = localByMacDevices;
 exports.neeoBrainIp = returnBrainIp;
 var mqttClient;
 
@@ -784,6 +790,16 @@ function enableMQTT (cont, deviceId) {
 //MAIN
 process.chdir(__dirname);
 
+//Unleaching discovery
+//Mac addresses.
+find().then(devices => {
+  localByMacDevices = devices;
+  metaLog({type:LOG_TYPE.VERBOSE, content:'MAC discovery found: '});
+  metaLog({type:LOG_TYPE.VERBOSE, content:localByMacDevices});
+
+});
+
+//mDNS
 const browser = dnssd.Browser(dnssd.all(),{resolve:true});
 browser.on('serviceUp', (service) => {
   metaLog({type:LOG_TYPE.VERBOSE, content:'mDNS discovery found: ' + service.name});

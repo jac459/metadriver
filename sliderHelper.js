@@ -1,4 +1,7 @@
 const MQTT = 'mqtt';
+const path = require('path');
+const settings = require(path.join(__dirname,'settings'));
+
 //LOGGING SETUP AND WRAPPING
 //Disable the NEEO library console warning.
 const { metaMessage, LOG_TYPE } = require("./metaMessage");
@@ -26,9 +29,11 @@ class sliderHelper {
       return new Promise(function (resolve, reject) {
         if (self.value != theValue) {
           self.value = theValue;
-          controller.commandProcessor("{\"topic\":\"" + controller.name + "/" + deviceId + "/slider/" + self.name + "\",\"message\":\"" + Number(theValue) + "\", \"options\":\"{\\\"retain\\\":true}\"}", MQTT, deviceId)
           controller.sendComponentUpdate({ uniqueDeviceId: deviceId, component: self.name, value: Math.round(theValue)})
-          .then((result) => {metaLog({type:LOG_TYPE.VERBOSE, content:"Update performed : new value : " + theValue + " component " + controller.name + "/"+ self.name+"/"+result, deviceId:deviceId})})
+          .then((result) => {
+            metaLog({type:LOG_TYPE.VERBOSE, content:"Update performed : new value : " + theValue + " component " + controller.name + "/"+ self.name, deviceId:deviceId})
+            metaLog({type:LOG_TYPE.VERBOSE, content:result, deviceId:deviceId})
+          })
           .catch((err) => {metaLog({type:LOG_TYPE.ERROR, content:err, deviceId:deviceId}); reject(err); });
         }
        resolve();
@@ -39,7 +44,7 @@ class sliderHelper {
         theValue = Math.round(theValue);
         if (self.value != theValue) {
           self.value = theValue;
-          controller.commandProcessor("{\"topic\":\"" + controller.name + "/" + deviceId + "/slider/" + self.name + "\",\"message\":\"" + Number(theValue) + "\", \"options\":\"{\\\"retain\\\":true}\"}", MQTT, deviceId)
+          controller.commandProcessor("{\"topic\":\"" + settings.mqtt_topic + controller.name + "/" + deviceId + "/slider/" + self.name + "\",\"message\":\"" + theValue + "\", \"options\":\"{\\\"retain\\\":true}\"}", MQTT, deviceId)
           controller.sendComponentUpdate({ uniqueDeviceId: deviceId, component: self.name, value: theValue})
           .then((result) => {metaLog({type:LOG_TYPE.VERBOSE, content:"set performed : new value : " + theValue + " component " + controller.name + "/"+ self.name+"/"+result, deviceId:deviceId})})
           .catch((err) => {metaLog({type:LOG_TYPE.ERROR, content:err, deviceId:deviceId}); reject(err); });

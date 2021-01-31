@@ -526,7 +526,7 @@ module.exports = function controller(driver) {
         theButton = theButton.value;
         if (theButton.type != WOL) { //all the cases
           if (!name.startsWith(BUTTONHIDE)) {
-            self.commandProcessor("{\"topic\":\"" + self.name + "/" + deviceId + "/button/" + name + "\",\"message\":\"PRESSED\"}", MQTT, deviceId)
+            self.commandProcessor("{\"topic\":\""+ settings.mqtt_topic + self.name + "/" + deviceId + "/button/" + name + "\",\"message\":\"PRESSED\"}", MQTT, deviceId)
           }
           if (theButton.command != undefined){ 
             self.actionManager(deviceId, theButton.type, theButton.command, theButton.queryresult, theButton.evaldo, theButton.evalwrite)
