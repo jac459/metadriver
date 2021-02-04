@@ -1,0 +1,721 @@
+{ "name":"Volumio",
+  "manufacturer":"Volumio",
+  "type":"AUDIO",
+  "version":30,
+  "discover":{
+    "welcomeheadertext":"Choose your Volumio Instance",
+    "welcomedescription":"powered by meta\nby JAC459/TonO",
+    "command": {
+      "type": "static",
+      "command": "$LocalDevices",
+      "queryresult": [
+        "$.*[?(@.name=='Volumio')]^"
+      ]
+    }  
+  },
+  "template" : {
+    "name": "Volumio",
+    "dynamicname": "DYNAMIK_INST_START DYNAMIK JSON.parse(\"$Result\").name DYNAMIK_INST_END",
+    "dynamicid": "DYNAMIK_INST_START DYNAMIK JSON.parse(\"$Result\").addresses[0] + \":\" + JSON.parse(\"$Result\").name DYNAMIK_INST_END",
+    "manufacturer": "Volumio",
+    "version": 30,
+    "type": "AUDIO",
+    "webSocket": "$VolumioURI",
+    "listeners": {
+      "VolumioStatus": {
+        "type": "webSocket",
+        "command": "pushState",
+        "queryresult": "",
+        "evalwrite": [
+          {
+            "variable": "PlayerStatus",
+            "value": "DYNAMIK JSON.parse(\"$Result\").status"
+          },
+          {
+            "variable": "Playing",
+            "value": "DYNAMIK JSON.parse(\"$Result\").title + \" - \" + JSON.parse(\"$Result\").album + \" - \" + JSON.parse(\"$Result\").artist + \" @ \" + JSON.parse(\"$Result\").trackType+ ((JSON.parse(\"$Result\").bitdepth && JSON.parse(\"$Result\").samplerate) ? (\"/\"+JSON.parse(\"$Result\").bitdepth.replace(/ /g, \"\")+\"/\"+JSON.parse(\"$Result\").samplerate.replace(/ /g, \"\")) : \"\")"
+          },
+          {
+            "variable": "VolumePlayed",
+            "value": "DYNAMIK JSON.parse(\"$Result\").volume"
+          },
+          {
+            "variable": "VolumePlayedDisplay",
+            "value": "DYNAMIK '||'.repeat(JSON.parse(\"$Result\").volume) + '--'.repeat(Math.round((100-JSON.parse(\"$Result\").volume)/3))"
+          },
+          {
+            "variable": "AlbumCoverURI",
+            "value": "DYNAMIK (!JSON.parse(\"$Result\").albumart.startsWith(\"http\") ? (\"$VolumioURI\" + JSON.parse(\"$Result\").albumart) : JSON.parse(\"$Result\").albumart)"
+          },
+          {
+            "variable": "Progress",
+            "value": "DYNAMIK Math.round(0.1*Number(JSON.parse(\"$Result\").seek)/Number(JSON.parse(\"$Result\").duration))"
+          },
+          {
+            "variable": "CurrentDuration",
+            "value": "DYNAMIK JSON.parse(\"$Result\").duration"
+          },
+          {
+            "variable": "Repeat",
+            "value": "DYNAMIK JSON.parse(\"$Result\").repeat"
+          },
+          {
+            "variable": "Random",
+            "value": "DYNAMIK JSON.parse(\"$Result\").random"
+          }
+        ]
+      },
+      "VolumioProgress": {
+        "type": "http-get",
+        "command": "$VolumioURI/api/v1/getState",
+        "pooltime": "3000",
+        "poolduration": "",
+        "queryresult": "$.",
+        "evalwrite": [
+          {
+            "variable": "Progress",
+            "value": "DYNAMIK Math.round(0.1*Number(JSON.parse(\"$Result\")[0].seek)/Number(JSON.parse(\"$Result\")[0].duration))"
+          },
+          {
+            "variable": "CurrentDuration",
+            "value": "DYNAMIK JSON.parse(\"$Result\")[0].duration"
+          }
+        ]
+      }
+    },
+    "variables": {
+      "VolumioURI": "http://DYNAMIK_INST_START DYNAMIK JSON.parse(\"$Result\").addresses[0] DYNAMIK_INST_END",
+      "PlayerStatus": "",
+      "Playing": "",
+      "MyArtist": "",
+      "MyAlbum": "",
+      "MyURI": "",
+      "AlbumArtURI": "",
+      "PlayPayLoad": "",
+      "AlbumCoverURI": "",
+      "ArtistThumbURI": "",
+      "PutInQueue": false,
+      "MyPlayMode": "ACTION_Play",
+      "VolumePlayed": "",
+      "VolumePlayedDisplay": "",
+      "Progress": "",
+      "CurrentDuration": "",
+      "Repeat": false,
+      "Random": false
+    },
+    "images": {
+      "AlbumCover": {
+        "label": "",
+        "size": "large",
+        "listen": "AlbumCoverURI"
+      },
+      "AlbumCoverSmall": {
+        "label": "",
+        "size": "small",
+        "listen": "AlbumCoverURI"
+      }
+    },
+    "labels": {
+      "CurrentStatus": {
+        "label": " ",
+        "listen": "Playing",
+        "actionlisten": "VolumePlayedDisplay"
+      }
+    },
+    "switches": {
+      "PlayMode": {
+        "label": "Play <=> Queue",
+        "listen": "PutInQueue",
+        "evaldo": [
+          {
+            "test": "DYNAMIK $Result",
+            "then": "__PUTINQUEUE",
+            "or": "__DIRECTPLAY"
+          }
+        ]
+      }
+    },
+    "sliders": {
+      "VOLUME": {
+        "label": "",
+        "unit": "db",
+        "listen": "VolumePlayed",
+        "evaldo": [
+          {
+            "test": true,
+            "then": "__VOLUMESET",
+            "or": ""
+          }
+        ]
+      },
+      "PROGRESS": {
+        "label": "",
+        "unit": "%",
+        "listen": "Progress",
+        "evaldo": [
+          {
+            "test": true,
+            "then": "__PROGRESSSET",
+            "or": ""
+          }
+        ]
+      }
+    },
+    "buttons": {
+      "INITIALISE": {
+        "label": "",
+        "type": "static",
+        "command": ""
+      },
+      "CLEANUP": {
+        "label": "",
+        "type": "static",
+        "command": ""
+      },
+      "__DIRECTPLAY": {
+        "label": "",
+        "type": "static",
+        "command": "",
+        "evalwrite": [
+          {
+            "variable": "MyPlayMode",
+            "value": "ACTION_Play"
+          },
+          {
+            "variable": "PutInQueue",
+            "value": "false"
+          }
+        ]
+      },
+      "__PUTINQUEUE": {
+        "label": "",
+        "type": "static",
+        "command": "",
+        "evalwrite": [
+          {
+            "variable": "MyPlayMode",
+            "value": "ACTION_Queue"
+          },
+          {
+            "variable": "PutInQueue",
+            "value": "true"
+          }
+        ]
+      },
+      "VOLUME UP": {
+        "label": "",
+        "type": "static",
+        "command": "",
+        "evalwrite": [
+          {
+            "variable": "VolumePlayed",
+            "value": "DYNAMIK (Number($VolumePlayed)<95)?Number($VolumePlayed)+5:100"
+          }
+        ],
+        "evaldo": [
+          {
+            "test": true,
+            "then": "__VOLUMESET",
+            "or": ""
+          }
+        ]
+      },
+      "VOLUME DOWN": {
+        "label": "",
+        "type": "static",
+        "command": "",
+        "evalwrite": [
+          {
+            "variable": "VolumePlayed",
+            "value": "DYNAMIK (Number($VolumePlayed)>5)?Number($VolumePlayed)-5:0"
+          }
+        ],
+        "evaldo": [
+          {
+            "test": true,
+            "then": "__VOLUMESET",
+            "or": ""
+          }
+        ]
+      },
+      "STOP": {
+        "label": "",
+        "type": "webSocket",
+        "command": "{\"call\":\"stop\"}",
+        "evalwrite": [
+          {
+            "variable": "Playing",
+            "value": "Music Stopped"
+          }
+        ]
+      },
+      "PAUSE": {
+        "label": "",
+        "type": "static",
+        "command": "",
+        "evaldo": [
+          {
+            "test": "DYNAMIK \"$PlayerStatus\"==\"play\"",
+            "then": "PLAY_TOGGLE",
+            "or": ""
+          }
+        ]
+      },
+      "PLAY": {
+        "label": "",
+        "type": "static",
+        "command": "",
+        "evaldo": [
+          {
+            "test": "DYNAMIK \"$PlayerStatus\"!=\"play\"",
+            "then": "PLAY_TOGGLE",
+            "or": ""
+          }
+        ]
+      },
+      "PLAY TOGGLE": {
+        "label": "",
+        "type": "webSocket",
+        "command": "{\"call\":\"toggle\"}"
+      },
+      "REPEAT": {
+        "label": "",
+        "type": "webSocket",
+        "command": "DYNAMIK \"{\\\"call\\\":\\\"setRepeat\\\", \\\"message\\\":\" + JSON.stringify({value: !$Repeat}) + \"}\""
+      },
+      "RANDOM": {
+        "label": "",
+        "type": "webSocket",
+        "command": "DYNAMIK \"{\\\"call\\\":\\\"setRandom\\\", \\\"message\\\":\" + JSON.stringify({value: !$Random}) + \"}\""
+      },
+      "POWER ON": {
+        "label": "",
+        "type": "static",
+        "command": "",
+        "evaldo": [
+          {
+            "test": true,
+            "then": "INITIALISE",
+            "or": ""
+          }
+        ]
+      },
+      "POWER OFF": {
+        "label": "",
+        "type": "static",
+        "command": "",
+        "evaldo": [
+          {
+            "test": true,
+            "then": "CLEANUP",
+            "or": ""
+          }
+        ]
+      },
+      "CURSOR LEFT": {
+        "label": "",
+        "type": "static",
+        "command": "",
+        "evaldo": [
+          {
+            "test": true,
+            "then": "PREVIOUS",
+            "or": ""
+          }
+        ]
+      },
+      "CURSOR RIGHT": {
+        "label": "",
+        "type": "static",
+        "command": "",
+        "evaldo": [
+          {
+            "test": true,
+            "then": "NEXT",
+            "or": ""
+          }
+        ]
+      },
+      "CURSOR ENTER": {
+        "label": "",
+        "type": "static",
+        "command": "",
+        "evaldo": [
+          {
+            "test": true,
+            "then": "PLAY TOGGLE",
+            "or": ""
+          }
+        ]
+      },
+      "PREVIOUS": {
+        "label": "",
+        "type": "webSocket",
+        "command": "{\"call\":\"prev\"}"
+      },
+      "NEXT": {
+        "label": "",
+        "type": "webSocket",
+        "command": "{\"call\":\"next\"}"
+      },
+      "CLEAR QUEUE": {
+        "label": "",
+        "type": "webSocket",
+        "command": "{\"call\":\"clearQueue\"}"
+      },
+      "__VOLUMESET": {
+        "label": "",
+        "type": "webSocket",
+        "command": "DYNAMIK \"{\\\"call\\\":\\\"volume\\\", \\\"message\\\":\" + $VolumePlayed + \"}\""
+      },
+      "__PROGRESSSET": {
+        "label": "",
+        "type": "webSocket",
+        "command": "DYNAMIK \"{\\\"call\\\":\\\"seek\\\", \\\"message\\\":\" + Math.round(0.01*Number($Progress)*$CurrentDuration) + \"}\""
+      }
+    },
+    "directories": {
+      "Collection": {
+        "label": "My music",
+        "feeders": {
+          "Collections": {
+            "label": "Collections list",
+            "commandset": [
+              {
+                "type": "static",
+                "command": "[{\"name\":\"Radio\", \"label\":\"Radio Stations\", \"imageurl\":\"https://raw.githubusercontent.com/jac459/metadriver/master/pictures/Radio_Takchang.jpg\",\"navigation\":\"Radio\"}, {\"name\":\"Artists\", \"label\":\"Artists List\", \"imageurl\":\"https://raw.githubusercontent.com/jac459/metadriver/master/pictures/guitar.jpg\",\"navigation\":\"Artists\"}, {\"name\":\"Albums\", \"label\":\"Albums List\", \"imageurl\":\"https://raw.githubusercontent.com/jac459/metadriver/master/pictures/record.jpg\",\"navigation\":\"AllAlbums\"}, {\"name\":\"Playlist\", \"label\":\"Playlists\", \"imageurl\":\"https://raw.githubusercontent.com/jac459/metadriver/master/pictures/fav.jpg\",\"navigation\":\"Playlist\"}, {\"name\":\"Spotify\", \"label\":\"Spotify Connect\", \"imageurl\":\"https://raw.githubusercontent.com/jac459/metadriver/master/pictures/spotify.jpg\",\"navigation\":\"Spotify\"}]",
+                "queryresult": "$.*",
+                "itemname": "DYNAMIK JSON.parse(\"$Result\").name",
+                "itemlabel": "DYNAMIK JSON.parse(\"$Result\").name",
+                "itemimage": "DYNAMIK JSON.parse(\"$Result\").imageurl",
+                "evalnext": [
+                  {
+                    "test": "DYNAMIK (JSON.parse(\"$Result\").navigation == \"Radio\")",
+                    "then": "Radio",
+                    "or": ""
+                  },
+                  {
+                    "test": "DYNAMIK (JSON.parse(\"$Result\").navigation == \"Artists\")",
+                    "then": "Artists",
+                    "or": ""
+                  },
+                  {
+                    "test": "DYNAMIK (JSON.parse(\"$Result\").navigation == \"AllAlbums\")",
+                    "then": "AllAlbums",
+                    "or": ""
+                  },
+                  {
+                    "test": "DYNAMIK (JSON.parse(\"$Result\").navigation == \"Playlist\")",
+                    "then": "Playlist",
+                    "or": ""
+                  },
+                  {
+                    "test": "DYNAMIK (JSON.parse(\"$Result\").navigation == \"Spotify\")",
+                    "then": "Spotify",
+                    "or": ""
+                  }
+                ]
+              }
+            ]
+          },
+          "Radio": {
+            "label": "Radio Stations",
+            "commandset": [
+              {
+                "type": "http-get",
+                "command": "$VolumioURI/api/v1/browse?uri=radio/favourites",
+                "queryresult": "$.navigation.lists[0].items[*]",
+                "itemname": "DYNAMIK JSON.parse(\"$Result\").title",
+                "itemlabel": "Radio station",
+                "itemUI": "goBack",
+                "itemaction": "ACTION_Play",
+                "itemimage": "https://raw.githubusercontent.com/jac459/metadriver/master/pictures/Radio_Takchang.jpg",
+                "evalwrite": [
+                  {
+                    "variable": "PlayPayLoad",
+                    "value": "$Result"
+                  }
+                ]
+              }
+            ]
+          },
+          "Artists": {
+            "label": "Artists List",
+            "commandset": [
+              {
+                "type": "http-get",
+                "command": "$VolumioURI/api/v1/browse?uri=artists://",
+                "queryresult": "$.navigation.lists[0].items[*]",
+                "itemname": "DYNAMIK JSON.parse(\"$Result\").title",
+                "itemlabel": "Artist collection",
+                "itemimage": "DYNAMIK \"$VolumioURI\" + JSON.parse(\"$Result\").albumart",
+                "evalnext": [
+                  {
+                    "test": true,
+                    "then": "Albums",
+                    "or": ""
+                  }
+                ],
+                "evalwrite": [
+                  {
+                    "variable": "MyArtist",
+                    "value": "DYNAMIK JSON.parse(\"$Result\").title"
+                  },
+                  {
+                    "variable": "ArtistThumbURI",
+                    "value": "DYNAMIK JSON.parse(\"$Result\").albumart"
+                  }
+                ]
+              }
+            ]
+          },
+          "Albums": {
+            "label": "Albums List",
+            "commandset": [
+              {
+                "type": "http-get",
+                "command": "$VolumioURI/api/v1/browse?uri=artists://$MyArtist",
+                "queryresult": "$.navigation.lists[0].items[*]",
+                "itemname": "DYNAMIK JSON.parse(\"$Result\").title",
+                "itemlabel": "$MyArtist",
+                "itemimage": "DYNAMIK \"$VolumioURI\" + JSON.parse(\"$Result\").albumart",
+                "evalnext": [
+                  {
+                    "test": true,
+                    "then": "Songs",
+                    "or": ""
+                  }
+                ],
+                "evalwrite": [
+                  {
+                    "variable": "MyAlbum",
+                    "value": "DYNAMIK JSON.parse(\"$Result\").title"
+                  },
+                  {
+                    "variable": "MyURI",
+                    "value": "DYNAMIK JSON.parse(\"$Result\").uri"
+                  },
+                  {
+                    "variable": "AlbumArtURI",
+                    "value": "DYNAMIK \"$VolumioURI\" + JSON.parse(\"$Result\").albumart"
+                  },
+                  {
+                    "variable": "PlayPayLoad",
+                    "value": "$Result"
+                  }
+                ]
+              }
+            ]
+          },
+          "AllAlbums": {
+            "label": "Albums List",
+            "commandset": [
+              {
+                "type": "http-get",
+                "command": "$VolumioURI/api/v1/browse?uri=albums://",
+                "queryresult": "$.navigation.lists[0].items[*]",
+                "itemname": "DYNAMIK JSON.parse(\"$Result\").title",
+                "itemlabel": "DYNAMIK JSON.parse(\"$Result\").artist",
+                "itemimage": "DYNAMIK \"$VolumioURI\" + JSON.parse(\"$Result\").albumart",
+                "evalnext": [
+                  {
+                    "test": true,
+                    "then": "Songs",
+                    "or": ""
+                  }
+                ],
+                "evalwrite": [
+                  {
+                    "variable": "MyAlbum",
+                    "value": "DYNAMIK JSON.parse(\"$Result\").title"
+                  },
+                  {
+                    "variable": "MyURI",
+                    "value": "DYNAMIK JSON.parse(\"$Result\").uri"
+                  },
+                  {
+                    "variable": "AlbumArtURI",
+                    "value": "DYNAMIK \"$VolumioURI\" + JSON.parse(\"$Result\").albumart"
+                  },
+                  {
+                    "variable": "PlayPayLoad",
+                    "value": "$Result"
+                  }
+                ]
+              }
+            ]
+          },
+          "Spotify": {
+            "label": "Spotify Playlists",
+            "commandset": [
+              {
+                "type": "http-get",
+                "command": "$VolumioURI/api/v1/browse?uri=spotify/playlists",
+                "queryresult": "$.navigation.lists[0].items[*]",
+                "itemname": "DYNAMIK JSON.parse(\"$Result\").title",
+                "itemlabel": "Spotify playlist",
+                "itemimage": "DYNAMIK JSON.parse(\"$Result\").albumart",
+                "evalnext": [
+                  {
+                    "test": true,
+                    "then": "Songs",
+                    "or": ""
+                  }
+                ],
+                "evalwrite": [
+                  {
+                    "variable": "MyAlbum",
+                    "value": "DYNAMIK JSON.parse(\"$Result\").title"
+                  },
+                  {
+                    "variable": "MyURI",
+                    "value": "DYNAMIK JSON.parse(\"$Result\").uri"
+                  },
+                  {
+                    "variable": "AlbumArtURI",
+                    "value": "DYNAMIK JSON.parse(\"$Result\").albumart"
+                  },
+                  {
+                    "variable": "PlayPayLoad",
+                    "value": "$Result"
+                  }
+                ]
+              }
+            ]
+          },
+          "Playlist": {
+            "label": "Playlists",
+            "commandset": [
+              {
+                "type": "http-get",
+                "command": "$VolumioURI/api/v1/browse?uri=playlists",
+                "queryresult": "$.navigation.lists[0].items[*]",
+                "itemname": "DYNAMIK JSON.parse(\"$Result\").title",
+                "itemlabel": "DYNAMIK JSON.parse(\"$Result\").album",
+                "itemimage": "https://raw.githubusercontent.com/jac459/metadriver/master/pictures/fav.jpg",
+                "evalnext": [
+                  {
+                    "test": true,
+                    "then": "Songs",
+                    "or": ""
+                  }
+                ],
+                "evalwrite": [
+                  {
+                    "variable": "MyAlbum",
+                    "value": "DYNAMIK JSON.parse(\"$Result\").title"
+                  },
+                  {
+                    "variable": "MyURI",
+                    "value": "DYNAMIK JSON.parse(\"$Result\").uri"
+                  },
+                  {
+                    "variable": "AlbumArtURI",
+                    "value": "https://raw.githubusercontent.com/jac459/metadriver/master/pictures/fav.jpg"
+                  },
+                  {
+                    "variable": "PlayPayLoad",
+                    "value": "$Result"
+                  }
+                ]
+              }
+            ]
+          },
+          "Songs": {
+            "label": "Songs List",
+            "commandset": [
+              {
+                "type": "static",
+                "command": "[{\"image\":\"\"}]",
+                "itemUI": "goBack",
+                "itemtype": "tile",
+                "itemaction": "$MyPlayMode",
+                "itemimage": "$AlbumArtURI"
+              },
+              {
+                "type": "http-get",
+                "command": "$VolumioURI/api/v1/browse?uri=$MyURI",
+                "queryresult": "$.navigation.lists[0].items[*]",
+                "itemname": "DYNAMIK JSON.parse(\"$Result\").title",
+                "itemlabel": "DYNAMIK JSON.parse(\"$Result\").album",
+                "itemaction": "$MyPlayMode",
+                "itemimage": "DYNAMIK JSON.parse(\"$Result\").albumart",
+                "evalwrite": [
+                  {
+                    "variable": "PlayPayLoad",
+                    "value": "$Result"
+                  }
+                ]
+              }
+            ]
+          },
+          "ACTION_Play": {
+            "label": "",
+            "commandset": [
+              {
+                "type": "webSocket",
+                "command": "{\"call\":\"replaceAndPlay\", \"message\":$PlayPayLoad}"
+              }
+            ]
+          },
+          "ACTION_Queue": {
+            "label": "",
+            "commandset": [
+              {
+                "type": "webSocket",
+                "command": "{\"call\":\"addToQueue\", \"message\":$PlayPayLoad}"
+              }
+            ]
+          }
+        }
+      },
+      "Queue": {
+        "label": "My playing queue",
+        "feeders": {
+          "Queue": {
+            "label": "Queue",
+            "commandset": [
+              {
+                "type": "static",
+                "command": "[{\"image\":\"\"}]",
+                "itemtype": "tile",
+                "itemUI": "reload",
+                "itemaction": "ACTION_Clear",
+                "itemimage": "https://raw.githubusercontent.com/jac459/metadriver/master/pictures/clear.jpg"
+              },
+              {
+                "type": "http-get",
+                "command": "$VolumioURI/api/v1/getQueue",
+                "queryresult": "$.queue[*]",
+                "itemname": "DYNAMIK JSON.parse(\"$Result\").name",
+                "itemlabel": "DYNAMIK JSON.parse(\"$Result\").artist",
+                "itemUI": "reload",
+                "itemaction": "ACTION_Play",
+                "itemimage": "DYNAMIK (!JSON.parse(\"$Result\").albumart.startsWith(\"http\") ? (\"$VolumioURI\" + JSON.parse(\"$Result\").albumart) : JSON.parse(\"$Result\").albumart)"
+              }
+            ]
+          },
+          "ACTION_Play": {
+            "label": "",
+            "commandset": [
+              {
+                "type": "webSocket",
+                  "command": "{\"call\":\"play\", \"message\":\"$ListIndex\"}"
+              }
+            ]
+          },
+          "ACTION_Clear": {
+            "label": "",
+            "commandset": [
+              {
+                "type": "webSocket",
+                "command": "{\"call\":\"clearQueue\"}",
+                "itemUI": "reload"
+              }
+            ]
+          }
+        }
+      }
+    }
+  }
+}

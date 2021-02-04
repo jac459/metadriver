@@ -108,7 +108,7 @@ class directoryHelper {
 
         self.fillTheList(deviceId, cacheList, allconfigs, params, 0, 0).then((cacheList) => {//cacheList, allconfigs, params, indentCommand
             //Feed the neeo list
-            let neeoList;
+         let neeoList;
             neeoList = neeoapi.buildBrowseList({
               title: allconfigs.name,
               totalMatchingItems: cacheList.length,
@@ -193,7 +193,7 @@ class directoryHelper {
                       'itemtype' : rItemType,
                       'label' : self.controller.assignTo(RESULT, rLabel, oneItemResult),
                       'action' : rAction ? self.controller.assignTo(RESULT, rAction, oneItemResult)+"$CommandSet="+indentCommand+"$PastQueryValue=" + ((typeof(oneItemResult) == 'string')?oneItemResult:JSON.stringify(oneItemResult)) : rAction,
-                      'UI' : self.controller.assignTo(RESULT, rUI, oneItemResult),
+                      'UI' : rUI ? self.controller.assignTo(RESULT, rUI, oneItemResult):"",
                       'browse' : "$CommandSet="+indentCommand+"$PastQueryValue=" + ((typeof(oneItemResult) == 'string')?oneItemResult:JSON.stringify(oneItemResult))
                     });
                   });

@@ -1,7 +1,25 @@
-{"name":"Volumio", 
-    "manufacturer":"Volumio",
-    "version":27,
-    "type":"AUDIO", 
+{ "name":"Volumio .meta",
+  "manufacturer":"Volumio",
+  "type":"AUDIO",
+  "version":30,
+  "discover":{
+    "welcomeheadertext":"Choose your Volumio Instance",
+    "welcomedescription":"powered by meta\nby JAC459/TonO",
+    "command": {
+      "type": "static",
+      "command": "$LocalDevices",
+      "queryresult": [
+        "$.*[?(@.name=='Volumio')]^"
+      ]
+    }  
+  },
+  "template" : {
+    "name": "Volumio .meta",
+    "type":"AUDIO",
+    "dynamicname": "DYNAMIK_INST_START DYNAMIK JSON.parse(\"$Result\").name DYNAMIK_INST_END",
+    "dynamicid": "DYNAMIK_INST_START DYNAMIK JSON.parse(\"$Result\").addresses[0] + \":\" + JSON.parse(\"$Result\").name DYNAMIK_INST_END",
+    "manufacturer": "Volumio",
+    "version": 30,
     "webSocket":"$VolumioURI", 
     "listeners" : {
       "VolumioStatus" : {"type":"webSocket", "command":"pushState", "queryresult" : "", 
@@ -20,7 +38,7 @@
         }
     },
     "variables":{
-      "VolumioURI":"http://volumio2.local",
+      "VolumioURI": "http://DYNAMIK_INST_START DYNAMIK JSON.parse(\"$Result\").addresses[0] DYNAMIK_INST_END",
       "Playing":"",
       "MyArtist":"",
       "MyAlbum":"",
@@ -91,42 +109,42 @@
             }] 
           },
           "Artists":{"label":"Artists list", "commandset": [
-            {"type":"static", "command":"", "itemtype":"tile", "itemaction":"","itemimage":"https://raw.githubusercontent.com/jac459/metadriver/master/pictures/guitar.jpg"},
+            {"type":"static", "command":".", "itemtype":"tile", "itemaction":"", "itemUI":"","itemimage":"https://raw.githubusercontent.com/jac459/metadriver/master/pictures/guitar.jpg"},
             {"type":"http-get", "command":"$VolumioURI/api/v1/browse?uri=artists://", "queryresult":"$.navigation.lists[0].items[*]", "itemname":"DYNAMIK JSON.parse(\"$Result\").title", "itemlabel":"Artist Collection", "itembrowse":"DYNAMIK JSON.parse(\"$Result\").title", "itemimage":"DYNAMIK \"$VolumioURI\" + JSON.parse(\"$Result\").albumart", "evalnext":[{"test":true, "then":"Albums", "or":""}], "evalwrite":[{"variable":"MyArtist","value":"DYNAMIK JSON.parse(\"$Result\").title"},{"variable":"ArtistThumbURI","value":"DYNAMIK JSON.parse(\"$Result\").albumart"}]}
           ]},
           "Albums":{"label":"Albums list", "commandset": [
-            {"type":"static", "command":"", "itemtype":"tile", "itemaction":"", "itemimage":"$VolumioURI$ArtistThumbURI"},
+            {"type":"static", "command":".", "itemtype":"tile", "itemaction":"", "itemUI":"", "itemimage":"$VolumioURI$ArtistThumbURI"},
             {"type":"http-get", "command":"$VolumioURI/api/v1/browse?uri=artists://$MyArtist", "queryresult":"$.navigation.lists[0].items[*]", "itemname":"DYNAMIK JSON.parse(\"$Result\").title", "itemlabel":"$MyArtist", "itembrowse":"DYNAMIK JSON.parse(\"$Result\").title", "itemimage":"DYNAMIK \"$VolumioURI\" + JSON.parse(\"$Result\").albumart", "evalnext":[{"test":true, "then":"Songs", "or":""}], "evalwrite":[{"variable":"MyAlbum","value":"DYNAMIK JSON.parse(\"$Result\").title"}, {"variable":"MyURI","value":"DYNAMIK JSON.parse(\"$Result\").uri"}, {"variable":"AlbumArtURI","value":"DYNAMIK \"$VolumioURI\" + JSON.parse(\"$Result\").albumart"}]}
           ]},
           "AllAlbums":{"label":"Albums list", "commandset": [
-            {"type":"static", "command":"", "itemtype":"tile", "itemaction":"","itemimage":"https://raw.githubusercontent.com/jac459/metadriver/master/pictures/record.jpg"},
+            {"type":"static", "command":".", "itemtype":"tile", "itemaction":"", "itemUI":"","itemimage":"https://raw.githubusercontent.com/jac459/metadriver/master/pictures/record.jpg"},
             {"type":"http-get", "command":"$VolumioURI/api/v1/browse?uri=albums://", "queryresult":"$.navigation.lists[0].items[*]", "itemname":"DYNAMIK JSON.parse(\"$Result\").title", "itemlabel":"DYNAMIK JSON.parse(\"$Result\").artist", "itembrowse":"DYNAMIK JSON.parse(\"$Result\").title", "itemimage":"DYNAMIK \"$VolumioURI\" + JSON.parse(\"$Result\").albumart", "evalnext":[{"test":true, "then":"Songs", "or":""}], "evalwrite":[{"variable":"MyAlbum","value":"DYNAMIK JSON.parse(\"$Result\").title"}, {"variable":"MyURI","value":"DYNAMIK JSON.parse(\"$Result\").uri"}, {"variable":"AlbumArtURI","value":"DYNAMIK \"$VolumioURI\" + JSON.parse(\"$Result\").albumart"}]}
             ]},
           "Spotify":{"label":"Spotify PlayLists", "commandset": [
-            {"type":"static", "command":"", "itemtype":"tile", "itemaction":"","itemimage":"https://raw.githubusercontent.com/jac459/metadriver/master/pictures/spotify.jpg"},
+            {"type":"static", "command":".", "itemtype":"tile", "itemaction":"", "itemUI":"","itemimage":"https://raw.githubusercontent.com/jac459/metadriver/master/pictures/spotify.jpg"},
             {"type":"http-get", "command":"$VolumioURI/api/v1/browse?uri=spotify/playlists", "queryresult":"$.navigation.lists[0].items[*]", "itemname":"DYNAMIK JSON.parse(\"$Result\").title", "itemlabel":"Spotify Playlist", "itembrowse":"DYNAMIK JSON.parse(\"$Result\").title", "itemimage":"DYNAMIK JSON.parse(\"$Result\").albumart", "evalnext":[{"test":true, "then":"SongsSpotify", "or":""}], "evalwrite":[{"variable":"MyAlbum","value":"DYNAMIK JSON.parse(\"$Result\").title"}, {"variable":"MyURI","value":"DYNAMIK JSON.parse(\"$Result\").uri"}, {"variable":"AlbumArtURI","value":"DYNAMIK JSON.parse(\"$Result\").albumart"}]}
             ]},
           "Playlist":{"label":"Playlists", "commandset": [
-            {"type":"static", "command":"", "itemtype":"tile", "itemaction":"","itemimage":"https://raw.githubusercontent.com/jac459/metadriver/master/pictures/fav.jpg", "evalwrite":[{"variable":"PlayPayLoad","value":"$Result"}, {"variable":"AlbumArtURI","value":"https://raw.githubusercontent.com/jac459/metadriver/master/pictures/fav.jpg"}]},
+            {"type":"static", "command":".", "itemtype":"tile", "itemaction":"", "itemUI":"","itemimage":"https://raw.githubusercontent.com/jac459/metadriver/master/pictures/fav.jpg", "evalwrite":[{"variable":"PlayPayLoad","value":"$Result"}, {"variable":"AlbumArtURI","value":"https://raw.githubusercontent.com/jac459/metadriver/master/pictures/fav.jpg"}]},
             {"type":"http-get", "command":"$VolumioURI/api/v1/browse?uri=playlists", "queryresult":"$.navigation.lists[0].items[*]", "itemname":"DYNAMIK JSON.parse(\"$Result\").title", "itemlabel":"DYNAMIK JSON.parse(\"$Result\").album", "itembrowse":"DYNAMIK JSON.parse(\"$Result\").title", "itemimage":"https://raw.githubusercontent.com/jac459/metadriver/master/pictures/fav.jpg", "evalnext":[{"test":true, "then":"SongsPlaylist", "or":""}], "evalwrite":[{"variable":"MyURI","value":"DYNAMIK JSON.parse(\"$Result\").uri"}] }
           ]},
           "SongsSpotify":{"label":"Songs list", "commandset": [
-            {"type":"static", "command":"", "itemtype":"tile", "itemaction":"$MyPlayMode", "itemimage":"$AlbumArtURI"},
+            {"type":"static", "command":".", "itemtype":"tile", "itemaction":"$MyPlayMode", "itemimage":"$AlbumArtURI"},
             {"type":"http-get", "command":"$VolumioURI/api/v1/browse?uri=$MyURI", "queryresult":"$.navigation.lists[0].items[*]", "itemname":"DYNAMIK JSON.parse(\"$Result\").title", "itemlabel":"DYNAMIK JSON.parse(\"$Result\").album", "itemaction":"$MyPlayMode_Spotify", "itemimage":"DYNAMIK JSON.parse(\"$Result\").albumart", "evalwrite":[{"variable":"PlayPayLoad","value":"$Result"}] }
           ]},
           "Songs":{"label":"Songs list", "commandset": [
-            {"type":"static", "command":"", "itemtype":"tile", "itemaction":"$MyPlayMode", "itemimage":"$AlbumArtURI"},
+            {"type":"static", "command":".", "itemtype":"tile", "itemaction":"$MyPlayMode", "itemimage":"$AlbumArtURI"},
             {"type":"http-get", "command":"$VolumioURI/api/v1/browse?uri=$MyURI", "queryresult":"$.navigation.lists[0].items[*]", "itemname":"DYNAMIK JSON.parse(\"$Result\").title", "itemlabel":"DYNAMIK JSON.parse(\"$Result\").album", "itemaction":"$MyPlayMode", "itemimage":"$AlbumArtURI", "evalwrite":[{"variable":"MyURI","value":"DYNAMIK JSON.parse(\"$Result\").uri"}] }
           ]},
           "SongsPlaylist":{"label":"Songs list", "commandset": [
-            {"type":"static", "command":"", "itemtype":"tile", "itemaction":"$MyPlayMode", "itemimage":"https://raw.githubusercontent.com/jac459/metadriver/master/pictures/fav.jpg"},
+            {"type":"static", "command":".", "itemtype":"tile", "itemaction":"$MyPlayMode", "itemimage":"https://raw.githubusercontent.com/jac459/metadriver/master/pictures/fav.jpg"},
             {"type":"http-get", "command":"$VolumioURI/api/v1/browse?uri=$MyURI", "queryresult":"$.navigation.lists[0].items[*]", "itemname":"DYNAMIK JSON.parse(\"$Result\").title", "itemlabel":"DYNAMIK JSON.parse(\"$Result\").album", "itemaction":"$MyPlayMode", "itemimage":"DYNAMIK \"$VolumioURI\" + JSON.parse(\"$Result\").albumart", "evalwrite":[{"variable":"MyURI","value":"DYNAMIK JSON.parse(\"$Result\").uri"}] }
           ]},
-          "ACTION_Play_Spotify":{"label":"", "commandset": [
+          "ACTION_Play_Spotify":{"label":".", "commandset": [
             {"type":"http-get", "command":"$VolumioURI/api/v1/commands/?cmd=clearQueue"},
             {"type":"http-post", "command":"{\"call\":\"$VolumioURI/api/v1/addToQueue\", \"message\":$PlayPayLoad}"}
             ]},
-          "ACTION_Queue_Spotify":{"label":"", "commandset": [
+          "ACTION_Queue_Spotify":{"label":".", "commandset": [
             {"type":"http-post", "command":"{\"call\":\"$VolumioURI/api/v1/addToQueue\", \"message\":$PlayPayLoad}"}
           ]},
           "ACTION_Play":{"label":"", "commandset": [
@@ -153,4 +171,5 @@
         }
       }
     }
+  }
 }
