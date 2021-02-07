@@ -4,10 +4,9 @@
       "name": "KODI",
       "Author": "TonO",
       "version": 2,
-      "DriverLocation": "https://raw.githubusercontent.com/jac459/meta-kodi/main/Meta%20custom%20driver",
-      "IconLocation":   "https://raw.githubusercontent.com/jac459/meta-kodi/main/Icons",
-      "Node_Rewd-Flow": "DenonAVRFlow"
-      "FlowLocation": "https://raw.githubusercontent.com/jac459/meta-denonAVR/main/node-red%20Flow",
+      "DriverLocation": "https://raw.githubusercontent.com/jac459/meta-kodi/main/Meta%20custom%20driver/KODI.json",
+      "IconLocation":   "https://raw.githubusercontent.com/jac459/meta-kodi/main/Icons/KODI.jpg",
+      "FlowLocation": "https://raw.githubusercontent.com/jac459/meta-kodi/main/node-red%20Flow/Kodi-nodered.json",
       "OrgRepo": "https://github.com/jac459/meta-kodi"
     },
     {
@@ -15,17 +14,17 @@
       "Author": "TonO",
       "version": 2,
       "DriverLocation": "https://raw.githubusercontent.com/jac459/meta-denonAVR/main/Meta%20custom%20driver",
-      "IconLocation": "https://raw.githubusercontent.com/jac459/meta-denonAVR/main/Icons",
-      "FlowLocation": "https://raw.githubusercontent.com/jac459/meta-denonAVR/main/node-red%20Flow",
+      "IconLocation": "https://raw.githubusercontent.com/jac459/meta-denonAVR/main/Icons/DenonAVR.jpg",
+      "FlowLocation": "https://raw.githubusercontent.com/jac459/meta-denonAVR/main/node-red%20Flow/DenonAVRFlow.json",
       "OrgRepo": "https://github.com/jac459/meta-denonAVR"
     },
     {
       "name": "SamsungTV2012",
       "Author": "TonO",
       "version": 2,
-      "DriverLocation": "https://raw.githubusercontent.com/jac459/meta-SamsungTV2012/main/Meta%20custom%20driver",
-      "IconLocation": "https://raw.githubusercontent.com/jac459/meta-SamsungTV2012/main/Icons",
-      "FlowLocation": "https://raw.githubusercontent.com/jac459/meta-SamsungTV2012/main/node-red%20Flow",
+      "DriverLocation": "https://raw.githubusercontent.com/jac459/meta-SamsungTV2012/main/Meta%20custom%20driver/SamsungTV2012.json",
+      "IconLocation": "https://raw.githubusercontent.com/jac459/meta-SamsungTV2012/main/Icons/SamsungTV2012.jpg",
+      "FlowLocation": "https://raw.githubusercontent.com/jac459/meta-SamsungTV2012/main/node-red%20Flow/SamsungTV2012%20Flow.json",
       "OrgRepo": "https://github.com/jac459/meta-SamsungTV2012"
     },
   ]
