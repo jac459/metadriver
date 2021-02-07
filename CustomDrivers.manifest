@@ -1,0 +1,32 @@
+{
+  "driver": [
+    {
+      "name": "KODI",
+      "Author": "TonO",
+      "version": 2,
+      "DriverLocation": "https://raw.githubusercontent.com/jac459/meta-kodi/main/Meta%20custom%20driver",
+      "IconLocation":   "https://raw.githubusercontent.com/jac459/meta-kodi/main/Icons",
+      "Node_Rewd-Flow": "DenonAVRFlow"
+      "FlowLocation": "https://raw.githubusercontent.com/jac459/meta-denonAVR/main/node-red%20Flow",
+      "OrgRepo": "https://github.com/jac459/meta-kodi"
+    },
+    {
+      "name": "DenonAVR",
+      "Author": "TonO",
+      "version": 2,
+      "DriverLocation": "https://raw.githubusercontent.com/jac459/meta-denonAVR/main/Meta%20custom%20driver",
+      "IconLocation": "https://raw.githubusercontent.com/jac459/meta-denonAVR/main/Icons",
+      "FlowLocation": "https://raw.githubusercontent.com/jac459/meta-denonAVR/main/node-red%20Flow",
+      "OrgRepo": "https://github.com/jac459/meta-denonAVR"
+    },
+    {
+      "name": "SamsungTV2012",
+      "Author": "TonO",
+      "version": 2,
+      "DriverLocation": "https://raw.githubusercontent.com/jac459/meta-SamsungTV2012/main/Meta%20custom%20driver",
+      "IconLocation": "https://raw.githubusercontent.com/jac459/meta-SamsungTV2012/main/Icons",
+      "FlowLocation": "https://raw.githubusercontent.com/jac459/meta-SamsungTV2012/main/node-red%20Flow",
+      "OrgRepo": "https://github.com/jac459/meta-SamsungTV2012"
+    },
+  ]
+}
