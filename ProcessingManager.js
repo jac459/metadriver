@@ -80,7 +80,7 @@ class httprestProcessor {
         if (params.command.verb == 'post') {
           got.post(params.command.call, {json:params.command.message, responseType: 'json'})
          .then((response) => {
-            resolve(response.body[0]);
+            resolve(response.body);
           })
           .catch((err) => {
             metaLog({type:LOG_TYPE.ERROR, content:'Post request didn\'t work : '});
