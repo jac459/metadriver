@@ -13,7 +13,7 @@
       "name": "DenonAVR",
       "Author": "TonO",
       "version": 2,
-      "DriverLocation": "https://raw.githubusercontent.com/jac459/meta-denonAVR/main/Meta%20custom%20driver",
+      "DriverLocation": "https://raw.githubusercontent.com/jac459/meta-denonAVR/main/Meta%20custom%20driver/DenonAVR.json",
       "IconLocation": "https://raw.githubusercontent.com/jac459/meta-denonAVR/main/Icons/DenonAVR.jpg",
       "FlowLocation": "https://raw.githubusercontent.com/jac459/meta-denonAVR/main/node-red%20Flow/DenonAVRFlow.json",
       "OrgRepo": "https://github.com/jac459/meta-denonAVR"
