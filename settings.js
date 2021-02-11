@@ -48,12 +48,12 @@ var settings =
           },
 
           'Active':{'label':'Drivers list', 'commandset': [
-            {'type':'cli', 'command':'find $ActivatedLib -maxdepth 1 -name \'*.json\' -not -name \'*-DataStore.json\'', 'queryresult':'/^$ActivatedLib\/.*/gm', 'itemname':'DYNAMIK "$Result".split("$ActivatedLib")[1]', 'itemtype': 'listitem', 'itemlabel':'Activated Driver', "itemimage":"DYNAMIK \"https://raw.githubusercontent.com/jac459/metadriver/master/pictures/Drivers/\" + \"$Result\".split(\"$ActivatedLib/\")[1].split(\".json\")[0] + \".jpg\"", 'evalnext':[{'test':true, 'then':'ActiveChoice', 'or':''}], 'evalwrite':[{'variable':'ActivatedName','value':'$Result'}]
+            {'type':'cli', 'command':'ls -1 $ActivatedLib\/*.json | xargs -n 1 basename| sed -e \'s/\\.json$\/\/\'', 'queryresult':'/(.*)./gm', 'itemname':'DYNAMIK \"$Result\"','itemimage':"DYNAMIK \"https://raw.githubusercontent.com/jac459/metadriver/master/pictures/Drivers/\" + \"$Result\" + \".jpg\"", 'itemtype': 'listitem', 'itemlabel':'Activated Driver', 'evalnext':[{'test':true, 'then':'ActiveChoice', 'or':''}], 'evalwrite':[{'variable':'ActivatedName','value':'$Result'}]
 
           }]},
           "ActiveChoice":{"label":"$ActivatedName", 
             "commandset": [
-              {"type":"static", "command":"{}", "itemtype":"tile", "itemimage":"DYNAMIK \"https://raw.githubusercontent.com/jac459/metadriver/master/pictures/Drivers/\" + \"$ActivatedName\".split(\"$ActivatedLib/\")[1].split(\".json\")[0] + \".jpg\""},
+              {"type":"static", "command":"{}", "itemtype":"tile", "itemimage":"DYNAMIK \"$ActivatedLib/icons/\" \"$ActivatedName\".split(\"$ActivatedLib/\")[1].split(\".json\")[0] + \".jpg\""},
               {"type":"static", "command":"[{\"name\":\"Refresh\", \"label\":\"Refresh Driver\", \"imageurl\":\"https://raw.githubusercontent.com/jac459/metadriver/master/pictures/refresh.jpg\",\"navigation\":\"RefreshAction\"}, {\"name\":\"Delete\", \"label\":\"Delete Driver\", \"imageurl\":\"https://raw.githubusercontent.com/jac459/metadriver/master/pictures/delete.jpg\",\"navigation\":\"DeleteAction\"}]", 
                 "queryresult":"$.*", "itemname":"DYNAMIK JSON.parse(\"$Result\").name", "itemUI" : "goBack", "itemlabel":"DYNAMIK \"$ActivatedName\".split(\"$ActivatedLib/\")[1].split(\".json\")[0]", "itemimage":"DYNAMIK JSON.parse(\"$Result\").imageurl",
                 "itemaction":"DYNAMIK JSON.parse(\"$Result\").navigation",
@@ -77,7 +77,7 @@ var settings =
           },
           'ActivateAction':{'label':'', 'commandset': [{'type':'cli', 'command':"DYNAMIK \"cp \" + \"$LibraryName \" + \"$ActivatedLib\/\" + \"$LibraryName\".split(\"/\")[\"$LibraryName\".split(\"/\").length-1]", "itemUI" : "goBack"}]},
 
-          'ActivateActionExternal':{'label':'', 'commandset': [{'type':'cli', 'command':"DYNAMIK \"curl \" + \"$DriverLocation \" + \" -o \" + \" $ActivatedLib\" + \"/\" + \"$LibraryName\"+ \".json\"", "itemUI" : "goBack"}]},
+          'ActivateActionExternal':{'label':'', 'commandset': [{'type':'cli', 'command':"DYNAMIK \"curl \" + \"$DriverLocation \" + \" -o \" + \" $ActivatedLib\" + \"/\" + \"$LibraryName\"+ \".json\""}]},
 
           "Manage":{"label":"Manage the Meta", 
             "commandset": [
