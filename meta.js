@@ -704,7 +704,7 @@ function runNeeo () {
     
     neeoapi.startServer(neeoSettings)
       .then((result) => {
-        metaLog({type:LOG_TYPE.INFO, content:"Driver running, you can search it on the neeo app."});
+        metaLog({type:LOG_TYPE.WARNING, content:"Driver running, you can search it on the neeo app."});
         metaLog({type:LOG_TYPE.INFO, content:result});
         if (brainDiscovered) {
             fs.writeFile(__dirname + '/config.js', JSON.stringify(config), err => {
@@ -769,7 +769,7 @@ function enableMQTT (cont, deviceId) {
       }
   })
 }
-
+console.log(".Meta starting");
 //MAIN
 process.chdir(__dirname);
 
