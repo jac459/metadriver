@@ -72,8 +72,11 @@ module.exports = function controller(driver) {
   };
  
   this.addListener = function(params) {
-    metaLog({type:LOG_TYPE.VERBOSE, content:'addListener - ' + params});
-    self.vault.readVariables(params, params.deviceId);
+    params = JSON.parse(self.vault.readVariables(params, params.deviceId));
+
+    metaLog({type:LOG_TYPE.VERBOSE, content:'addListener', deviceId:params.deviceId});
+    metaLog({type:LOG_TYPE.VERBOSE, content:params, deviceId:params.deviceId});
+    metaLog({type:LOG_TYPE.VERBOSE, content:self.vault.variables, deviceId:params.deviceId});
     let listIndent = self.listeners.findIndex((listen) => {return listen.command == params.command});
     if (listIndent < 0) {//the command is new.
       if (params.evalwrite) {
@@ -112,7 +115,8 @@ module.exports = function controller(driver) {
   }
 
   this.addConnection = function(params) {
-    metaLog({type:LOG_TYPE.VERBOSE, content:'addConnection - ' + params});
+    metaLog({type:LOG_TYPE.VERBOSE, content:'addConnection:'});
+    metaLog({type:LOG_TYPE.VERBOSE, content:params});
     self.connectionH.push(params);
   };
 
@@ -254,13 +258,17 @@ module.exports = function controller(driver) {
         if (finalDoTest) {
           if (evalD.then && evalD.then != '')
           {
-           self.onButtonPressed(evalD.then, deviceId);
+            let finalDoThen = self.vault.readVariables(evalD.then, deviceId);
+            finalDoThen = self.assignTo(RESULT, finalDoThen, result);
+            self.onButtonPressed(finalDoThen, deviceId);
           } 
         }
         else { 
           if (evalD.or && evalD.or != '')
           {
-            self.onButtonPressed(evalD.or, deviceId);
+            let finalDoOr = self.vault.readVariables(evalD.or, deviceId);
+            finalDoOr = self.assignTo(RESULT, finalDoOr, result);
+            self.onButtonPressed(finalDoOr, deviceId);
           }
         }
        });
@@ -273,9 +281,10 @@ module.exports = function controller(driver) {
     });
   };
 
+  //TODO SUPPRESS IF NOT USEFULL
   this.reInitConnectionsValues = function(deviceId) {//it is to make sure that all variable have been interpreted after the register process
     self.connectionH.forEach(element => {
-      element.descriptor = self.vault.readVariables(element.descriptor, deviceId); 
+//      element.descriptor = self.vault.readVariables(element.descriptor, deviceId); 
      });
   };
 
@@ -445,7 +454,8 @@ module.exports = function controller(driver) {
     return new Promise(function (resolve, reject) {
       try {
         if (listener.deviceId == deviceId) {
-          metaLog({type:LOG_TYPE.VERBOSE, content:'Initialising the listener:' + listener.command + ' - ' + listener.type, deviceId:deviceId});
+          metaLog({type:LOG_TYPE.VERBOSE, content:'Initialising the listener:' + listener.type, deviceId:deviceId});
+          metaLog({type:LOG_TYPE.VERBOSE, content:listener.command, deviceId:deviceId});
           self.listenProcessor(listener.command, listener.type, listener, deviceId);
         }
         else {

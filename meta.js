@@ -380,19 +380,6 @@ function executeDriverCreation (driver, hubController, deviceId) {
           controller.vault.addVariable(prop, driver.variables[prop], currentDeviceId)
         }
       }
- //     controller.vault.addVariable('NeeoBrainIP', config.brainip, currentDeviceId); //Adding a usefull system variable giving the brain IP address.
-
-      /*adding mac discovered device variable in the vault
-      if (driver.discovereddevice){
-        if (driver.discovereddevice.mac) {
-          driver.discovereddevice.mac.forEach(macAddress => {
-            let discoDev = discoveredDevices.find((elt)=> {return elt.mac.toUpperCase().startsWith(macAddress.toUpperCase())});
-            if (discoDev) {
-              controller.vault.addVariable('DiscoveredDeviceIP', discoDev.ip, currentDeviceId); //Adding a usefull system variable giving the discovered device IP address.
-            }
-          })
-        }
-      }*/
 
       if (driver.persistedvariables){
         for (var prop in driver.persistedvariables) { // Initialisation of the variables to be persisted
@@ -409,12 +396,8 @@ function executeDriverCreation (driver, hubController, deviceId) {
 
 
       //GET ALL CONNECTIONS
-      if (driver.webSocket) {
-        controller.addConnection({"name":"webSocket", "descriptor":driver.webSocket, "connector":""})
-      }
-      if (driver.jsontcp) {
-        controller.addConnection({"name":"jsontcp", "descriptor":driver.jsontcp, "connector":""})
-      }
+      controller.addConnection({"name":"webSocket", "connections":[]})
+      controller.addConnection({"name":"jsontcp", "descriptor":driver.jsontcp, "connector":""})
       if (settings.mqtt) {
         metaLog({deviceId: deviceId, type:LOG_TYPE.INFO, content:'Creating the connection MQTT'});
         controller.addConnection({"name":"mqtt", "descriptor":settings.mqtt, "connector":mqttClient})//early loading
@@ -813,11 +796,15 @@ browser.on('serviceUp', (service) => {
   if (tempBro) {
     tempBro.on('serviceUp', (service) => {
       metaLog({type:LOG_TYPE.VERBOSE, content:'mDNS discovery Service Up: ' + service.fullname});
-      localDevices.push({name:service.name, fullname:service.fullname, type:service.type, domain:service.domain, host:service.host, port:service.port, addresses:service.addresses })
+      if (0 > localDevices.findIndex((ld)=>{
+                return (ld.name == service.name && ld.fullname == service.fullname && ld.type == service.type && ld.domain == service.domain && ld.host == service.host)
+              })) 
+      {
+        localDevices.push({name:service.name, fullname:service.fullname, type:service.type, domain:service.domain, host:service.host, port:service.port, addresses:service.addresses })
+      }
     });
     tempBro.on('serviceDown', (service) => {
       metaLog({type:LOG_TYPE.VERBOSE, content:'mDNS discovery Service Down: ' + service.fullname});
-      localDevices.push({name:service.name, fullname:service.fullname, type:service.type, domain:service.domain, host:service.host, port:service.port, addresses:service.addresses })
     });
     tempBro.start();
   }

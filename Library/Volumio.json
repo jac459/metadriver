@@ -17,12 +17,11 @@
     "name": "Volumio .meta",
     "type":"AUDIO",
     "dynamicname": "DYNAMIK_INST_START DYNAMIK JSON.parse(\"$Result\").name DYNAMIK_INST_END",
-    "dynamicid": "DYNAMIK_INST_START DYNAMIK JSON.parse(\"$Result\").addresses[0] + \":\" + JSON.parse(\"$Result\").name DYNAMIK_INST_END",
+    "dynamicid": "DYNAMIK_INST_START DYNAMIK JSON.parse(\"$Result\").fullname DYNAMIK_INST_END",
     "manufacturer": "Volumio",
     "version": 30,
-    "webSocket":"$VolumioURI", 
     "listeners" : {
-      "VolumioStatus" : {"type":"webSocket", "command":"pushState", "queryresult" : "", 
+      "VolumioStatus" : {"type":"webSocket", "command":{"connection":"$VolumioURI", "message": "pushState"}, "queryresult" : "", 
         "evalwrite" : [ 
             {"variable" : "Playing", "value" : "DYNAMIK JSON.parse(\"$Result\").title + \" - \" + JSON.parse(\"$Result\").album + \" - \" + JSON.parse(\"$Result\").artist + \" @ \" + JSON.parse(\"$Result\").trackType+ ((JSON.parse(\"$Result\").bitdepth && JSON.parse(\"$Result\").samplerate) ? (\"/\"+JSON.parse(\"$Result\").bitdepth.replace(/ /g, \"\")+\"/\"+JSON.parse(\"$Result\").samplerate.replace(/ /g, \"\")) : \"\")"}, 
             {"variable" : "VolumePlayed", "value" : "DYNAMIK JSON.parse(\"$Result\").volume"}, 
@@ -89,7 +88,7 @@
       "NEXT": {"label":"", "type":"http-get", "command":"$VolumioURI/api/v1/commands/?cmd=next", "queryresult":"$.response", "evalwrite":[{"variable":"Playing","value":"Next Track"}]},
       "CLEAR QUEUE": {"label":"", "type":"http-get", "command":"volumio.local/api/v1/commands/?cmd=clearQueue", "queryresult":"$.response", "evalwrite":[{"variable":"Playing","value":"Queue Cleared"}]},
       "__VOLUMESET": {"label":"", "type":"http-get", "command":"$VolumioURI/api/v1/commands/?cmd=volume&volume=$VolumePlayed"},
-      "__PROGRESSSET": {"label":"", "type":"webSocket", "command":"DYNAMIK \"{\\\"call\\\":\\\"seek\\\", \\\"message\\\":\" + Math.round(0.01*Number($Progress)*$CurrentDuration) + \"}\""}
+      "__PROGRESSSET": {"label":"", "type":"webSocket", "command":"DYNAMIK \"{\\\"connection\\\":\\\"$VolumioURI\\\", \\\"message\\\": {\\\"call\\\":\\\"seek\\\", \\\"message\\\":\\\"\" + Math.round(0.01*Number($Progress)*$CurrentDuration) + \"\\\"}}\""}
     },
     "directories":{
       "Collection": {"label":"My music", 

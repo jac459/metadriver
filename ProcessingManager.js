@@ -230,7 +230,7 @@ class httpgetProcessor {
 }
 exports.httpgetProcessor = httpgetProcessor;
 class webSocketProcessor {
-  initiate(connection) {
+  initiate(connection) {/*
     return new Promise(function (resolve, reject) {
       try {
         if (connection.connector != "" && connection.connector != undefined) {
@@ -244,12 +244,33 @@ class webSocketProcessor {
         metaLog({type:LOG_TYPE.ERROR, content:err});
       }
     }); //to avoid opening multiple
+    */
   }
   process(params) {
     return new Promise(function (resolve, reject) {
+      if  (!params.connection.connections) { params.connection.connections = []};
       if (typeof (params.command) == 'string') { params.command = JSON.parse(params.command); }
-      if (params.command.call) {
-        params.connection.connector.emit(params.command.call, params.command.message);
+      let connectionIndex = params.connection.connections.findIndex((con) => {return con.descriptor == params.command.connection});
+      metaLog({type:LOG_TYPE.VERBOSE, content:'Connection Index:' + connectionIndex});
+      metaLog({type:LOG_TYPE.VERBOSE, content:params});
+
+      if  (connectionIndex < 0) { //checking if connection exist
+        try {
+          //  if (params.command.connection != "" && params.command.connection != undefined) {
+          //    connection.connector.close();
+          //  } //to avoid opening multiple
+          params.connection.connections.push({"descriptor": params.command.connection, "connector":io.connect(params.command.connection)});
+          connectionIndex = params.connection.connections.length - 1;
+          metaLog({type:LOG_TYPE.VERBOSE, content:'New Connection Index:' + connectionIndex});
+          metaLog({type:LOG_TYPE.VERBOSE, content:params});
+            }
+        catch (err) {
+          metaLog({type:LOG_TYPE.ERROR, content:'Error while intenting connection to the target device.'});
+          metaLog({type:LOG_TYPE.ERROR, content:err});
+        }
+      }
+      if (params.command.message.call) {
+        params.connection.connections[connectionIndex].connector.emit(params.command.message.call, params.command.message.message);
         resolve('');
       }
     });
@@ -271,8 +292,29 @@ class webSocketProcessor {
   }
   startListen(params, deviceId) {
     return new Promise(function (resolve, reject) {
-      params.connection.connector.on(params.command, (result) => { params._listenCallback(result, params.listener, deviceId); });
+      if  (!params.connection.connections) { params.connection.connections = []};
+      if (typeof (params.command) == 'string') { params.command = JSON.parse(params.command); }
+      metaLog({type:LOG_TYPE.VERBOSE, content:'Starting to listen with this params:'});
+      metaLog({type:LOG_TYPE.VERBOSE, content:params});
+      if (params.command.connection)
+      {
+        let connectionIndex = params.connection.connections.findIndex((con)=> {return con.descriptor == params.command.connection});
+        if  (connectionIndex < 1) { //checking if connection exist
+          try {
+            params.connection.connections.push({"descriptor": params.command.connection, "connector":io.connect(params.command.connection)});
+            connectionIndex = params.connection.connections.length - 1;
+          }
+          catch (err) {
+            metaLog({type:LOG_TYPE.ERROR, content:'Error while intenting connection to the target device.'});
+            metaLog({type:LOG_TYPE.ERROR, content:err});
+          }
+        }
+        metaLog({type:LOG_TYPE.VERBOSE, content:'listenning with this params:' + connectionIndex});
+        metaLog({type:LOG_TYPE.VERBOSE, content:params});
+        params.connection.connections[connectionIndex].connector.on(params.command.message, (result) => { params._listenCallback(result, params.listener, deviceId); });
+      }  
       resolve('');
+
     });
   }
   stopListen(params) {
