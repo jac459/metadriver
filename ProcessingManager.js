@@ -7,7 +7,6 @@ const io = require('socket.io-client');
 const rpc = require('json-rpc2');
 const lodash = require('lodash');
 const { parserXMLString, xmldom } = require("./metaController");
-//const mqtt = require('mqtt');
 const got = require('got');
 const settings = require(path.join(__dirname,'settings'));
 const { connect } = require("socket.io-client");
