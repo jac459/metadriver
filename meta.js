@@ -17,7 +17,7 @@ const DEFAULT = 'default'; //NEEO SDK deviceId default value for devices
 const mqtt = require('mqtt');
 const { metaMessage, LOG_TYPE, initialiseLogComponents, initialiseLogSeverity } = require("./metaMessage");
 
-config = [{brainip : '', brainport : ''}];
+config = {brainip : '', brainport : ''};
 function returnBrainIp() { return config.brainip;}
 var brainDiscovered = false;
 var brainConsoleGivenIP = undefined;
