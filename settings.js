@@ -8,7 +8,7 @@ var settings =
     {
       'name':'.meta', 
       'manufacturer':'JAC&Ton',
-      'version':15,
+      'version':16,
       'type':'AVRECEIVER',
       'alwayson':'',
       'filename':'meta-core.json',
@@ -23,6 +23,7 @@ var settings =
           'CoreLibrary':'Library',
           'TriggerKey':'',
           'Manifest':'https://raw.githubusercontent.com/jac459/metadriver/master/CustomDrivers.manifest',
+          'DriverName': '',
           'DriverLocation':'',
           'DriverIcon':'',
           'DriverOrigin':''
@@ -30,7 +31,6 @@ var settings =
       'labels':{
           'CurrentStatus' : {'label':'status', 'listen':'MyStatus'}
       },
-
       'directories':{
         "Settings": {"label":"Settings", 
         "feeders": {
@@ -47,35 +47,33 @@ var settings =
               }]
           },
 
-          'Active':{'label':'Drivers list', 'commandset': [
-            {'type':'cli', 'command':'ls -1 $ActivatedLib\/*.json | xargs -n 1 basename| sed -e \'s/\\.json$\/\/\'', 'queryresult':'/(.*)./gm', 'itemname':'DYNAMIK \"$Result\"','itemimage':"DYNAMIK \"https://raw.githubusercontent.com/jac459/metadriver/master/pictures/Drivers/\" + \"$Result\" + \".jpg\"", 'itemtype': 'listitem', 'itemlabel':'Activated Driver', 'evalnext':[{'test':true, 'then':'ActiveChoice', 'or':''}], 'evalwrite':[{'variable':'ActivatedName','value':'$Result'}]
-
+          "Active":{"label":"Driver list", "commandset": [{"type":"cli", "command":"ls -1 $ActivatedLib\/*.json | xargs -n 1 basename| sed -e 's/\\.json$\/\/'", "queryresult":"/(.*)./gm", "itemname":"DYNAMIK \"$Result\"","itemimage":"DYNAMIK \"https://raw.githubusercontent.com/jac459/metadriver/master/pictures/Drivers/$Result.jpg\"", "itemtype": "listitem", "itemlabel":"Activated Driver", "evalnext":[{"test":true, "then":"ActiveChoice", "or":""}], "evalwrite":[{"variable":"ActivatedName","value":"$Result"}]
           }]},
           "ActiveChoice":{"label":"$ActivatedName", 
             "commandset": [
-              {"type":"static", "command":"{}", "itemtype":"tile", "itemimage":"DYNAMIK \"$ActivatedLib/icons/\" \"$ActivatedName\".split(\"$ActivatedLib/\")[1].split(\".json\")[0] + \".jpg\""},
+              {"type":"static", "command":"{}", "itemtype":"tile", "itemimage":"DYNAMIK \"https://raw.githubusercontent.com/jac459/metadriver/master/pictures/Drivers/$ActivatedName.jpg\""},
               {"type":"static", "command":"[{\"name\":\"Refresh\", \"label\":\"Refresh Driver\", \"imageurl\":\"https://raw.githubusercontent.com/jac459/metadriver/master/pictures/refresh.jpg\",\"navigation\":\"RefreshAction\"}, {\"name\":\"Delete\", \"label\":\"Delete Driver\", \"imageurl\":\"https://raw.githubusercontent.com/jac459/metadriver/master/pictures/delete.jpg\",\"navigation\":\"DeleteAction\"}]", 
-                "queryresult":"$.*", "itemname":"DYNAMIK JSON.parse(\"$Result\").name", "itemUI" : "goBack", "itemlabel":"DYNAMIK \"$ActivatedName\".split(\"$ActivatedLib/\")[1].split(\".json\")[0]", "itemimage":"DYNAMIK JSON.parse(\"$Result\").imageurl",
+                "queryresult":"$.*", "itemname":"DYNAMIK JSON.parse(\"$Result\").name", "itemUI" : "goBack", "itemlabel":"DYNAMIK \"$ActivatedName\"", "itemimage":"DYNAMIK JSON.parse(\"$Result\").imageurl",
                 "itemaction":"DYNAMIK JSON.parse(\"$Result\").navigation",
               }]
           },
-          'RefreshAction':{'label':'Refresh Driver Data', 'commandset': [{'type':'cli', 'command':"DYNAMIK \"rm \" + \"$ActivatedName\".replace(\".json\", \"-DataStore.json\")"}]},
-          'DeleteAction':{'label':'Deactivate the Driver', 'commandset': [{'type':'cli', 'command':"rm $ActivatedName", "itemimage":""}]},
+          'RefreshAction':{'label':'Refresh Driver Data', 'commandset': [{'type':'cli', 'command':"DYNAMIK \"rm '$ActivatedLib/$ActivatedName-DataStore.json'\""}]},
+          'DeleteAction':{'label':'Deactivate the Driver', 'commandset': [{'type':'cli', 'command':"DYNAMIK \"rm '$ActivatedLib/$ActivatedName.json'\"", "itemimage":""}]},
           
           'Library':{'label':'Drivers list', 'commandset': [
-            {'type':'http-get', 'command':'$Manifest','queryresult': '$.driver.*','itemname':'DYNAMIK JSON.parse(\"$Result\").name','itemtype': 'listitem', 'itemimage': 'DYNAMIK JSON.parse(\"$Result\").IconLocation', "itemlabel":"External Driver", 'evalnext':[{'test':true, 'then':'LibraryChoice', 'or':''}], 'evalwrite':[{'variable':'DriverOrigin','value':'Extern'},{'variable':'LibraryName','value':'DYNAMIK JSON.parse(\"$Result\").name'},{'variable':'DriverLocation','value':'DYNAMIK JSON.parse(\"$Result\").DriverLocation'},{'variable':'DriverIcon','value':'DYNAMIK JSON.parse(\"$Result\").IconLocation'}]},
-            {'type':'cli', 'command':'find ./$CoreLibrary -maxdepth 1 -name \'*.json\' -not -name \'*-DataStore.json\'', 'queryresult':'/^.\/$CoreLibrary\/.*/gm', 'itemname':'DYNAMIK "$Result".split("$CoreLibrary/")[1]', 'itemtype': 'listitem', "itemlabel":"Core Driver","itemimage":"DYNAMIK \"https://raw.githubusercontent.com/jac459/metadriver/master/pictures/Drivers/\" + \"$Result\".split(\"$CoreLibrary/\")[1].split(\".json\")[0] + \".jpg\"", 'evalnext':[{'test':true, 'then':'LibraryChoice', 'or':''}], 'evalwrite':[{'variable':'DriverOrigin','value':'Interm'},{'variable':'LibraryName','value':'$Result'}]},
-            {'type':'cli', 'command':'find $UserLibrary -maxdepth 1 -name \'*.json\' -not -name \'*-DataStore.json\'', 'queryresult':'/(^$UserLibrary\/).*/gm', 'itemname':'DYNAMIK "$Result".split("$UserLibrary/")[1]', 'itemtype': 'listitem', "itemlabel":"User Driver", "itemimage":"DYNAMIK \"https://raw.githubusercontent.com/jac459/metadriver/master/pictures/Drivers/\" + \"$Result\".split(\"$UserLibrary/\")[1].split(\".json\")[0] + \".jpg\"", 'evalnext':[{'test':true, 'then':'LibraryChoice', 'or':''}], 'evalwrite':[{'variable':'DriverOrigin','value':'Intern'},{'variable':'LibraryName','value':'$Result'}]}          ]},
+            {'type':'http-get', 'command':'$Manifest','queryresult': '$.driver.*','itemname':'DYNAMIK JSON.parse(\"$Result\").name','itemtype': 'listitem', 'itemimage': 'DYNAMIK JSON.parse(\"$Result\").IconLocation', "itemlabel":"External Driver", 'evalnext':[{'test':true, 'then':'LibraryChoice', 'or':''}], 'evalwrite':[{'variable':'DriverOrigin','value':'Extern'}, {'variable':'DriverName','value': 'DYNAMIK JSON.parse(\"$Result\").name'},  {'variable':'LibraryName','value':'DYNAMIK JSON.parse(\"$Result\").name'},{'variable':'DriverLocation','value':'DYNAMIK JSON.parse(\"$Result\").DriverLocation'},{'variable':'DriverIcon','value':'DYNAMIK JSON.parse(\"$Result\").IconLocation'}]},
+            {'type':'cli', 'command':'ls -1 $CoreLibrary\/*.json | xargs -n 1 basename| grep -v "DataStore.json" |sed -e \'s/\\.json\/\/\'', 'queryresult':'/(.*)./gm', 'itemname':'DYNAMIK "$Result"', 'itemtype': 'listitem', "itemlabel":"Core Driver","itemimage":"DYNAMIK \"https://raw.githubusercontent.com/jac459/metadriver/master/pictures/Drivers/$Result.jpg\"", 'evalnext':[{'test':true, 'then':'LibraryChoice', 'or':''}], 'evalwrite':[{'variable':'DriverOrigin','value':'CoreLibrary'},{'variable':'DriverName','value': 'DYNAMIK \"$Result\"'},{'variable':'LibraryName','value':'$CoreLibrary'}]},
+            {'type':'cli', 'command':'ls -1 $UserLibrary\/*.json | xargs -n 1 basename| grep -v "DataStore.json" |sed -e \'s/\\.json\/\/\'', 'queryresult':'/(.*)./gm', 'itemname':'DYNAMIK "$Result"', 'itemtype': 'listitem', "itemlabel":"User Driver", "itemimage":"DYNAMIK \"https://raw.githubusercontent.com/jac459/metadriver/master/pictures/Drivers/$Result.jpg\"", 'evalnext':[{'test':true, 'then':'LibraryChoice', 'or':''}], 'evalwrite':[{'variable':'DriverOrigin','value':'UserLibrary'},{'variable':'DriverName','value': 'DYNAMIK \"$Result\"'},{'variable':'LibraryName','value':'$UserLibrary'}]}          ]},
 
             "LibraryChoice":{"label":"$LibraryName", 
             "commandset": [
-              {"type":"static", "command":"{}", "itemtype":"tile", "itemimage":"DYNAMIK  (\"$DriverOrigin\"== \"Extern\")?\"$DriverIcon\":\"https://raw.githubusercontent.com/jac459/metadriver/master/pictures/Drivers/\" + \"$LibraryName\".split(\"/\")[\"$LibraryName\".split(\"/\").length-1].split(\".json\")[0] + \".jpg\""},
-              {"type":"static", "command":"[{\"name\":\"Activate\", \"label\":\"Activate Driver\", \"imageurl\":\"https://raw.githubusercontent.com/jac459/metadriver/master/pictures/play.jpg\",\"navigation\":\"ActivateAction\"}]", 
-                "queryresult":"$.*", "itemname":"DYNAMIK JSON.parse(\"$Result\").label", "itemlabel":"DYNAMIK \"$LibraryName\".split(\"/\")[\"$LibraryName\".split(\"/\").length-1].split(\".json\")[0]", "itemimage":"DYNAMIK JSON.parse(\"$Result\").imageurl",
+              {"type":"static", "command":"{}", "itemtype":"tile", "itemimage":"DYNAMIK  (\"$DriverOrigin\"== \"Extern\")?\"$DriverIcon\":\"https://raw.githubusercontent.com/jac459/metadriver/master/pictures/Drivers/$DriverName.jpg\""},
+              {"type":"static", "command":"{}","itemimage":"https://raw.githubusercontent.com/jac459/metadriver/master/pictures/play.jpg", 
+                "itemname":"Activate Driver", "itemlabel":"DYNAMIK \"$DriverName\"", 
                 "itemaction":"DYNAMIK  (\"$DriverOrigin\" == \"Extern\")?\"ActivateActionExternal\":\"ActivateAction\"","itemUI" : "goBack"
               }]
           },
-          'ActivateAction':{'label':'', 'commandset': [{'type':'cli', 'command':"DYNAMIK \"cp \" + \"$LibraryName \" + \"$ActivatedLib\/\" + \"$LibraryName\".split(\"/\")[\"$LibraryName\".split(\"/\").length-1]", "itemUI" : "goBack"}]},
+          'ActivateAction':{'label':'', 'commandset': [{'type':'cli', 'command':"DYNAMIK \"cp  '$LibraryName/$DriverName.json' '$ActivatedLib'\"", "itemUI" : "goBack"}]},
 
           'ActivateActionExternal':{'label':'', 'commandset': [{'type':'cli', 'command':"DYNAMIK \"curl \" + \"$DriverLocation \" + \" -o \" + \" $ActivatedLib\" + \"/\" + \"$LibraryName\"+ \".json\""}]},
 
@@ -86,7 +84,7 @@ var settings =
                 "queryresult":"$.*", "itemname":"DYNAMIK JSON.parse(\"$Result\").label", "itemlabel":"UI will be unresponsive for 1 min.", "itemimage":"DYNAMIK JSON.parse(\"$Result\").imageurl",
                 "itemaction":"DYNAMIK JSON.parse(\"$Result\").navigation","itemUI" : "goBack", 
               },
-              {"type":"static", "command":"[{\"name\":\"List versions\", \"label\":\"List versions\", \"imageurl\":\"https://raw.githubusercontent.com/jac459/meta-kodi/main/Icons/questionmarks.jpg\",\"navigation\":\"ListVersions\"}]", 
+              {"type":"static", "command":"[{\"name\":\"List versions\", \"label\":\"List versions\", \"imageurl\":\"https://raw.githubusercontent.com/jac459/metadriver/master/pictures/Drivers/questionmarks.jpg\",\"navigation\":\"ListVersions\"}]", 
                 "queryresult":"$.*", "itemname":"DYNAMIK JSON.parse(\"$Result\").label", "itemlabel":"Using installmeta.sh", "itemimage":"DYNAMIK JSON.parse(\"$Result\").imageurl",
                 "evalnext":[{"test":true, "then":"ListVersion", "or":""}]
               },
