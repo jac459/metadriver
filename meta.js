@@ -704,7 +704,7 @@ function runNeeo () {
     
     neeoapi.startServer(neeoSettings)
       .then((result) => {
-        metaLog({type:LOG_TYPE.WARNING, content:"Driver running, you can search it on the neeo app."});
+        metaLog({type:LOG_TYPE.ALWAYS, content:"Driver running, you can search it on the neeo app."});
         metaLog({type:LOG_TYPE.INFO, content:result});
         if (brainDiscovered) {
             fs.writeFile(__dirname + '/config.js', JSON.stringify(config), err => {
@@ -769,7 +769,8 @@ function enableMQTT (cont, deviceId) {
       }
   })
 }
-console.log(".Meta starting");
+metaLog({type:LOG_TYPE.ALWAYS, content:'.Meta starting'});
+
 //MAIN
 process.chdir(__dirname);
 
@@ -777,8 +778,8 @@ process.chdir(__dirname);
 //Mac addresses.
 find().then(devices => {
   localByMacDevices = devices;
-  metaLog({type:LOG_TYPE.VERBOSE, content:'MAC discovery found: '});
-  metaLog({type:LOG_TYPE.VERBOSE, content:localByMacDevices});
+  metaLog({type:LOG_TYPE.DEBUG, content:'MAC discovery found: '});
+  metaLog({type:LOG_TYPE.DEBUG, content:localByMacDevices});
 
 });
 
@@ -814,7 +815,7 @@ browser.on('serviceUp', (service) => {
 browser.start();
 setTimeout(() => {
   browser.stop();
-  metaLog({type:LOG_TYPE.INFO, content:localDevices});
+  metaLog({type:LOG_TYPE.DEBUG, content:localDevices});
 }, 100000);
 
 if (process.argv.length>2) {
