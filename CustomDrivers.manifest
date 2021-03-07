@@ -26,9 +26,7 @@
       "IconLocation": "https://raw.githubusercontent.com/jac459/meta-SamsungTV2012/main/Icons/SamsungTV2012.jpg",
       "FlowLocation": "https://raw.githubusercontent.com/jac459/meta-SamsungTV2012/main/node-red%20Flow/SamsungTV2012%20Flow.json",
       "OrgRepo": "https://github.com/jac459/meta-SamsungTV2012"
-    }
-  ]
-},
+    },
     {
       "name": "UpdateMeta",
       "Author": "TonO",
