@@ -28,4 +28,15 @@
       "OrgRepo": "https://github.com/jac459/meta-SamsungTV2012"
     }
   ]
+},
+    {
+      "name": "UpdateMeta",
+      "Author": "TonO",
+      "version": 2,
+      "DriverLocation": "https://raw.githubusercontent.com/jac459/neeo2021onward/main/Meta%20running%20in%20Brain/UpdateMeta.json",
+      "IconLocation": "https://raw.githubusercontent.com/jac459/metadriver/master/pictures/refresh.jpg",
+      "FlowLocation": "",
+      "OrgRepo": "https://github.com/jac459/neeo2021onward"
+    }
+  ]
 }
