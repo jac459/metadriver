@@ -1,96 +1,655 @@
-{ "name":"Volumio .meta",
-  "manufacturer":"Volumio",
-  "type":"AUDIO",
-  "version":30,
-  "discover":{
-    "welcomeheadertext":"Choose your Volumio Instance",
-    "welcomedescription":"powered by meta\nby JAC459/TonO",
+{
+  "name": "Volumio .meta",
+  "manufacturer": "JAC459/mherwege/TonO",
+  "type": "AUDIO",
+  "version": 42,
+  "discover": {
+    "welcomeheadertext": "Choose your Volumio Instance",
+    "welcomedescription": "powered by meta",
     "command": {
       "type": "static",
       "command": "$LocalDevices",
       "queryresult": [
         "$.*[?(@.name=='Volumio')]^"
       ]
-    }  
+    }
   },
-  "template" : {
+  "template": {
     "name": "Volumio .meta",
-    "type":"AUDIO",
+    "type": "AUDIO",
     "dynamicname": "DYNAMIK_INST_START DYNAMIK JSON.parse(\"$Result\").name DYNAMIK_INST_END",
-    "dynamicid": "DYNAMIK_INST_START DYNAMIK JSON.parse(\"$Result\").fullname DYNAMIK_INST_END",
-    "manufacturer": "Volumio",
-    "version": 30,
-    "listeners" : {
-      "VolumioStatus" : {"type":"webSocket", "command":{"connection":"$VolumioURI", "message": "pushState"}, "queryresult" : "", 
-        "evalwrite" : [ 
-            {"variable" : "Playing", "value" : "DYNAMIK JSON.parse(\"$Result\").title + \" - \" + JSON.parse(\"$Result\").album + \" - \" + JSON.parse(\"$Result\").artist + \" @ \" + JSON.parse(\"$Result\").trackType+ ((JSON.parse(\"$Result\").bitdepth && JSON.parse(\"$Result\").samplerate) ? (\"/\"+JSON.parse(\"$Result\").bitdepth.replace(/ /g, \"\")+\"/\"+JSON.parse(\"$Result\").samplerate.replace(/ /g, \"\")) : \"\")"}, 
-            {"variable" : "VolumePlayed", "value" : "DYNAMIK JSON.parse(\"$Result\").volume"}, 
-            {"variable" : "VolumePlayedDisplay", "value" : "DYNAMIK '||'.repeat(JSON.parse(\"$Result\").volume) + '--'.repeat(Math.round((100-JSON.parse(\"$Result\").volume)/3))"}, 
-            {"variable" : "AlbumCoverURI", "value" : "DYNAMIK (!JSON.parse(\"$Result\").albumart.startsWith(\"http\") ? (\"$VolumioURI\" + JSON.parse(\"$Result\").albumart) : JSON.parse(\"$Result\").albumart)"}
-          ]
+    "dynamicid": "DYNAMIK_INST_START DYNAMIK \"Volumio - \" + JSON.parse(\"$Result\").addresses[0] DYNAMIK_INST_END",
+    "manufacturer": "JAC459/mherwege/TonO",
+    "version": 42,
+    "listeners": {
+      "VolumioStatus": {
+        "type": "socketIO",
+        "command": {
+          "connection": "$VolumioURI",
+          "message": "pushState"
         },
-      "VolumioProgress" : {"type":"http-get", "command":"$VolumioURI/api/v1/getState", "pooltime":"3000", "poolduration":"", "queryresult" : "$.", 
-        "evalwrite" : [ 
-             {"variable" : "Progress", "value" : "DYNAMIK Math.round(0.1*Number(JSON.parse(\"$Result\")[0].seek)/Number(JSON.parse(\"$Result\")[0].duration))"},
-             {"variable" : "CurrentDuration", "value" : "DYNAMIK JSON.parse(\"$Result\")[0].duration"}
-          ]
-        }
+        "queryresult": "",
+        "evalwrite": [
+          {
+            "variable": "PlayerStatus",
+            "value": "DYNAMIK JSON.parse(\"$Result\").status"
+          },
+          {
+            "variable": "PlayFlag",
+            "value": "DYNAMIK JSON.parse(\"$Result\").status==\"play\""
+          },
+          {
+            "variable": "Title",
+            "value": "DYNAMIK JSON.parse(\"$Result\").title"
+          },
+          {
+            "variable": "Playing",
+            "value": "DYNAMIK JSON.parse(\"$Result\").title + \" - \" + JSON.parse(\"$Result\").album + \" - \" + JSON.parse(\"$Result\").artist + \" @ \" + JSON.parse(\"$Result\").trackType+ ((JSON.parse(\"$Result\").bitdepth && JSON.parse(\"$Result\").samplerate) ? (\"/\"+JSON.parse(\"$Result\").bitdepth.replace(/ /g, \"\")+\"/\"+JSON.parse(\"$Result\").samplerate.replace(/ /g, \"\")) : \"\")"
+          },
+          {
+            "variable": "Mute",
+            "value": "DYNAMIK JSON.parse(\"$Result\").mute"
+          },
+          {
+            "variable": "VolumePlayed",
+            "value": "DYNAMIK Number(JSON.parse(\"$Result\").volume)"
+          },
+          {
+            "variable": "VolumeDisplay",
+            "value": "DYNAMIK '||'.repeat(JSON.parse(\"$Result\").volume) + '--'.repeat(Math.round((100-JSON.parse(\"$Result\").volume)/3))"
+          },
+          {
+            "variable": "AlbumCoverURI",
+            "value": "DYNAMIK (!JSON.parse(\"$Result\").albumart.startsWith(\"http\") ? (\"$VolumioURI\" + JSON.parse(\"$Result\").albumart) : JSON.parse(\"$Result\").albumart)"
+          },
+          {
+            "variable": "Progress",
+            "value": "DYNAMIK Math.round(0.1*Number(JSON.parse(\"$Result\").seek/JSON.parse(\"$Result\").duration))"
+          },
+          {
+            "variable": "ResetProgress",
+            "value": "DYNAMIK Math.round(0.1*Number(JSON.parse(\"$Result\").seek/JSON.parse(\"$Result\").duration))"
+          },
+          {
+            "variable": "ResetTimeReference",
+            "value": "DYNAMIK Date.now()"
+          },
+          {
+            "variable": "Duration",
+            "value": "DYNAMIK Number(JSON.parse(\"$Result\").duration)"
+          },
+          {
+            "variable": "Repeat",
+            "value": "DYNAMIK JSON.parse(\"$Result\").repeat"
+          },
+          {
+            "variable": "Shuffle",
+            "value": "DYNAMIK JSON.parse(\"$Result\").random"
+          }
+        ]
+      },
+      "VolumioProgress": {
+        "type": "static",
+        "command": ".",
+        "pooltime": "3000",
+        "poolduration": "",
+        "queryresult": "",
+        "evaldo" : [{"test": true, "then": "__REFRESHPROGRESS", "or": ""}]
+      }
     },
-    "variables":{
+    "variables": {
       "VolumioURI": "http://DYNAMIK_INST_START DYNAMIK JSON.parse(\"$Result\").addresses[0] DYNAMIK_INST_END",
-      "Playing":"",
-      "MyArtist":"",
-      "MyAlbum":"",
-      "MyURI":"",
-      "AlbumArtURI":"",
-      "PlayPayLoad":"",
-      "AlbumCoverURI":"",
-      "ArtistThumbURI":"",
-      "DirectPlay":false,
-      "MyPlayMode":"ACTION_Play",
-      "VolumePlayed":"",
-      "VolumePlayedDisplay":"",
-      "Progress":"",
-      "CurrentDuration":""
+      "FOLDER_TYPES": "[\"folder\", \"playlist\"]",
+      "PLAY_TYPES": "[\"track\", \"song\", \"folder\", \"webradio\", \"mywebradio\", \"playlist\"]",
+      "PlayerStatus": "",
+      "PlayFlag": false,
+      "Title": "",
+      "Playing": "",
+      "ImageLocation": "https://raw.githubusercontent.com/jac459/metadriver/master/pictures",
+      "CommandShortcuts": "",
+      "CommandCollection": "{\"name\":\"Radio\",\"label\":\"Radio Stations\",\"imageurl\":\"$ImageLocation/Radio_Takchang.jpg\",\"navigation\":\"Radio\",\"uri\":\"radio/favourites\",\"type\":\"\"},{\"name\":\"Artists\",\"label\":\"Artists List\",\"imageurl\":\"$ImageLocation/guitar.jpg\",\"navigation\":\"Artists\",\"uri\":\"artists://\",\"type\":\"\"},{\"name\":\"Albums\",\"label\":\"Albums List\",\"imageurl\":\"$ImageLocation/record.jpg\",\"navigation\":\"AllAlbums\",\"uri\":\"albums://\",\"type\":\"\"},{\"name\":\"Playlist\",\"label\":\"Playlists\",\"imageurl\":\"$ImageLocation/fav.jpg\",\"navigation\":\"Playlist\",\"uri\":\"playlists\",\"type\":\"\"},{\"name\":\"Spotify\",\"label\":\"Spotify Connect\",\"imageurl\":\"$ImageLocation/spotify.jpg\",\"navigation\":\"Spotify\",\"uri\":\"spotify/playlists\",\"type\":\"\"}",
+      "BrowseCommand": "",
+      "BrowseLevel": 0,
+      "MAX_BROWSE_LEVEL": 5,
+      "MyArtist": "",
+      "MyURI": "",
+      "ItemType": "",
+      "URIStack": "[]",
+      "StackLength": 0,
+      "Shortcut": "",
+      "MyBrowseName": "",
+      "MyBrowseLabel": "",
+      "AlbumArtURI": "",
+      "IsFolder": false,
+      "CanPlay": false,
+      "PlayPayLoad": "",
+      "AlbumCoverURI": "",
+      "PutInQueue": false,
+      "MyPlayMode": "ACTION_Play",
+      "Mute": false,
+      "VolumePlayed": 0,
+      "VolumeDisplay": "",
+      "Progress": 0,
+      "ResetProgress": 0,
+      "ResetTimeReference": 0,
+      "Duration": 0,
+      "Repeat": false,
+      "Shuffle": false
     },
-
-    "images":{
-      "AlbumCover" : {"label":"", "size" : "large", "listen":"AlbumCoverURI"},
-      "AlbumCoverSmall" : {"label":"", "size" : "small", "listen":"AlbumCoverURI"}
+    "persistedvariables": {
+      "MyShortcuts": ""
     },
-    "labels":{  
-      "CurrentStatus" : {"label":" ", "listen":"Playing", "actionlisten":"VolumePlayedDisplay"}
+    "images": {
+      "AlbumCover": {
+        "label": "",
+        "size": "large",
+        "listen": "AlbumCoverURI"
+      },
+      "AlbumCoverSmall": {
+        "label": "",
+        "size": "small",
+        "listen": "AlbumCoverURI"
+      }
     },
-    "switches":{
-      "PlayMode" : {"label":"Play <=> Queue", "listen":"DirectPlay", "evaldo":[{"test":"DYNAMIK $Result", "then":"__PUTINQUEUE", "or":"__DIRECTPLAY"}]}
+    "labels": {
+      "Title": {
+        "label": "",
+        "listen": "Title"
+      },
+      ".": {
+        "label": "",
+        "listen": "Playing",
+        "actionlisten": "VolumeDisplay"
+      }
     },
-    "sliders":{
-        "VOLUME": {"label":"", "unit" : "db", "listen" : "VolumePlayed", "evaldo":[{"test":true, "then":"__VOLUMESET", "or":""}]},
-        "PROGRESS": {"label":"", "unit" : "%", "listen" : "Progress", "evaldo":[{"test":true, "then":"__PROGRESSSET", "or":""}]}
+    "switches": {
+      "PlayMode": {
+        "label": "Play <=> Queue",
+        "listen": "PutInQueue",
+        "evaldo": [
+          {
+            "test": "DYNAMIK $Result",
+            "then": "__PUTINQUEUE",
+            "or": "__DIRECTPLAY"
+          }
+        ]
+      },
+      "PLAYING": {
+        "label": "",
+        "listen": "PlayFlag",
+        "evaldo": [
+          {
+            "test": "DYNAMIK $Result",
+            "then": "PLAY",
+            "or": "PAUSE"
+          }
+        ]
+      },
+      "REPEAT": {
+        "label": "",
+        "listen": "Repeat",
+        "evaldo": [
+          {
+            "test": "DYNAMIK $Result",
+            "then": "__REPEAT ON",
+            "or": "__REPEAT OFF"
+          }
+        ]
+      },
+      "SHUFFLE": {
+        "label": "",
+        "listen": "Shuffle",
+        "evaldo": [
+          {
+            "test": "DYNAMIK $Result",
+            "then": "__SHUFFLE ON",
+            "or": "__SHUFFLE OFF"
+          }
+        ]
+      },
+      "MUTE": {
+        "label": "",
+        "listen": "Mute",
+        "evaldo": [
+          {
+            "test": "DYNAMIK $Result",
+            "then": "__MUTE ON",
+            "or": "__MUTE OFF"
+          }
+        ]
+      }
     },
-
-    "buttons":{
-      "__INITIALISE": {"label": "", "type":"static", "command":""},
-      "__CLEANUP": {"label": "", "type":"static", "command":""},
-      "__DIRECTPLAY": {"label":"", "type":"static", "command":"", "evalwrite":[{"variable":"MyPlayMode","value":"ACTION_Play"}, {"variable":"DirectPlay","value":"false"}]},
-      "__PUTINQUEUE": {"label":"", "type":"static", "command":"", "evalwrite":[{"variable":"MyPlayMode","value":"ACTION_Queue"}, {"variable":"DirectPlay","value":"true"}]},
-      "VOLUME UP": {"label":"", "type":"static", "command":"", "evalwrite":[{"variable":"VolumePlayed","value":"DYNAMIK (Number($VolumePlayed)<95)?Number($VolumePlayed)+5:100"}], "evaldo":[{"test":true, "then":"__VOLUMESET", "or":""}]},
-      "VOLUME DOWN": {"label":"", "type":"static", "command":"", "evalwrite":[{"variable":"VolumePlayed","value":"DYNAMIK (Number($VolumePlayed)>5)?Number($VolumePlayed)-5:0"}], "evaldo":[{"test":true, "then":"__VOLUMESET", "or":""}]},
-      "STOP": {"label":"", "type":"http-get", "command":"$VolumioURI/api/v1/commands/?cmd=stop", "queryresult":"$.response", "evalwrite":[{"variable":"Playing","value":"Music Stopped"}]},
-      "PLAY": {"label":"", "type":"http-get", "command":"$VolumioURI/api/v1/commands/?cmd=play", "queryresult":"$.response", "evalwrite":[{"variable":"Playing","value":"Music Started"}]},
-      "PLAY TOGGLE": {"label":"", "type":"http-get", "command":"$VolumioURI/api/v1/commands/?cmd=toggle", "queryresult":"$.response", "evalwrite":[{"variable":"Playing","value":"Ready"}]},
-      "POWER ON": {"label":"", "type":"static", "command":"", "evaldo":[{"test":true,"then":"__INITIALISE", "or":""}]},
-      "POWER OFF": {"label":"", "type":"static", "command":"", "evaldo":[{"test":true,"then":"__CLEANUP", "or":""}]},
-      "CURSOR LEFT": {"label":"", "type":"static", "command":"", "evaldo":[{"test":true,"then":"PREVIOUS", "or":""}]},
-      "CURSOR RIGHT": {"label":"", "type":"static", "command":"", "evaldo":[{"test":true,"then":"NEXT", "or":""}]},
-      "CURSOR ENTER": {"label":"", "type":"static", "command":"", "evaldo":[{"test":true,"then":"PLAY TOGGLE", "or":""}]},
-      "PREVIOUS": {"label":"", "type":"http-get", "command":"$VolumioURI/api/v1/commands/?cmd=prev", "queryresult":"$.response", "evalwrite":[{"variable":"Playing","value":"Previous Track"}]},
-      "NEXT": {"label":"", "type":"http-get", "command":"$VolumioURI/api/v1/commands/?cmd=next", "queryresult":"$.response", "evalwrite":[{"variable":"Playing","value":"Next Track"}]},
-      "CLEAR QUEUE": {"label":"", "type":"http-get", "command":"volumio.local/api/v1/commands/?cmd=clearQueue", "queryresult":"$.response", "evalwrite":[{"variable":"Playing","value":"Queue Cleared"}]},
-      "__VOLUMESET": {"label":"", "type":"http-get", "command":"$VolumioURI/api/v1/commands/?cmd=volume&volume=$VolumePlayed"},
-      "__PROGRESSSET": {"label":"", "type":"webSocket", "command":"DYNAMIK \"{\\\"connection\\\":\\\"$VolumioURI\\\", \\\"message\\\": {\\\"call\\\":\\\"seek\\\", \\\"message\\\":\\\"\" + Math.round(0.01*Number($Progress)*$CurrentDuration) + \"\\\"}}\""}
+    "sliders": {
+      "VOLUME": {
+        "label": "",
+        "unit": "db",
+        "listen": "VolumePlayed",
+        "evaldo": [
+          {
+            "test": true,
+            "then": "__VOLUMESET",
+            "or": ""
+          }
+        ]
+      },
+      "PROGRESS": {
+        "label": "",
+        "unit": "%",
+        "listen": "Progress",
+        "evaldo": [
+          {
+            "test": true,
+            "then": "__PROGRESSSET",
+            "or": ""
+          }
+        ]
+      }
     },
-    "directories":{
+    "buttons": {
+      "__DIRECTPLAY": {
+        "label": "",
+        "type": "static",
+        "command": "",
+        "evalwrite": [
+          {
+            "variable": "MyPlayMode",
+            "value": "ACTION_Play"
+          },
+          {
+            "variable": "PutInQueue",
+            "value": "false"
+          }
+        ]
+      },
+      "__PUTINQUEUE": {
+        "label": "",
+        "type": "static",
+        "command": "",
+        "evalwrite": [
+          {
+            "variable": "MyPlayMode",
+            "value": "ACTION_Queue"
+          },
+          {
+            "variable": "PutInQueue",
+            "value": "true"
+          }
+        ]
+      },
+      "__REFRESHPROGRESS": {
+        "label": "",
+        "type": "static",
+        "command": "",
+        "evalwrite": [
+          {
+            "variable": "Progress",
+            "value": "DYNAMIK ($Duration == 0) ? 0 : ($PlayFlag ? Math.min(Math.round($ResetProgress + 0.1*(Date.now() - $ResetTimeReference)/$Duration), 100) : $Progress)"
+          }
+        ]
+      },
+      "VOLUME UP": {
+        "label": "",
+        "type": "static",
+        "command": "",
+        "evalwrite": [
+          {
+            "variable": "VolumePlayed",
+            "value": "DYNAMIK ($VolumePlayed < 95) ? $VolumePlayed + 5 : 100"
+          }
+        ],
+        "evaldo": [
+          {
+            "test": true,
+            "then": "__VOLUMESET",
+            "or": ""
+          }
+        ]
+      },
+      "VOLUME DOWN": {
+        "label": "",
+        "type": "static",
+        "command": "",
+        "evalwrite": [
+          {
+            "variable": "VolumePlayed",
+            "value": "DYNAMIK ($VolumePlayed > 5) ? $VolumePlayed - 5 : 0"
+          }
+        ],
+        "evaldo": [
+          {
+            "test": true,
+            "then": "__VOLUMESET",
+            "or": ""
+          }
+        ]
+      },
+      "STOP": {
+        "label": "",
+        "type": "socketIO",
+        "command": {
+          "connection": "$VolumioURI",
+          "message": {
+            "call": "stop",
+            "message": ""
+          }
+        },
+        "evalwrite": [
+          {
+            "variable": "Playing",
+            "value": "Music Stopped"
+          }
+        ]
+      },
+      "PAUSE": {
+        "label": "",
+        "type": "static",
+        "command": "",
+        "evaldo": [
+          {
+            "test": "DYNAMIK $PlayFlag",
+            "then": "PLAY_TOGGLE",
+            "or": ""
+          }
+        ]
+      },
+      "PLAY": {
+        "label": "",
+        "type": "static",
+        "command": "",
+        "evaldo": [
+          {
+            "test": "DYNAMIK !$PlayFlag",
+            "then": "PLAY_TOGGLE",
+            "or": ""
+          }
+        ]
+      },
+      "PLAY TOGGLE": {
+        "label": "",
+        "type": "socketIO",
+        "command": {
+          "connection": "$VolumioURI",
+          "message": {
+            "call": "toggle",
+            "message": ""
+          }
+        }
+      },
+      "__REPEAT ON": {
+        "label": "",
+        "type": "socketIO",
+        "command": {
+          "connection": "$VolumioURI",
+          "message": {
+            "call": "setRepeat",
+            "message": {
+              "value": true
+            }
+          }
+        }
+      },
+      "__REPEAT OFF": {
+        "label": "",
+        "type": "socketIO",
+        "command": {
+          "connection": "$VolumioURI",
+          "message": {
+            "call": "setRepeat",
+            "message": {
+              "value": false
+            }
+          }
+        }
+      },
+      "REPEAT TOGGLE": {
+        "label": "",
+        "type": "static",
+        "command": "",
+        "evaldo": [
+          {
+            "test": "DYNAMIK !$Repeat",
+            "then": "__REPEAT ON",
+            "or": "__REPEAT OFF"
+          }
+        ]
+      },
+      "__SHUFFLE ON": {
+        "label": "",
+        "type": "socketIO",
+        "command": {
+          "connection": "$VolumioURI",
+          "message": {
+            "call": "setRandom",
+            "message": {
+              "value": true
+            }
+          }
+        }
+      },
+      "__SHUFFLE OFF": {
+        "label": "",
+        "type": "socketIO",
+        "command": {
+          "connection": "$VolumioURI",
+          "message": {
+            "call": "setRandom",
+            "message": {
+              "value": false
+            }
+          }
+        }
+      },
+      "SHUFFLE TOGGLE": {
+        "label": "",
+        "type": "static",
+        "command": "",
+        "evaldo": [
+          {
+            "test": "DYNAMIK !$Shuffle",
+            "then": "__SHUFFLE ON",
+            "or": "__SHUFFLE OFF"
+          }
+        ]
+      },
+      "__MUTE ON": {
+        "label": "",
+        "type": "socketIO",
+        "command": {
+          "connection": "$VolumioURI",
+          "message": {
+            "call": "mute",
+            "message": ""
+          }
+        }
+      },
+      "__MUTE OFF": {
+        "label": "",
+        "type": "socketIO",
+        "command": {
+          "connection": "$VolumioURI",
+          "message": {
+            "call": "unmute",
+            "message": ""
+          }
+        }
+      },
+      "MUTE TOGGLE": {
+        "label": "",
+        "type": "static",
+        "command": "",
+        "evaldo": [
+          {
+            "test": "DYNAMIK !$Mute",
+            "then": "__MUTE ON",
+            "or": "__MUTE OFF"
+          }
+        ]
+      },
+      "POWER ON": {
+        "label": "",
+        "type": "static",
+        "command": "",
+        "evaldo": [
+          {
+            "test": true,
+            "then": "__INITIALISE",
+            "or": ""
+          },
+          {
+            "test": true,
+            "then": "__GETSTATE",
+            "or": ""
+          }
+        ],
+        "evalwrite": [
+          {
+            "variable": "MyShortcuts",
+            "value": "DYNAMIK [\"undefined\", \"\"].includes(\"$MyShortcuts\") ? \"[]\" : \"$MyShortcuts\".replace(/\"/g,'\\\\\"')"
+          },
+          {
+            "variable": "CommandShortcuts",
+            "value": "DYNAMIK \"$MyShortcuts\".replace(\"[\",\"\").replace(\"]\",\"\") + (![\"\",\"[]\"].includes(\"$MyShortcuts\") ? \",\" : \"\")"
+          }
+        ]
+      },
+      "POWER OFF": {
+        "label": "",
+        "type": "static",
+        "command": "",
+        "evaldo": [
+          {
+            "test": true,
+            "then": "__CLEANUP",
+            "or": ""
+          }
+        ]
+      },
+      "CURSOR LEFT": {
+        "label": "",
+        "type": "static",
+        "command": "",
+        "evaldo": [
+          {
+            "test": true,
+            "then": "PREVIOUS",
+            "or": ""
+          }
+        ]
+      },
+      "CURSOR RIGHT": {
+        "label": "",
+        "type": "static",
+        "command": "",
+        "evaldo": [
+          {
+            "test": true,
+            "then": "NEXT",
+            "or": ""
+          }
+        ]
+      },
+      "CURSOR ENTER": {
+        "label": "",
+        "type": "static",
+        "command": "",
+        "evaldo": [
+          {
+            "test": true,
+            "then": "PLAY TOGGLE",
+            "or": ""
+          }
+        ]
+      },
+      "PREVIOUS": {
+        "label": "",
+        "type": "socketIO",
+        "command": {
+          "connection": "$VolumioURI",
+          "message": {
+            "call": "prev",
+            "message": ""
+          }
+        }
+      },
+      "NEXT": {
+        "label": "",
+        "type": "socketIO",
+        "command": {
+          "connection": "$VolumioURI",
+          "message": {
+            "call": "next",
+            "message": ""
+          }
+        }
+      },
+      "CLEAR QUEUE": {
+        "label": "",
+        "type": "socketIO",
+        "command": {
+          "connection": "$VolumioURI",
+          "message": {
+            "call": "clearQueue",
+            "message": ""
+          }
+        }
+      },     
+      "CLEAR SHORTCUTS": {
+        "label": "",
+        "type": "static",
+        "command": "",
+        "evalwrite": [
+          {
+            "variable": "MyShortcuts",
+            "value": "[]"
+          },
+          {
+            "variable": "CommandShortcuts",
+            "value": ""
+          }
+        ],
+        "evaldo": [
+          {
+            "test": true,
+            "then": "__PERSIST",
+            "else": ""
+          }
+        ]
+      },
+      "__VOLUMESET": {
+        "label": "",
+        "type": "socketIO",
+        "command": {
+          "connection": "$VolumioURI",
+          "message": {
+            "call": "volume",
+            "message": "$VolumePlayed"
+          }
+        }
+      },
+      "__PROGRESSSET": {
+        "label": "",
+        "type": "socketIO",
+        "evalwrite": [
+          {
+            "variable": "ResetTimeReference",
+            "value": "DYNAMIK Date.now()"
+          }
+        ],
+        "command": "DYNAMIK \"{\\\"connection\\\":\\\"$VolumioURI\\\", \\\"message\\\": {\\\"call\\\":\\\"seek\\\", \\\"message\\\":\\\"\" + Math.round(0.01*$Progress*$Duration) + \"\\\"}}\""
+      },
+      "__GETSTATE": {
+        "label": "",
+        "type": "socketIO",
+        "command": {
+          "connection": "$VolumioURI",
+          "message": {
+            "call": "getState",
+            "message": ""
+          }
+        }
+      }
+    },
+    "directories": {
       "Collection": {"label":"My music", 
         "feeders": {
           "Collections":{"label":"Collections list", 

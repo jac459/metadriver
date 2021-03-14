@@ -350,7 +350,6 @@ function assignControllers(controller, driver, currentDeviceId) {
       }
     }
   }
-
 }
 
 
@@ -396,6 +395,7 @@ function executeDriverCreation (driver, hubController, deviceId) {
 
 
       //GET ALL CONNECTIONS
+      controller.addConnection({"name":"socketIO", "connections":[]})
       controller.addConnection({"name":"webSocket", "connections":[]})
       controller.addConnection({"name":"jsontcp", "descriptor":driver.jsontcp, "connector":""})
       if (settings.mqtt) {
@@ -438,7 +438,7 @@ function executeDriverCreation (driver, hubController, deviceId) {
                   discoveryDriverPreparator(controller, driver, currentDeviceId, targetDeviceId).then((driverList) => {
                   const formatedTable = [];
                   discoveredDriverListBuilder(driverList, formatedTable, 0, controller, targetDeviceId).then((outputTable) => {
-                    //controller.vault.snapshotDataStore(); JAC TO TEST 
+                    //controller.vault.snapshotDataStore();  avoid tireness on drive.
                     resolve(outputTable); 
                   })
                 })

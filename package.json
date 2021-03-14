@@ -29,6 +29,7 @@
   "bundleDependencies": false,
   "dependencies": {
     "async": "^3.2.0",
+    "dnssd2": " ^1.0.0",
     "fs": "0.0.1-security",
     "got": "^11.5.2",
     "http.min": "^2.0.1",
@@ -41,10 +42,11 @@
     "neeo-sdk": "^0.53.8",
     "socket.io-client": "^2.3.0",
     "wake_on_lan": "^1.0.0",
+    "websocket": "^1.0.33",
+    "ws": "^7.4.3",
     "xml2js": "^0.4.23",
     "xmldom": "^0.3.0",
-    "xpath": "0.0.27",
-    "dnssd2": " ^1.0.0"
+    "xpath": "0.0.27"
   },
   "deprecated": false,
   "description": "full customizable driver to control any device with neeo (including list and device monitoring)",

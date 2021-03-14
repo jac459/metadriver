@@ -1,31 +1,31 @@
 {"name":"MiTV", 
   "manufacturer":"Xiaomi",
   "type":"TV",
-  "version":11,
-  "register":{
-    "registertype": "SECURITY_CODE",
-    "registerheadertext": "Xiaomi TV",
-    "registerdescription": "Please enter the IP address of your device. Your Device must be on and connected to the network",
-    "registrationcommand":{"type":"http-get", "command":"http://$RegistrationCode:6095/controller?action=getinstalledapp&count=999&changeIcon=1", "queryresult":"$.msg", "evalwrite":[{"variable":"XiaomiIp","value":"$RegistrationCode"}, {"variable":"IsRegistered","value":"DYNAMIK (\"$Result\" == \"success\") ? true : false"}]}
+  "version":15,
+  "buttons":{
+    "__PREINIT": {"label":"", "type":"static", "command":"$LocalDevices", "queryresult":["$.*[?(@property === 'host' && @.match(/^MiTV/i))]^[?(@.name=='raop')]^"],"evalwrite":[{"variable":"PersistedDevice","value":"DYNAMIK let t = JSON.parse(\"$Result\"); t.length>0?JSON.stringify(t):JSON.stringify($PersistedDevice);"}]}
   },
-  "persistedvariables":{
-    "XiaomiIp":"",
-    "IsRegistered":""
+  "discover": {
+    "welcomeheadertext": "MiTV Driver",
+    "welcomedescription": "powered by meta\nby JAC&TonO",
+    "command": {
+      "type": "static",
+      "command": "$PersistedDevice",
+      "queryresult": "$.*"
+    }
   },
-  "discover":{
-    "welcomeheadertext":"Xiaomi TV",
-    "welcomedescription":"powered by meta\nby JAC459",
-    "command":{"type":"static", "command":"{\"name\":\"Xiaomi TV\",\"id\":\"$XiaomiIp\"}", "queryresult":""}
+  "persistedvariables": {
+    "PersistedDevice": ""
   },
   "template" : {
     "name":"MiTV", 
     "dynamicname":"DYNAMIK_INST_START DYNAMIK JSON.parse(\"$Result\").name DYNAMIK_INST_END",
-    "dynamicid":"DYNAMIK_INST_START DYNAMIK JSON.parse(\"$Result\").id DYNAMIK_INST_END",
+    "dynamicid":"DYNAMIK_INST_START DYNAMIK JSON.parse(\"$Result\").fullname DYNAMIK_INST_END",
     "manufacturer":"Xiaomi",
-    "version":13,
+    "version":15,
     "type":"TV", 
     "variables":{
-      "XiaomiIp":"$XiaomiIp",
+      "XiaomiIp":"DYNAMIK_INST_START DYNAMIK JSON.parse(\"$Result\").addresses[0] DYNAMIK_INST_END",
       "Application":"",
       "MyStatus":""
     }, 
@@ -44,10 +44,11 @@
       "MENU": {"label":"", "type":"http-get", "command":"http://$XiaomiIp:6095/controller?action=keyevent&keycode=menu", "queryresult":"$.msg", "evalwrite":[{"variable":"MyStatus","value":"(\"$Result\"==\"success\")?\"Menu pressed\":\"command Failed\""}]},
       "BACK": {"label":"", "type":"http-get", "command":"http://$XiaomiIp:6095/controller?action=keyevent&keycode=back", "queryresult":"$.msg", "evalwrite":[{"variable":"MyStatus","value":"(\"$Result\"==\"success\")?\"Back pressed\":\"command Failed\""}]},
       "EXIT": {"label":"", "type":"http-get", "command":"http://$XiaomiIp:6095/controller?action=keyevent&keycode=exit", "queryresult":"$.msg", "evalwrite":[{"variable":"MyStatus","value":"(\"$Result\"==\"success\")?\"Exit pressed\":\"command Failed\""}]},
+      "NETFLIX": {"label":"", "type":"http-get", "command":"http://$XiaomiIp:6095/controller?action=startapp&type=packagename&packagename=org.xbmc.kodi", "queryresult":"$.msg", "evalwrite":[{"variable":"MyStatus","value":"(\"$Result\"==\"success\")?\"Ok pressed\":\"command Failed\""}]},
       "VOLUME UP": {"label":"", "type":"http-get", "command":"http://$XiaomiIp:6095/controller?action=keyevent&keycode=volumeup", "queryresult":"$.msg", "evalwrite":[{"variable":"MyStatus","value":"(\"$Result\"==\"success\")?\"Volume up\":\"command Failed\""}]},
       "VOLUME DOWN": {"label":"", "type":"http-get", "command":"http://$XiaomiIp:6095/controller?action=keyevent&keycode=volumedown", "queryresult":"$.msg", "evalwrite":[{"variable":"MyStatus","value":"(\"$Result\"==\"success\")?\"Volume down\":\"command Failed\""}]},
       "POWER ON": {"label":"", "type":"http-get", "command":"http://$XiaomiIp:6095/controller?action=getinstalledapp&count=999&changeIcon=1", "queryresult":"$.msg", "evalwrite":[{"variable":"MyStatus","value":"(\"$Result\"==\"success\")?\"TV is ON\":\"Trying to Switch on by IR\""}], "evaldo":[{"test":"DYNAMIK \"$Result\"==\"success\"", "then":"", "or":"__POWER ON-IR"}]},
-      "__POWER ON-IR": {"label":"", "type":"http-get", "command":"http://localhost:3000/v1/projects/home/rooms/6758773938370641920/devices/6760939479176839168/macros/6760939479269113856/trigger", "queryresult":"$.estimatedDuration", "evalwrite":[{"variable":"MyStatus","value":"DYNAMIC (\"$Result\"==\"2000\")?\"IR called done\":\"Could not call the IR\""}]},
+      "__POWER ON-IR": {"label":"", "type":"http-get", "command":" http://127.0.0.1:5000/xmit?host=192.168.1.16&&type=0x2737&&mac=780f7706e3a8&stream=26009c0024111510152c152c1511152c1511162b1611152c162c1500016123111511162b162c1511162c1610162b1611152c152c1500016123111610162c162c1511162b1610152c1511152d152c1600016024111610152d152c1611152c1510152d1511152c152c1500016124111510152c152c1511152c1510162c1611152c152c1500016024111511152c162c1610162c1611152c1611152c152c15000d05000000000000000000000000", "queryresult":"$.estimatedDuration", "evalwrite":[{"variable":"MyStatus","value":"DYNAMIC (\"$Result\"==\"2000\")?\"IR called done\":\"Could not call the IR\""}]},
       "POWER OFF": {"label":"", "type":"http-get", "command":"http://$XiaomiIp:6095/controller?action=keyevent&keycode=power", "queryresult":"$.msg", "evalwrite":[{"variable":"MyStatus","value":"(\"$Result\"==\"success\")?\"OFF pressed\":\"command Failed\""}]}
     },
     "directories":{
