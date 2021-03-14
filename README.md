@@ -2,6 +2,11 @@ As I am working quite a lot on this driver nowadays, don't hesitate to supporte 
 
 https://www.paypal.me/jac459
 
+You can join the community here:
+https://discord.gg/3nuUZwXVXA
+And here (backup):
+https://t.me/joinchat/NocMDU9RCVP9hSCJxPsCEg
+
 # metadriver
 Programmable driver for NEEO to control any device and generate complex integration.
 Examples of integration:

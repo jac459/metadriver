@@ -75,7 +75,7 @@ var settings =
           },
           'ActivateAction':{'label':'', 'commandset': [{'type':'cli', 'command':"DYNAMIK \"cp  '$LibraryName/$DriverName.json' '$ActivatedLib'\"", "itemUI" : "goBack"}]},
 
-          'ActivateActionExternal':{'label':'', 'commandset': [{'type':'cli', 'command':"DYNAMIK \"curl \" + \"$DriverLocation \" + \" -o \" + \" $ActivatedLib\" + \"/\" + \"$LibraryName\"+ \".json\""}]},
+          'ActivateActionExternal':{'label':'', 'commandset': [{'type':'cli', 'command':"DYNAMIK \"curl \" + \"$DriverLocation \" + \" -o \" + \" $ActivatedLib\" + \"/\" + \"$DriverName\"+ \".json\""}]},
 
           "Manage":{"label":"Manage the Meta", 
             "commandset": [
