@@ -3,6 +3,7 @@ const path = require('path');
 const settings = require(path.join(__dirname,'settings'));
 const neeoapi = require("neeo-sdk");
 const metacontrol = require(path.join(__dirname,'metaController'));
+const cacheManager = require(path.join(__dirname,'cacheManager'));
 
 //Discovery tools
 const dnssd = require('dnssd2');
@@ -16,7 +17,6 @@ const DATASTOREEXTENSION = 'DataStore.json';
 const DEFAULT = 'default'; //NEEO SDK deviceId default value for devices
 const mqtt = require('mqtt');
 const { metaMessage, OverrideLoglevel, LOG_TYPE, initialiseLogComponents, initialiseLogSeverity } = require("./metaMessage");
-
 config = {brainip : '', brainport : ''};
 function returnBrainIp() { return config.brainip;}
 var brainDiscovered = false;
@@ -28,11 +28,9 @@ exports.localDevices = localDevices;
 exports.localByMacDevices = localByMacDevices;
 exports.neeoBrainIp = returnBrainIp;
 var mqttClient;
-var DoingDiscovery=false;
-var Cache_targetDeviceId=""; 
-var Cache_outputTable="";
-var Cache_timestamp=0; 
+var DoingDiscoveryMySelf=false;
 
+var FromMe=false;
 //LOGGING SETUP AND WRAPPING
 //Disable the NEEO library console warning.
 console.error = console.info = console.debug = console.warn = console.trace = console.dir = console.dirxml = console.group = console.groupEnd = console.time = console.timeEnd = console.assert = console.profile = function() {};
@@ -216,13 +214,13 @@ function discoveryDriverPreparator(controller, driver, deviceId, targetDeviceId)
       metaLog({deviceId: deviceId, type:LOG_TYPE.VERBOSE, content:'discovery initiateProcessor'});
 
       controller.initiateProcessor(driver.discover.command.type).then(() => {
-        metaLog({deviceId: deviceId, type:LOG_TYPE.VERBOSE, content:'discovery commandProcessor'});
-
+        metaLog({deviceId: deviceId, type:LOG_TYPE.VERBOSE, content:'discovery Initiate Processor done' });
+    
         controller.commandProcessor(driver.discover.command.command, driver.discover.command.type, deviceId).then((result)=>{
-          metaLog({deviceId: deviceId, type:LOG_TYPE.VERBOSE, content:'discovery queryProcessor'});
-          metaLog({deviceId: deviceId, type:LOG_TYPE.DEBUG, content:result});
           controller.queryProcessor(result, driver.discover.command.queryresult, driver.discover.command.type, deviceId).then((result) => {
             if (driver.discover.command.evalwrite) {controller.evalWrite(driver.discover.command.evalwrite, result, deviceId)};
+            metaLog({deviceId: deviceId, type:LOG_TYPE.VERBOSE, content:'discovery Driver Preparation, query result'});
+            metaLog({deviceId: deviceId, type:LOG_TYPE.DEBUG, content:result});
             if (!Array.isArray(result)) {
               let tempo = [];
               tempo.push(result);
@@ -232,6 +230,8 @@ function discoveryDriverPreparator(controller, driver, deviceId, targetDeviceId)
               driverInstance = instanciationHelper(controller, element, driver.template);
               instanciationTable.push(driverInstance);
             });
+            metaLog({deviceId: deviceId, type:LOG_TYPE.VERBOSE, content:'discovery queryProcessor found'});
+            metaLog({deviceId: deviceId, type:LOG_TYPE.DEBUG, content:instanciationTable});
             resolve(instanciationTable)
           })
         })
@@ -360,10 +360,7 @@ function assignControllers(controller, driver, currentDeviceId) {
   }
 
 }
-function GetATimeStamp() {
-  let d = new Date();
-  return  d.getMinutes()*60000+d.getSeconds()*1000+d.getMilliseconds()
-}  
+
 
 function executeDriverCreation (driver, hubController, deviceId) { 
     return new Promise(function (resolve, reject) {
@@ -382,7 +379,7 @@ function executeDriverCreation (driver, hubController, deviceId) {
             theDevice.setIcon(driver.icon)
         }
         if (driver.alwayson) {
-          theDevice.addCapability("alwaysOn");
+           theDevice.addCapability("alwaysOn");
         }
         
        //CREATING VARIABLES
@@ -408,10 +405,12 @@ function executeDriverCreation (driver, hubController, deviceId) {
 
       //GET ALL CONNECTIONS
       controller.addConnection({"name":"webSocket", "connections":[]})
+      controller.addConnection({"name":"netSocket", "connections":[]})
       controller.addConnection({"name":"jsontcp", "descriptor":driver.jsontcp, "connector":""})
       if (settings.mqtt) {
         metaLog({deviceId: deviceId, type:LOG_TYPE.INFO, content:'Creating the connection MQTT'});
         controller.addConnection({"name":"mqtt", "descriptor":settings.mqtt, "connector":mqttClient})//early loading
+
         //controller.initiateProcessor('mqtt');
       }
       if (driver.repl) {
@@ -434,11 +433,12 @@ function executeDriverCreation (driver, hubController, deviceId) {
           })
         }
 
-        DoingDiscovery = true;
+        metaLog({deviceId: deviceId, type:LOG_TYPE.ALWAYS, content:" Setting discovery to true as we are requesting it ourself: " + driver.name});
 
+        //console.log(new Date().toLocaleString()," Setting discovery to true as we are requesting it ourself: ",driver.name)
         //DISCOVERY  
         if (driver.discover) {
-          metaLog({deviceId: currentDeviceId, type:LOG_TYPE.INFO, content:'Starting discovery process.'});
+          DoingDiscoveryMySelf = true;
           theDevice.enableDiscovery(
             {
               headerText: driver.discover.welcomeheadertext,
@@ -446,33 +446,47 @@ function executeDriverCreation (driver, hubController, deviceId) {
               enableDynamicDeviceBuilder: true,
             },
             (targetDeviceId) => {
-              metaLog({deviceId: deviceId, type:LOG_TYPE.VERBOSE, content:"Discovery " + targetDeviceId});
-              if (Cache_targetDeviceId == targetDeviceId) 
-              {
-                if(GetATimeStamp() - Cache_timestamp < 600000) { //Cache not expired? TTL = 10 minutes
-                    metaLog({deviceId: deviceId, type:LOG_TYPE.VERBOSE, content:"Providing NEEO with cache-result!"});
-                    return Cache_outputTable;  
-                  }
-                else 
-                  metaLog({deviceId: deviceId, type:LOG_TYPE.VERBOSE, content:"Disposing of Cache, as it was too old"});
-              }
               return new Promise(function (resolve, reject) {
-                  discoveryDriverPreparator(controller, driver, currentDeviceId, targetDeviceId).then((driverList) => {
+                /*if (DoingDiscoveryMySelf)
+                  metaLog({deviceId: deviceId, type:LOG_TYPE.ALWAYS, content:"Discovery: We initiated this ourself "+targetDeviceId+"/"+driver.name});
+                else 
+                  metaLog({deviceId: deviceId, type:LOG_TYPE.ALWAYS, content:"Discovery: NEEO-triggered discovery "+targetDeviceId+"/"+driver.name});
+                  */
+                try {
+                  if (DoingDiscoveryMySelf) 
+                 {
+                    DoingDiscoveryMySelf = false;
+                    metaLog({deviceId: deviceId, type:LOG_TYPE.ALWAYS, content:"Doing Discovery " + driver.name });
+                    var CachedDiscovery = cacheManager.ValidateDiscoveryCache(targetDeviceId);
+                    if (CachedDiscovery) {         
+                      metaLog({deviceId: deviceId, type:LOG_TYPE.ALWAYS, content:"Providing NEEO with cache-result!"});
+                      resolve(CachedDiscovery);
+                    }
+                  }
+                }
+           
+                catch (err) {
+                  console.log("Error in check cache-code: ",err)
+                }
+                DoingDiscoveryMySelf = false;
+            
+                discoveryDriverPreparator(controller, driver, currentDeviceId, targetDeviceId).then((driverList) => {
                   const formatedTable = [];
                   discoveredDriverListBuilder(driverList, formatedTable, 0, controller, targetDeviceId).then((outputTable) => {
                     //controller.vault.snapshotDataStore(); JAC TO TEST 
-                    Cache_outputTable = outputTable;
-                    Cache_targetDeviceId = targetDeviceId;
-                    Cache_timestamp = GetATimeStamp();
-                    metaLog({deviceId: deviceId, type:LOG_TYPE.VERBOSE, content:"Cache created for: " +  targetDeviceId});
-                    resolve(outputTable); 
+                    try {
+                      cacheManager.AddDiscoveryCache(targetDeviceId,outputTable);
+                      resolve(outputTable);
+                    } 
+                    catch (err) {
+                      console.log("Error in add cache-code: ",err)
+                    }
                   })
                 })
               })
             }
           )
         }
-        DoingDiscovery=false;
         controller.reInitConnectionsValues(currentDeviceId);
         
         //CREATING LISTENERS
@@ -728,7 +742,6 @@ function runNeeo () {
     };
     metaLog({type:LOG_TYPE.INFO, content:"Current directory: " + __dirname});
     metaLog({type:LOG_TYPE.INFO, content:"Trying to start the meta."});
-    
     neeoapi.startServer(neeoSettings)
       .then((result) => {
         metaLog({type:LOG_TYPE.ALWAYS, content:"Driver running, you can search it on the neeo app."});
@@ -756,47 +769,47 @@ function enableMQTT (cont, deviceId) {
 
   mqttClient.subscribe(settings.mqtt_topic + cont.name + "/#", () => {});
   mqttClient.on('message', function (topic, value) {
-      try {
-        if (topic == "meta/.meta/LOGLEVEL") 
-          OverrideLoglevel(value);
-        else {
-          let theTopic = topic.split("/");
-          if (theTopic.length == 6 && theTopic[5] == "set") {
+    try {
+      if (topic == "meta/.meta/LOGLEVEL") 
+        OverrideLoglevel(value); // dynamically change loglevel of .meta
+      else {
+        let theTopic = topic.split("/");
+        if (theTopic.length == 6 && theTopic[5] == "set") {
 
-            if (theTopic[3] == "button") {
-              cont.onButtonPressed(theTopic[4], theTopic[2]);
-            }
-            else if (theTopic[3] == "slider") {
-              let sliI = cont.sliderH.findIndex((sli)=>{return sli.name == theTopic[4]});
-              if (sliI>=0){
-                cont.sliderH[sliI].set(theTopic[2], value)
-              }   
-            }
-            else if (theTopic[3] == "switch") {
-              let sliI = cont.switchH.findIndex((sli)=>{return sli.name == theTopic[4]});
-              if (sliI>=0){
-                cont.switchH[sliI].set(theTopic[2], value)
-              }   
-            }
-            else if (theTopic[3] == "image") {
-              let imaI = cont.imageH.findIndex((ima)=>{return ima.name == theTopic[4]});
-              if (imaI>=0){
-                cont.imageH[imaI].set(theTopic[2], value)
-              }   
-            }
-            else if (theTopic[3] == "label") {
-              let labI = cont.labelH.findIndex((lab)=>{return lab.name == theTopic[4]});
-              if (labI>=0){
-                cont.labelH[labI].set(theTopic[2], value)
-              }   
-            }
+          if (theTopic[3] == "button") {
+            cont.onButtonPressed(theTopic[4], theTopic[2]);
+          }
+          else if (theTopic[3] == "slider") {
+            let sliI = cont.sliderH.findIndex((sli)=>{return sli.name == theTopic[4]});
+            if (sliI>=0){
+              cont.sliderH[sliI].set(theTopic[2], value)
+            }   
+          }
+          else if (theTopic[3] == "switch") {
+            let sliI = cont.switchH.findIndex((sli)=>{return sli.name == theTopic[4]});
+            if (sliI>=0){
+              cont.switchH[sliI].set(theTopic[2], value)
+            }   
+          }
+          else if (theTopic[3] == "image") {
+            let imaI = cont.imageH.findIndex((ima)=>{return ima.name == theTopic[4]});
+            if (imaI>=0){
+              cont.imageH[imaI].set(theTopic[2], value)
+            }   
+          }
+          else if (theTopic[3] == "label") {
+            let labI = cont.labelH.findIndex((lab)=>{return lab.name == theTopic[4]});
+            if (labI>=0){
+              cont.labelH[labI].set(theTopic[2], value)
+            }   
           }
         }
       }
-      catch (err) {
-        metaLog({type:LOG_TYPE.ERROR, content:'Parsing incomming message on: '+settings.mqtt_topic + cont.name + "/command"});
-        metaLog({type:LOG_TYPE.ERROR, content:err});
-      }
+    }
+    catch (err) {
+      metaLog({type:LOG_TYPE.ERROR, content:'Parsing incomming message on: '+settings.mqtt_topic + cont.name + "/command"});
+      metaLog({type:LOG_TYPE.ERROR, content:err});
+    }
   })
 }
 //MAIN
