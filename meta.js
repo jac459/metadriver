@@ -4,6 +4,9 @@ const settings = require(path.join(__dirname,'settings'));
 const neeoapi = require("neeo-sdk");
 const metacontrol = require(path.join(__dirname,'metaController'));
 const cacheManager = require(path.join(__dirname,'cacheManager'));
+const CacheEntryTemp = "TEMP";
+const CacheEntryCompleted = "COMPLETED";
+const CacheEntryNotFound = '';
 
 //Discovery tools
 const dnssd = require('dnssd2');
@@ -17,6 +20,7 @@ const DATASTOREEXTENSION = 'DataStore.json';
 const DEFAULT = 'default'; //NEEO SDK deviceId default value for devices
 const mqtt = require('mqtt');
 const { metaMessage, OverrideLoglevel, LOG_TYPE, initialiseLogComponents, initialiseLogSeverity } = require("./metaMessage");
+
 config = {brainip : '', brainport : ''};
 function returnBrainIp() { return config.brainip;}
 var brainDiscovered = false;
@@ -29,8 +33,7 @@ exports.localByMacDevices = localByMacDevices;
 exports.neeoBrainIp = returnBrainIp;
 var mqttClient;
 var DoingDiscoveryMySelf=false;
-
-var FromMe=false;
+const DelayTime = 1000;
 //LOGGING SETUP AND WRAPPING
 //Disable the NEEO library console warning.
 console.error = console.info = console.debug = console.warn = console.trace = console.dir = console.dirxml = console.group = console.groupEnd = console.time = console.timeEnd = console.assert = console.profile = function() {};
@@ -135,6 +138,7 @@ function getDataStorePath(filename) {
 
 function createDevices () {
   return new Promise(function (resolve, reject) {
+    try { 
     getActivatedDrivers().then((drivers) => {
       drivers = drivers.concat(settings.drivers);
       const driverCreationTable = [];
@@ -146,11 +150,15 @@ function createDevices () {
         resolve(driverTable);
       })
     })
+  }
+  catch (err) {metaLog({deviceId: deviceId, type:LOG_TYPE.ERROR, content:'Error in discoveredDriverListBuilder ' + err});}
   })
+
 }
 
 function discoveredDriverListBuilder(inputRawDriverList, outputPreparedDriverList, indent, controller, targetDeviceId) {
   return new Promise (function (resolve, reject) {
+  try { 
     if (indent < inputRawDriverList.length) {
       if (inputRawDriverList[indent].dynamicname && inputRawDriverList[indent].dynamicname != "") {
         if (targetDeviceId == undefined || targetDeviceId == inputRawDriverList[indent].dynamicid)
@@ -183,8 +191,12 @@ function discoveredDriverListBuilder(inputRawDriverList, outputPreparedDriverLis
         resolve(discoveredDriverListBuilder(inputRawDriverList, outputPreparedDriverList, indent+1, controller, targetDeviceId));
       }
     }
-    else {resolve (outputPreparedDriverList);}
-  })
+    else {
+      resolve (outputPreparedDriverList);}
+    }
+    catch (err) {metaLog({deviceId: deviceId, type:LOG_TYPE.ERROR, content:'Error in discoveredDriverListBuilder ' + err});}
+    
+    })
 }
 
 function instanciationHelper(controller, givenResult, jsonDriver) {
@@ -207,20 +219,18 @@ function instanciationHelper(controller, givenResult, jsonDriver) {
 }
 
 function discoveryDriverPreparator(controller, driver, deviceId, targetDeviceId) {
+  metaLog({deviceId: targetDeviceId, type:LOG_TYPE.VERBOSE, content:'DiscoveryDriverPreparator'});
+
   return new Promise(function (resolve, reject) {
-                      
+            try {           
     if (driver.discover) {
       let instanciationTable = [];
-      metaLog({deviceId: deviceId, type:LOG_TYPE.VERBOSE, content:'discovery initiateProcessor'});
 
       controller.initiateProcessor(driver.discover.command.type).then(() => {
-        metaLog({deviceId: deviceId, type:LOG_TYPE.VERBOSE, content:'discovery Initiate Processor done' });
     
         controller.commandProcessor(driver.discover.command.command, driver.discover.command.type, deviceId).then((result)=>{
           controller.queryProcessor(result, driver.discover.command.queryresult, driver.discover.command.type, deviceId).then((result) => {
             if (driver.discover.command.evalwrite) {controller.evalWrite(driver.discover.command.evalwrite, result, deviceId)};
-            metaLog({deviceId: deviceId, type:LOG_TYPE.VERBOSE, content:'discovery Driver Preparation, query result'});
-            metaLog({deviceId: deviceId, type:LOG_TYPE.DEBUG, content:result});
             if (!Array.isArray(result)) {
               let tempo = [];
               tempo.push(result);
@@ -230,8 +240,6 @@ function discoveryDriverPreparator(controller, driver, deviceId, targetDeviceId)
               driverInstance = instanciationHelper(controller, element, driver.template);
               instanciationTable.push(driverInstance);
             });
-            metaLog({deviceId: deviceId, type:LOG_TYPE.VERBOSE, content:'discovery queryProcessor found'});
-            metaLog({deviceId: deviceId, type:LOG_TYPE.DEBUG, content:instanciationTable});
             resolve(instanciationTable)
           })
         })
@@ -240,7 +248,10 @@ function discoveryDriverPreparator(controller, driver, deviceId, targetDeviceId)
     else {
       resolve();
     }
+  }
+    catch (err) {metaLog({deviceId: deviceId, type:LOG_TYPE.ERROR, content:'Error in discoveryDriverPreparator ' + err});}
   })
+
 }
 
 function getRegistrationCode(controller, credentials, driver, deviceId){
@@ -360,6 +371,38 @@ function assignControllers(controller, driver, currentDeviceId) {
   }
 
 }
+async function KeepTaskInWaitTillCacheCompleted(targetDeviceId,CachedDiscovery) {
+try { 
+let FirstTime = 0;
+metaLog({deviceId: targetDeviceId, type:LOG_TYPE.WARNING, content:"Placing discovery on hold for " + targetDeviceId });
+
+  while ((CachedDiscovery.state!=CacheEntryCompleted) &&(FirstTime<25))  {
+    console.log("Top of keeptaskEtc..."); 
+    FirstTime += (DelayTime/1000);
+    var t = setTimeout(() => {
+      if ((FirstTime)&&(!(FirstTime%5)))
+        metaLog({deviceId: targetDeviceId, type:LOG_TYPE.WARNING, content:"Parallel discovery waiting for " + FirstTime.toString()  + " seconds "});
+
+      metaLog({type:LOG_TYPE.VERBOSE, content:'Timeout exp'});
+      metaLog({deviceId: targetDeviceId, type:LOG_TYPE.WARNING, content:"Call Sleep done"});
+      CachedDiscovery = cacheManager.ValidateDiscoveryCache(targetDeviceId);
+  
+    }, DelayTime);
+    metaLog({deviceId: targetDeviceId, type:LOG_TYPE.WARNING, content:"Outside settimeout"});
+
+    await SleepTimer(DelayTime);
+    metaLog({deviceId: targetDeviceId, type:LOG_TYPE.WARNING, content:"AFTER SLEEPTIMER"});
+
+    }
+
+    if (FirstTime>=25)
+      metaLog({deviceId: targetDeviceId, type:LOG_TYPE.ERROR, content:"Parallel discovery stalled too long, releasing now" });
+    else
+      metaLog({deviceId: targetDeviceId, type:LOG_TYPE.WARNING, content:"Discovery resuming for " + targetDeviceId});
+  }
+  catch (err) {console.log("Error in sleep",err)}
+console.log("Leaving wait");
+  }
 
 
 function executeDriverCreation (driver, hubController, deviceId) { 
@@ -405,7 +448,6 @@ function executeDriverCreation (driver, hubController, deviceId) {
 
       //GET ALL CONNECTIONS
       controller.addConnection({"name":"webSocket", "connections":[]})
-      controller.addConnection({"name":"netSocket", "connections":[]})
       controller.addConnection({"name":"jsontcp", "descriptor":driver.jsontcp, "connector":""})
       if (settings.mqtt) {
         metaLog({deviceId: deviceId, type:LOG_TYPE.INFO, content:'Creating the connection MQTT'});
@@ -433,9 +475,7 @@ function executeDriverCreation (driver, hubController, deviceId) {
           })
         }
 
-        metaLog({deviceId: deviceId, type:LOG_TYPE.ALWAYS, content:" Setting discovery to true as we are requesting it ourself: " + driver.name});
 
-        //console.log(new Date().toLocaleString()," Setting discovery to true as we are requesting it ourself: ",driver.name)
         //DISCOVERY  
         if (driver.discover) {
           DoingDiscoveryMySelf = true;
@@ -446,47 +486,85 @@ function executeDriverCreation (driver, hubController, deviceId) {
               enableDynamicDeviceBuilder: true,
             },
             (targetDeviceId) => {
+              metaLog({deviceId: targetDeviceId, type:LOG_TYPE.VERBOSE, content:"Discovery for: " + targetDeviceId + " " + driver.name });
+
+              var CachedDiscovery;
+              if (targetDeviceId == undefined)  
+                metaLog({deviceId: targetDeviceId, type:LOG_TYPE.VERBOSE, content:"Bypassing cache for: " + targetDeviceId + " " + driver.name });
+              else {
+                 CachedDiscovery = cacheManager.ValidateDiscoveryCache(targetDeviceId);
+                 if (CachedDiscovery == CacheEntryNotFound)
+                     cacheManager.AddDiscoveryCache(targetDeviceId,"Discovery started",CacheEntryTemp);
+              }
+
               return new Promise(function (resolve, reject) {
-                /*if (DoingDiscoveryMySelf)
-                  metaLog({deviceId: deviceId, type:LOG_TYPE.ALWAYS, content:"Discovery: We initiated this ourself "+targetDeviceId+"/"+driver.name});
-                else 
-                  metaLog({deviceId: deviceId, type:LOG_TYPE.ALWAYS, content:"Discovery: NEEO-triggered discovery "+targetDeviceId+"/"+driver.name});
-                  */
                 try {
-                  if (DoingDiscoveryMySelf) 
-                 {
-                    DoingDiscoveryMySelf = false;
-                    metaLog({deviceId: deviceId, type:LOG_TYPE.ALWAYS, content:"Doing Discovery " + driver.name });
-                    var CachedDiscovery = cacheManager.ValidateDiscoveryCache(targetDeviceId);
-                    if (CachedDiscovery) {         
-                      metaLog({deviceId: deviceId, type:LOG_TYPE.ALWAYS, content:"Providing NEEO with cache-result!"});
-                      resolve(CachedDiscovery);
+                    metaLog({deviceId: targetDeviceId, type:LOG_TYPE.VERBOSE, content:"Doing Discovery for " + targetDeviceId + " " + driver.name });
+
+                    if ((CachedDiscovery != CacheEntryNotFound) &&  (targetDeviceId != undefined))  //Cache-entry found or is this actual discovery new devices?
+                      {if (CachedDiscovery.state!=CacheEntryCompleted) // Is another discovery request already active? 
+                        {
+                          metaLog({deviceId: targetDeviceId, type:LOG_TYPE.VERBOSE, content:"Placing task in hold"}); // No, can;t wait forever, release held discovery task
+                          CachedDiscovery = KeepTaskInWaitTillCacheCompleted(targetDeviceId,CachedDiscovery);  // Yes, park request for a while
+                          metaLog({deviceId: targetDeviceId, type:LOG_TYPE.VERBOSE, content:"Task resuming"}); // No, can;t wait forever, release held discovery task
+                          CachedDiscovery = cacheManager.ValidateDiscoveryCache(targetDeviceId);
+                        }
+                      if (CachedDiscovery.state!=CacheEntryCompleted)                 // Is Blocking request done
+                        metaLog({deviceId: targetDeviceId, type:LOG_TYPE.VERBOSE, content:"Processing stalled parallel discovery"}); // No, can;t wait forever, release held discovery task
+                      else
+                        {metaLog({deviceId: targetDeviceId, type:LOG_TYPE.VERBOSE, content:"Providing NEEO with cache-result!"}); //All okay, return cached result
+                        resolve(CachedDiscovery);
+                        return;
+
+                        }
+                      }
+                  // We have hold all subsequent requests until the first discovery is complete, now go and do execute taht first discoery 
+                  metaLog({deviceId: targetDeviceId, type:LOG_TYPE.VERBOSE, content:"We need to do Discovery and build cache"});
                     }
-                  }
-                }
-           
+                                         
                 catch (err) {
                   console.log("Error in check cache-code: ",err)
                 }
+              
+                try { 
                 DoingDiscoveryMySelf = false;
-            
+                metaLog({deviceId: targetDeviceId, type:LOG_TYPE.VERBOSE, content:"Doing Discovery for ourself " + driver.name });
                 discoveryDriverPreparator(controller, driver, currentDeviceId, targetDeviceId).then((driverList) => {
                   const formatedTable = [];
-                  discoveredDriverListBuilder(driverList, formatedTable, 0, controller, targetDeviceId).then((outputTable) => {
-                    //controller.vault.snapshotDataStore(); JAC TO TEST 
-                    try {
-                      cacheManager.AddDiscoveryCache(targetDeviceId,outputTable);
-                      resolve(outputTable);
-                    } 
-                    catch (err) {
-                      console.log("Error in add cache-code: ",err)
+                  metaLog({deviceId: targetDeviceId, type:LOG_TYPE.VERBOSE, content:"discoveryDriverPreparator done"});
+                  metaLog({deviceId: targetDeviceId, type:LOG_TYPE.DEBUG, content:driverList});
+                  var outputtable = '';
+                  if (driverList.length)
+                    {metaLog({deviceId: targetDeviceId, type:LOG_TYPE.VERBOSE, content:"Discovered devices"});
+                    metaLog({deviceId: targetDeviceId, type:LOG_TYPE.DEBUG, content:driverList});
+                    outputTable =  discoveredDriverListBuilder(driverList, formatedTable, 0, controller, targetDeviceId);
+                    metaLog({deviceId: targetDeviceId, type:LOG_TYPE.DEBUG, content:"Created driver list"});
+                    metaLog({deviceId: targetDeviceId, type:LOG_TYPE.DEBUG, content:outputTable});
                     }
-                  })
+                  else
+                    metaLog({deviceId: targetDeviceId, type:LOG_TYPE.VERBOSE, content:"No devices found during discovery"});
+                  if (targetDeviceId == undefined)  
+                    metaLog({deviceId: targetDeviceId, type:LOG_TYPE.VERBOSE, content:"Bypassing creation of cache for: " + targetDeviceId + " " + driver.name });
+                  else  
+                    cacheManager.AddDiscoveryCache(targetDeviceId,outputtable,CacheEntryCompleted);
+                  resolve(outputTable);
+                  //discoveredDriverListBuilder(driverList, formatedTable, 0, controller, targetDeviceId).then((outputTable) => {
+                      //controller.vault.snapshotDataStore(); JAC TO TEST                      
+                  //})
                 })
+
+              }
+              catch (err) {
+                console.log("Error in mid cache-code: ",err)
+              }
+              
+               // catch (err) {
+               //   console.log("Error in add cache-code: ",err)
+          
+              
               })
-            }
-          )
-        }
+        })
+      };
         controller.reInitConnectionsValues(currentDeviceId);
         
         //CREATING LISTENERS
@@ -686,6 +764,25 @@ function executeDriverCreation (driver, hubController, deviceId) {
   })
 }
 
+async function MySleepFunction(ms) {
+  metaLog({ type:LOG_TYPE.ALWAYS, content:"Sleep called" });
+
+  try { 
+   await SleepTimer(ms);
+  metaLog({type:LOG_TYPE.ALWAYS, content:"Sleep finished " });
+}
+
+  catch (err) {console.log("Error in sleep function a")}
+}
+
+function SleepTimer(ms) {  
+try { 
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+  catch (err) {console.log("Error in sleep function b")}
+
+}
+
 //DISCOVERING BRAIN
         
 function discoverBrain() {
@@ -766,50 +863,50 @@ function runNeeo () {
     
 
 function enableMQTT (cont, deviceId) {
+  mqttClient.subscribe(settings.mqtt_topic + cont.name + "/#", () => {});  //mqttClient.subscribe( "meta/#", () => {});
 
-  mqttClient.subscribe(settings.mqtt_topic + cont.name + "/#", () => {});
   mqttClient.on('message', function (topic, value) {
-    try {
-      if (topic == "meta/.meta/LOGLEVEL") 
-        OverrideLoglevel(value); // dynamically change loglevel of .meta
-      else {
-        let theTopic = topic.split("/");
-        if (theTopic.length == 6 && theTopic[5] == "set") {
+      try {
+        if (topic == "meta/.meta/LOGLEVEL") 
+          OverrideLoglevel(value);
+        else {
+          let theTopic = topic.split("/");
+          if (theTopic.length == 6 && theTopic[5] == "set") {
 
-          if (theTopic[3] == "button") {
-            cont.onButtonPressed(theTopic[4], theTopic[2]);
-          }
-          else if (theTopic[3] == "slider") {
-            let sliI = cont.sliderH.findIndex((sli)=>{return sli.name == theTopic[4]});
-            if (sliI>=0){
-              cont.sliderH[sliI].set(theTopic[2], value)
-            }   
-          }
-          else if (theTopic[3] == "switch") {
-            let sliI = cont.switchH.findIndex((sli)=>{return sli.name == theTopic[4]});
-            if (sliI>=0){
-              cont.switchH[sliI].set(theTopic[2], value)
-            }   
-          }
-          else if (theTopic[3] == "image") {
-            let imaI = cont.imageH.findIndex((ima)=>{return ima.name == theTopic[4]});
-            if (imaI>=0){
-              cont.imageH[imaI].set(theTopic[2], value)
-            }   
-          }
-          else if (theTopic[3] == "label") {
-            let labI = cont.labelH.findIndex((lab)=>{return lab.name == theTopic[4]});
-            if (labI>=0){
-              cont.labelH[labI].set(theTopic[2], value)
-            }   
+            if (theTopic[3] == "button") {
+              cont.onButtonPressed(theTopic[4], theTopic[2]);
+            }
+            else if (theTopic[3] == "slider") {
+              let sliI = cont.sliderH.findIndex((sli)=>{return sli.name == theTopic[4]});
+              if (sliI>=0){
+                cont.sliderH[sliI].set(theTopic[2], value)
+              }   
+            }
+            else if (theTopic[3] == "switch") {
+              let sliI = cont.switchH.findIndex((sli)=>{return sli.name == theTopic[4]});
+              if (sliI>=0){
+                cont.switchH[sliI].set(theTopic[2], value)
+              }   
+            }
+            else if (theTopic[3] == "image") {
+              let imaI = cont.imageH.findIndex((ima)=>{return ima.name == theTopic[4]});
+              if (imaI>=0){
+                cont.imageH[imaI].set(theTopic[2], value)
+              }   
+            }
+            else if (theTopic[3] == "label") {
+              let labI = cont.labelH.findIndex((lab)=>{return lab.name == theTopic[4]});
+              if (labI>=0){
+                cont.labelH[labI].set(theTopic[2], value)
+              }   
+            }
           }
         }
       }
-    }
-    catch (err) {
-      metaLog({type:LOG_TYPE.ERROR, content:'Parsing incomming message on: '+settings.mqtt_topic + cont.name + "/command"});
-      metaLog({type:LOG_TYPE.ERROR, content:err});
-    }
+      catch (err) {
+        metaLog({type:LOG_TYPE.ERROR, content:'Parsing incoming message on: '+settings.mqtt_topic + cont.name + "/command"});
+        metaLog({type:LOG_TYPE.ERROR, content:err});
+      }
   })
 }
 //MAIN
