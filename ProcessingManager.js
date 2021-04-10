@@ -9,7 +9,9 @@ const lodash = require('lodash');
 const { parserXMLString, xmldom } = require("./metaController");
 const got = require('got');
 const settings = require(path.join(__dirname,'settings'));
-const { connect } = require("socket.io-client");
+//const { connect } = require("socket.io-client");
+const WebSocket = require('ws');
+
 //LOGGING SETUP AND WRAPPING
 //Disable the NEEO library console warning.
 const { metaMessage, LOG_TYPE } = require("./metaMessage");
@@ -229,21 +231,211 @@ class httpgetProcessor {
 }
 exports.httpgetProcessor = httpgetProcessor;
 class webSocketProcessor {
-  initiate(connection) {/*
+  initiate() {
+  }
+  process(params) {
+    return new Promise(function (resolve, reject) {
+      if (typeof (params.command) == 'string') { params.command = JSON.parse(params.command); }
+      if  (!params.connection.connections) { params.connection.connections = []};
+      let connectionIndex = params.connection.connections.findIndex((con) => {return con.descriptor == params.command.connection});
+      metaLog({type:LOG_TYPE.VERBOSE, content:'Connection Index:' + connectionIndex});
+      metaLog({type:LOG_TYPE.VERBOSE, content:params.connection.connections[connectionIndex]});
+      if  (connectionIndex < 0) { //checking if connection exist
+        try {
+          let theConnector = new WebSocket(params.command.connection);
+          params.connection.connections.push({"descriptor": params.command.connection, "connector": theConnector});
+          connectionIndex = params.connection.connections.length - 1;
+          theConnector.on('error', (result) => { 
+            if (params.connection.connections) {
+              if (params.connection.connections[connectionIndex]) {
+                if (params.connection.connections[connectionIndex].connector) {
+                  params.connection.connections[connectionIndex].connector.terminate();
+                  params.connection.connections[connectionIndex].connector = null;
+                  params.connection.connections.splice(connectionIndex, 1);
+                  metaLog({type:LOG_TYPE.WARNING, content:'Error event called on the webSocket.'});
+                }
+              }
+            }
+          });
+          theConnector.on('close', (result) => { 
+            if (params.connection.connections) {
+              if (params.connection.connections[connectionIndex]) {
+                if (params.connection.connections[connectionIndex].connector) {
+                  params.connection.connections[connectionIndex].connector.terminate();
+                  params.connection.connections[connectionIndex].connector = null;
+                  params.connection.connections.splice(connectionIndex, 1);
+                  metaLog({type:LOG_TYPE.WARNING, content:'Error event called on the webSocket.'});
+                }
+              }
+            }
+          });
+          theConnector.on('open', (result) => { 
+            try {
+              metaLog({type:LOG_TYPE.INFO, content:'Connection webSocket open.'});
+              metaLog({type:LOG_TYPE.VERBOSE, content:'New Connection Index:' + connectionIndex});
+              metaLog({type:LOG_TYPE.VERBOSE, content:params});
+            }
+            catch (err) {
+              metaLog({type:LOG_TYPE.WARNING, content:'Error while intenting connection to the target device.'});
+              metaLog({type:LOG_TYPE.WARNING, content:err});
+              
+            }
+          });
+          resolve('');
+        }
+        catch (err) {
+          metaLog({type:LOG_TYPE.WARNING, content:'Error while intenting connection to the target device.'});
+          metaLog({type:LOG_TYPE.WARNING, content:err});
+          resolve('');
+        }
+      }
+      else if (params.command.message) {
+        if (typeof (params.command.message) != 'string') {params.command.message = JSON.stringify(params.command.message)}
+        try {
+          metaLog({type:LOG_TYPE.VERBOSE, content:'Emitting: ' + params.command.message});
+          if (params.connection.connections[connectionIndex]) {
+            if (params.connection.connections[connectionIndex].connector) {
+              params.connection.connections[connectionIndex].connector.send(params.command.message);
+            }
+          }
+          resolve('');
+        }
+        catch (err) {
+          metaLog({type:LOG_TYPE.WARNING, content:'Error while sending message to the target device.'});
+          metaLog({type:LOG_TYPE.WARNING, content:err});
+          if (params.connection.connections) {
+            if (params.connection.connections[connectionIndex]) {
+              if (params.connection.connections[connectionIndex].connector) {
+                params.connection.connections[connectionIndex].connector.terminate();
+                params.connection.connections[connectionIndex].connector = null;
+                params.connection.connections.splice(connectionIndex, 1);
+              }
+            }
+          }
+          resolve('');
+        }
+      }
+    });
+  }
+  query(params) {
     return new Promise(function (resolve, reject) {
       try {
-        if (connection.connector != "" && connection.connector != undefined) {
-          connection.connector.close();
-        } //to avoid opening multiple
-        connection.connector = io.connect(connection.descriptor);
-        resolve(connection);
+        if (params.query) {
+          resolve(JSONPath(params.query, params.data));
+        }
+        else {
+          resolve(params.data);
+        }
       }
       catch (err) {
-        metaLog({type:LOG_TYPE.ERROR, content:'Error while intenting connection to the target device.'});
         metaLog({type:LOG_TYPE.ERROR, content:err});
+        resolve('');
       }
-    }); //to avoid opening multiple
-    */
+    });
+  }
+  
+  startListen(params, deviceId) {
+    return new Promise(function (resolve, reject) {
+      try {
+        metaLog({type:LOG_TYPE.ERROR, content:params});
+        if  (!params.connection.connections) { params.connection.connections = []};
+        if (typeof (params.command) == 'string') { params.command = JSON.parse(params.command); }
+        metaLog({type:LOG_TYPE.VERBOSE, content:'Starting to listen with this params:'});
+        metaLog({type:LOG_TYPE.VERBOSE, content:params});
+        if (params.command.connection)
+        {
+          let connectionIndex = params.connection.connections.findIndex((con)=> {return con.descriptor == params.command.connection});
+          if  (connectionIndex < 0) { //checking if connection exist
+              try {
+              let theConnector = new WebSocket(params.command.connection);
+              params.connection.connections.push({"descriptor": params.command.connection, "connector": theConnector});
+              connectionIndex = params.connection.connections.length - 1;
+              theConnector.on('error', (result) => { 
+                if (params.connection.connections) {
+                  if (params.connection.connections[connectionIndex]) {
+                    if (params.connection.connections[connectionIndex].connector) {
+                      params.connection.connections[connectionIndex].connector.terminate();
+                      params.connection.connections[connectionIndex].connector = null;
+                      params.connection.connections.splice(connectionIndex, 1);
+                      metaLog({type:LOG_TYPE.WARNING, content:'Error event called on the webSocket.'});
+                    }
+                  }
+                }
+              });
+              theConnector.on('close', (result) => { 
+                if (params.connection.connections) {
+                  if (params.connection.connections[connectionIndex]) {
+                    if (params.connection.connections[connectionIndex].connector) {
+                      params.connection.connections[connectionIndex].connector.terminate();
+                      params.connection.connections[connectionIndex].connector = null;
+                      params.connection.connections.splice(connectionIndex, 1);
+                      metaLog({type:LOG_TYPE.WARNING, content:'Error event called on the webSocket.'});
+                    }
+                  }
+                }
+              });
+              theConnector.on('open', (result) => { 
+                try {
+                  metaLog({type:LOG_TYPE.INFO, content:'Connection webSocket open.'});
+                  metaLog({type:LOG_TYPE.VERBOSE, content:'New Connection Index:' + connectionIndex});
+                  metaLog({type:LOG_TYPE.VERBOSE, content:params});
+                  params.connection.connections[connectionIndex].connector.on((params.command.message?params.command.message:'message'), (result) => { params._listenCallback(result, params.listener, deviceId); });
+                }
+                catch (err) {
+                  metaLog({type:LOG_TYPE.WARNING, content:'Error while intenting connection to the target device.'});
+                  metaLog({type:LOG_TYPE.WARNING, content:err});
+                  
+                }
+              });
+              resolve('');
+            }
+            catch (err) {
+              metaLog({type:LOG_TYPE.WARNING, content:'Error while intenting connection to the target device.'});
+              metaLog({type:LOG_TYPE.WARNING, content:err});
+              resolve('');
+            }
+          }
+          else { //checking if connection exist
+            try {
+              if (params.connection.connections[connectionIndex]) {
+                if (params.connection.connections[connectionIndex].connector) {
+                  params.connection.connections[connectionIndex].connector.on((params.command.message?params.command.message:'message'), (result) => { params._listenCallback(result, params.listener, deviceId); });
+                }
+              }
+            }
+            catch (err) {
+              metaLog({type:LOG_TYPE.ERROR, content:'Error while intenting connection to the target device.'});
+              metaLog({type:LOG_TYPE.ERROR, content:err});
+              resolve('');
+            }
+          }
+   
+        resolve('');
+        }  
+      }
+      catch (err) {
+        metaLog({type:LOG_TYPE.ERROR, content:'Error with listener configuration.'});
+        metaLog({type:LOG_TYPE.ERROR, content:err});
+        resolve('');
+      }
+
+    });
+  }
+  stopListen(params) {
+ 
+  }
+  wrapUp(connection) { 
+      connection.connections.forEach(myCon => {
+        myCon.connector.terminate();
+        myCon.connector = null;
+      });
+      connection.connections = undefined;
+   }
+}
+exports.webSocketProcessor = webSocketProcessor;
+class socketIOProcessor {
+  initiate(connection) {
+   
   }
   process(params) {
     return new Promise(function (resolve, reject) {
@@ -251,7 +443,7 @@ class webSocketProcessor {
       if (typeof (params.command) == 'string') { params.command = JSON.parse(params.command); }
       let connectionIndex = params.connection.connections.findIndex((con) => {return con.descriptor == params.command.connection});
       metaLog({type:LOG_TYPE.VERBOSE, content:'Connection Index:' + connectionIndex});
-      metaLog({type:LOG_TYPE.VERBOSE, content:params});
+      metaLog({type:LOG_TYPE.VERBOSE, content:params.connection.connections[connectionIndex]});
 
       if  (connectionIndex < 0) { //checking if connection exist
         try {
@@ -269,6 +461,7 @@ class webSocketProcessor {
         }
       }
       if (params.command.message.call) {
+        metaLog({type:LOG_TYPE.VERBOSE, content:'Emitting: ' + params.command.message.call});
         params.connection.connections[connectionIndex].connector.emit(params.command.message.call, params.command.message.message);
         resolve('');
       }
@@ -327,7 +520,7 @@ class webSocketProcessor {
     });
   }
 }
-exports.webSocketProcessor = webSocketProcessor;
+exports.socketIOProcessor = socketIOProcessor;
 class jsontcpProcessor {
   initiate(connection) {
     return new Promise(function (resolve, reject) {
@@ -555,8 +748,8 @@ class staticProcessor {
       }
     });
   }
-  stopListen(params) {
-    clearInterval(params.timer);
+  stopListen(listener) {
+    clearInterval(listener.timer);
   }
 }
 exports.staticProcessor = staticProcessor;
@@ -656,7 +849,9 @@ exports.replProcessor = replProcessor;
 
 class mqttProcessor {
   initiate(connection) {
+    metaLog({type:LOG_TYPE.ERROR, content:'initiateprocessor for: mqtt'});
     return new Promise(function (resolve, reject) {
+      resolve('');
       //nothing to do, it is done globally.
       //connection.connector = mqttClient;
     }); 
@@ -664,7 +859,8 @@ class mqttProcessor {
   process (params) {
     return new Promise(function (resolve, reject) {
       metaLog({type:LOG_TYPE.VERBOSE, content:'MQTT Processing'});
-      metaLog({type:LOG_TYPE.VERBOSE, content:params.command});
+      metaLog({type:LOG_TYPE.DEBUG, content:params.command});
+ 
       params.command = JSON.parse(params.command);
       if (params.command.message) {// here we publish into a topic
         metaLog({type:LOG_TYPE.VERBOSE, content:'MQTT publishing ' + params.command.message + ' to ' + settings.mqtt_topic + params.command.topic + ' with options : ' + params.command.options});
@@ -678,12 +874,49 @@ class mqttProcessor {
         }
       }
       else if (params.command.topic) {//here we get a value from a topic
+
         params.connection.connector.subscribe(params.command.topic, (result) => {metaLog({type:LOG_TYPE.VERBOSE, content:'Subscription MQTT : '+ result})});
+
+        metaLog({type:LOG_TYPE.VERBOSE, content:'Subscription done: ' +params.command.topic});
         params.connection.connector.on('message', function (topic, message) {
-          if (topic == params.command.topic) {
-            metaLog({type:LOG_TYPE.VERBOSE, content:'message received : ' + message.toString()});
-            params.connection.connector.unsubscribe(params.command.topic);
-            resolve(message.toString());
+          metaLog({type:LOG_TYPE.DEBUG, content:'Topic received : ' + topic.toString()});
+          metaLog({type:LOG_TYPE.DEBUG, content:'Message received : ' + message.toString()});
+
+          var RcvdTopicPart = topic.split("/"),i;
+          var ParamsTopicPart = params.command.topic.split("/");
+          var Matched = true; 
+    
+          for (i = 0; i < RcvdTopicPart.length; i++) {
+            if (ParamsTopicPart.length < i) {   // Does the topic we received have less sections than asked for?
+              Matched=false;
+              break;                      // Yes, it is not a match
+            }
+            if (ParamsTopicPart[i]=="#") {      // Full-Wildcard placed in this section, so exit compare-loop now
+               Matched=true;
+               break;
+             }
+             if (ParamsTopicPart[i]=="+")  {    // Section-wildcard placed in this section, so continue compare-loop now
+                continue;
+              }
+            if (ParamsTopicPart[i]!=RcvdTopicPart[i]) {
+              Matched=false;
+              break;
+            }
+          }  
+          if (Matched) {metaLog({type:LOG_TYPE.VERBOSE, content:'Topic passed through: ' + topic.toString()});
+          metaLog({type:LOG_TYPE.VERBOSE, content:'Unsubscribing topic: '  + topic.toString()});
+          metaLog({type:LOG_TYPE.DEBUG, content:params.connection.connector.messageIdToTopic }); 
+
+          params.connection.connector.unsubscribe(params.command.topic);
+          for (const key in params.connection.connector.messageIdToTopic) {
+            for (let i = 0; i < params.connection.connector.messageIdToTopic[key].length; i++) {
+              let elem = params.connection.connector.messageIdToTopic[key][i]
+              if (elem == params.command.topic)  params.connection.connector.messageIdToTopic[key].splice(i, 1);
+            }
+            if (params.connection.connector.messageIdToTopic[key].length<=0) delete params.connection.connector.messageIdToTopic[key] }
+            metaLog({type:LOG_TYPE.VERBOSE, content :"Done unsubscribing, subscriptions are now:"})
+            metaLog({type:LOG_TYPE.VERBOSE, content : params.connection.connector.messageIdToTopic});
+          resolve("{\"topic\": \""+ topic.toString()+ "\",\"message\" : " +message.toString()+"}");
           }
         });
       }
@@ -696,6 +929,9 @@ class mqttProcessor {
   query(params) {
     return new Promise(function (resolve, reject) {
       if (params.query) {
+        metaLog({type:LOG_TYPE.VERBOSE, content:"MQTT params.query and data"});
+        metaLog({type:LOG_TYPE.DEBUG, content:params.query});
+        metaLog({type:LOG_TYPE.DEBUG, content:params.data});
         try {
           if (typeof (params.data) == 'string') { params.data = JSON.parse(params.data); }
           resolve(JSONPath(params.query, params.data));
@@ -709,13 +945,37 @@ class mqttProcessor {
     });
   }
   startListen(params, deviceId) {
+
     return new Promise(function (resolve, reject) {
+      metaLog({type:LOG_TYPE.VERBOSE, content:'startlisten'  });
+
       params.connection.connector.subscribe(params.command, (result) => {metaLog({type:LOG_TYPE.VERBOSE, content:'Subscription MQTT : '+ result})});
       params.connection.connector.on('message', function (topic, message) {
-        if (topic == params.command) {
-          metaLog({type:LOG_TYPE.VERBOSE, content:'message received : ' + message.toString()});
-          params._listenCallback(message.toString(), params.listener, deviceId);
+
+      var RcvdTopicPart = topic.split("/"),i;
+      var ParamsTopicPart = params.command.split("/");
+      var Matched = true; 
+
+      for (i = 0; i < RcvdTopicPart.length; i++) {
+        if (ParamsTopicPart.length < i) {   // Does the topic we received have less sections than asked for?
+          Matched=false;
+          break;                      // Yes, it is not a match
         }
+        if (ParamsTopicPart[i]=="#") {      // Full-Wildcard placed in this section, so exit compare-loop now
+           Matched=true;
+           break;
+         }
+         if (ParamsTopicPart[i]=="+")  {    // Section-wildcard placed in this section, so continue compare-loop now
+            continue;
+          }
+        if (ParamsTopicPart[i]!=RcvdTopicPart[i]) {
+          Matched=false;
+          break;
+        }
+      }  
+      if (Matched) {  
+          params._listenCallback("{\"topic\": \""+ topic.toString()+ "\",\"message\" : " +message.toString()+"}", params.listener, deviceId);
+      }
       });
       resolve('');
     });
@@ -730,3 +990,4 @@ class mqttProcessor {
   };
 }
 exports.mqttProcessor = mqttProcessor;
+

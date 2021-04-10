@@ -8,7 +8,7 @@ var settings =
     {
       'name':'.meta', 
       'manufacturer':'JAC&Ton',
-      'version':16,
+      'version':17,
       'type':'AVRECEIVER',
       'alwayson':'',
       'filename':'meta-core.json',
@@ -26,7 +26,8 @@ var settings =
           'DriverName': '',
           'DriverLocation':'',
           'DriverIcon':'',
-          'DriverOrigin':''
+          'DriverOrigin':'',
+          'NewLogLevel':''
         },
       'labels':{
           'CurrentStatus' : {'label':'status', 'listen':'MyStatus'}
@@ -88,15 +89,44 @@ var settings =
                 "queryresult":"$.*", "itemname":"DYNAMIK JSON.parse(\"$Result\").label", "itemlabel":"Using installmeta.sh", "itemimage":"DYNAMIK JSON.parse(\"$Result\").imageurl",
                 "evalnext":[{"test":true, "then":"ListVersion", "or":""}]
               },
+              {"type":"static", "command":"[{\"name\":\"Set Loglevel\", \"label\":\"Set Loglevel\", \"imageurl\":\"https://raw.githubusercontent.com/Ton-O/Meta_ZiggoNext/master/log-level.png\",\"navigation\":\"LOGLEVEL\"}]", 
+                "queryresult":"$.*", "itemname":"Set Loglevel", "itemlabel":"Set Loglevel", "itemimage":"DYNAMIK JSON.parse(\"$Result\").imageurl",
+                "evalnext":[{"test":true, "then":"LOGLEVEL", "or":""}]
+              },
               {"type":"static", "command":"[{\"name\":\"Scan Local Network\", \"label\":\"Find me friends\", \"imageurl\":\"https://raw.githubusercontent.com/jac459/metadriver/master/AVReceiver/Input/ThemeStandard/input_net_radio.jpg\",\"navigation\":\"ScanNetwork\"}]", 
                 "queryresult":"$.*", "itemname":"DYNAMIK JSON.parse(\"$Result\").label", "itemlabel":"Devices found on boot.", "itemimage":"DYNAMIK JSON.parse(\"$Result\").imageurl",
                 "evalnext":[{"test":true, "then":"Scan", "or":""}]
               }              
             ]
           },
+          "LOGLEVEL":{"label":"", 
+          "commandset": [
+            {"type":"static", "command":"[{\"name\":\"QUIET\", \"label\":\"SET LOG TO QUIET\", \"navigation\":\"SETLOGLEVEL\"}]", 
+              "queryresult":"", "itemname":"SET LOG TO QUIET", "itemlabel":"SET LOG TO QUIET", "itemimage":"https://raw.githubusercontent.com/Ton-O/Meta_ZiggoNext/master/log-quiet.png",'evalwrite':[{'variable':'NewLogLevel','value':'QUIET'}],
+              "evalnext":[{"test":true, "then":"SETLOGLEVEL", "or":""}]
+            },
+            {"type":"static", "command":"[{\"name\":\"WARNING\", \"label\":\"SET LOG TO WARNING\", \"itemimage\":\"https://raw.githubusercontent.com/Ton-O/Meta_ZiggoNext/master/log-warning.jpg\",\"navigation\":\"SETLOGLEVEL\"}]", 
+              "queryresult":"", "itemname":"SET LOG TO WARNING", "itemlabel":"SET LOG TO WARNING", 'evalwrite':[{'variable':'NewLogLevel','value':'WARNING'}],
+              "evalnext":[{"test":true, "then":"SETLOGLEVEL", "or":""}]
+            },
+            {"type":"static", "command":"[{\"name\":\"INFO\", \"label\":\"SET LOG TO INFO\", \"itemimage\":\"https://raw.githubusercontent.com/Ton-O/Meta_ZiggoNext/master/log-info.jpg\",\"navigation\":\"SETLOGLEVEL\"}]", 
+              "queryresult":"", "itemname":"SET LOG TO INFO", "itemlabel":"SET LOG TO DEINFOBUG", 'evalwrite':[{'variable':'NewLogLevel','value':'INFO'}],
+              "evalnext":[{"test":true, "then":"SETLOGLEVEL", "or":""}]
+            },
+            {"type":"static", "command":"[{\"name\":\"VERBOSE\", \"label\":\"SET LOG TO VERBOSE\", \"itemimage\":\"https://raw.githubusercontent.com/Ton-O/Meta_ZiggoNext/master/log-verbose.jpg\",\"navigation\":\"SETLOGLEVEL\"}]", 
+              "queryresult":"", "itemname":"SET LOG TO VERBOSE", "itemlabel":"SET LOG TO VERBOSE",'evalwrite':[{'variable':'NewLogLevel','value':'VERBOSE'}],
+              "evalnext":[{"test":true, "then":"SETLOGLEVEL", "or":""}]
+            },
+            {"type":"static", "command":"[{\"name\":\"DEBUG\", \"label\":\"SET LOG TO DEBUG\", \"itemimage\":\"https://raw.githubusercontent.com/Ton-O/Meta_ZiggoNext/master/log-debug.jpg\",\"navigation\":\"SETLOGLEVEL\"}]", 
+              "queryresult":"", "itemname":"SET LOG TO DEBUG", "itemlabel":"SET LOG TO DEBUG", 'evalwrite':[{'variable':'NewLogLevel','value':'DEBUG'}],
+              "evalnext":[{"test":true, "then":"SETLOGLEVEL", "or":""}]
+            },
+          ]
+        },
           'RestartMeta':{'label':'', 'commandset': [{'type':'cli', 'command':"pm2 restart meta", "itemUI" : "goBack"}]},
           'UpdateMeta':{'label':'', 'commandset': [{'type':'cli', 'command':"sh ~/installmeta.sh --meta-only", "itemUI" : "goBack"}]},
           'ListVersion':{'label':'', 'commandset':[{'type':'cli', 'command':'sh ~/installmeta.sh --get-versions','queryresult':'/(?<=Last version:).*/gm', 'itemname':'Installed/available', 'itemlabel':'DYNAMIK "$Result"', "itemimage":"https://raw.githubusercontent.com/jac459/meta-kodi/main/Icons/questionmarks.jpg",'itemUI' : 'goBack'}]},
+          'SETLOGLEVEL':{'label':'', 'commandset': [{'type':'mqtt', "command":"{\"topic\":\"meta/.meta/LOGLEVEL\",\"message\":\"$NewLogLevel\"}", "itemUI" : "goBack"}]},
           'Scan':{'label':'', 'commandset':[{'type':'static', 'command':'$LocalDevices', 'queryresult':'$.*', 'itemname':'DYNAMIK JSON.parse("$Result").name', 'itemlabel':'DYNAMIK JSON.parse("$Result").addresses[0]'}]},
 
           'Rooms':{'label':'Rooms list', 'commandset': [{'type':'http-get', 'command':'http://$NeeoBrainIP:3000/v1/projects/home/rooms/', 'queryresult':'$.*', 'itemname':'DYNAMIK JSON.parse("$Result").name', 'itemtype': 'listitem', 'itemlabel':'Recipe name', 'itemimage':'https://raw.githubusercontent.com/jac459/metadriver/master/AVReceiver/rooms.jpg', 'evalnext':[{'test':true, 'then':'Devices', 'or':'Rooms'}], 'evalwrite':[{'variable':'RoomKey','value':'DYNAMIK JSON.parse("$Result").key'}]}]},

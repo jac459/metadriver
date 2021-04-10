@@ -1,25 +1,32 @@
-const { SSL_OP_LEGACY_SERVER_CONNECT } = require('constants');
 const path = require('path');
 const settings = require(path.join(__dirname,'settings'));
 
 
-const LOG_TYPE = {'ALWAYS':{Code:'A', Color:'\x1b[35m'}, 'INFO':{Code:'I', Color:'\x1b[32m'}, 'VERBOSE':{Code:'V', Color:'\x1b[36m'}, 'WARNING':{Code:'W', Color:'\x1b[35m'}, 'ERROR':{Code:'E', Color:'\x1b[31m'}, 'FATAL':{Code:'F', Color:'\x1b[41m'}, 'HUH':{Code:'A', Color:'\x1b[5m'}}
+const LOG_TYPE = {'ALWAYS':{Code:'A', Color:'\x1b[35m'}, 'INFO':{Code:'I', Color:'\x1b[32m'}, 'VERBOSE':{Code:'V', Color:'\x1b[36m'}, 'WARNING':{Code:'W', Color:'\x1b[35m'}, 'ERROR':{Code:'E', Color:'\x1b[31m'}, 'FATAL':{Code:'F', Color:'\x1b[41m'}, 'DEBUG':{Code:'V', Color:'\x1b[36m'}, 'HUH':{Code:'A', Color:'\x1b[5m'}}
 const LOG_LEVEL = {'QUIET':[LOG_TYPE.ALWAYS], 
                     'WARNING':[LOG_TYPE.ALWAYS, LOG_TYPE.HUH, LOG_TYPE.FATAL, LOG_TYPE.ERROR, LOG_TYPE.WARNING],
                     'INFO': [LOG_TYPE.ALWAYS, LOG_TYPE.HUH, LOG_TYPE.FATAL, LOG_TYPE.ERROR, LOG_TYPE.WARNING, LOG_TYPE.INFO],
-                    'VERBOSE': [LOG_TYPE.ALWAYS, LOG_TYPE.HUH, LOG_TYPE.FATAL, LOG_TYPE.ERROR, LOG_TYPE.WARNING, LOG_TYPE.INFO, LOG_TYPE.VERBOSE]}
+                    'VERBOSE': [LOG_TYPE.ALWAYS, LOG_TYPE.HUH, LOG_TYPE.FATAL, LOG_TYPE.ERROR, LOG_TYPE.WARNING, LOG_TYPE.INFO, LOG_TYPE.VERBOSE],
+                    'DEBUG': [LOG_TYPE.ALWAYS, LOG_TYPE.HUH, LOG_TYPE.FATAL, LOG_TYPE.ERROR, LOG_TYPE.WARNING, LOG_TYPE.INFO, LOG_TYPE.VERBOSE,LOG_TYPE.DEBUG]
+                }
 
 //Initialise Severity Level;
 var mySeverity = null;
 var myComponents = [];
 if (mySeverity == null) {
     if (settings.LogSeverity) { mySeverity = LOG_LEVEL[settings.LogSeverity]; } // Did the user override this setting during runtime?
-    else mySeverity == LOG_LEVEL.QUIET;
+        else mySeverity == LOG_LEVEL.QUIET;
 }
+function OverrideLoglevel(NewLogLevel) {
+    mySeverity = LOG_LEVEL[NewLogLevel];
+    metaMessage({content:"Setting log-level " +NewLogLevel});
+}
+
 function initialiseLogSeverity(sever) { mySeverity = LOG_LEVEL[sever];}
 function initialiseLogComponents(comp) { myComponents = comp;}
 
 function metaMessage(message) {
+     
     if (mySeverity && myComponents) {
         if (mySeverity.includes(message.type) && (myComponents.length == 0 || myComponents.includes(message.component))) {// Do we need to log this?
 
@@ -29,6 +36,8 @@ function metaMessage(message) {
         }
     }
 }
+
+exports.OverrideLoglevel = OverrideLoglevel;
 exports.metaMessage = metaMessage;
 exports.LOG_TYPE = LOG_TYPE;
 exports.LOG_LEVEL = LOG_LEVEL;
