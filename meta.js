@@ -752,7 +752,7 @@ function executeDriverCreation (driver, hubController, deviceId) {
             } 
           )
           metaLog({deviceId: deviceId, type:LOG_TYPE.INFO, content:"Device " + driver.name + " has been created."});
-          enableMQTT(controller, currentDeviceId);
+          MetaMQTTHandler(controller, currentDeviceId);
           resolve(theDevice);
         });
       })
@@ -862,7 +862,7 @@ function runNeeo () {
 }
     
 
-function enableMQTT (cont, deviceId) {
+function MetaMQTTHandler (cont, deviceId) {
   mqttClient.subscribe(settings.mqtt_topic + cont.name + "/#", () => {});  //mqttClient.subscribe( "meta/#", () => {});
 
   mqttClient.on('message', function (topic, value) {
