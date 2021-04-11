@@ -557,7 +557,6 @@ class netsocketProcessor {
     this.currentPowerState = false;
 		this.modelName = 'modelName';
 		this.modelDescription = 'modelDescription';
-		this.ipAddress = '192.168.0.58';
     this.Restarting = false;
     this.RestartTimer;
 		// This keeps an array of digits, to make it possible to send just one 'command' for changing to channel e.g. "311" instead of 3 seperate connections.
@@ -599,7 +598,6 @@ process(params) {
         let theConnector =   new Net.Socket(); 
         params.connection.connections.push({"descriptor": params.command.connection, "connector": theConnector});
         connectionIndex = params.connection.connections.length - 1;
-        this.setIpAddress(params.command.connection);
         let theresult = params.connection.connections[connectionIndex].connector.connect(5900, params.command.connection);
         console.log("Connect result:",theresult);
       }
@@ -695,7 +693,6 @@ startListen(params, deviceId) {
 
           // Data handler
           params.connection.connections[connectionIndex].connector.on('data', (result) => { 
-            console.log("Received:",result,"!");
             if (_this.Restarting) {
               metaLog({type:LOG_TYPE.ERROR, content:'Remove timer for reconnect.'});
               clearTimeout(_this.RestartTimer);
@@ -1173,7 +1170,6 @@ class mqttProcessor {
 
         
         params.connection.connector.on('message', function (topic, message,packet) {
-          console.log("Received:",packet);
           let Matched = HandleMQTTIncoming(GetThisTopic,params,topic,message);
           if (Matched) {
             console.log("Clearing timeout-check");

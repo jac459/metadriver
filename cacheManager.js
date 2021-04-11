@@ -1,9 +1,6 @@
 
-var DiscoveryCache = 
-{
-    "empty-entry":   {"timestamp": "0", "outputTable": "bar1"}
-}
-
+var DiscoveryCache = {};
+const CacheEntryNotFound=''; 
 //LOGGING SETUP AND WRAPPING
 //Disable the NEEO library console warning.
 const { metaMessage, LOG_TYPE } = require("./metaMessage");
@@ -19,6 +16,12 @@ function GetATimeStamp() {
     return d; // d.getMinutes()*60000+d.getSeconds()*1000+d.getMilliseconds()
   }  
   
+  function EraseCacheCompletely(){
+    
+    DiscoveryCache.length=0;
+    
+  }
+
 
   function DeleteCacheEntry(targetDeviceId){
     
@@ -37,34 +40,44 @@ function GetATimeStamp() {
        if (DiscoveryCache[loopvalue].timestamp < DiscoveryCache[Oldest].timestamp)
           Oldest = loopvalue;
     };
-    metaLog({deviceId: targetDeviceId, type:LOG_TYPE.DEBUG, content: "Deleting oldest"+  targetDeviceId});
+    metaLog({deviceId: targetDeviceId, type:LOG_TYPE.VERBOSE, content: "Deleting oldest cache-entry"+  targetDeviceId});
     delete DiscoveryCache[Oldest];
   
   }
   
-  function AddDiscoveryCache(targetDeviceId,NewoutputTable){
-    if (Object.keys(DiscoveryCache).length >10)
+  function AddDiscoveryCache(targetDeviceId,NewoutputTable,status){
+    try { 
+    metaLog({deviceId: targetDeviceId, type:LOG_TYPE.VERBOSE, content:"Adding "+status+" cache-entry for: " +  targetDeviceId});
+
+    if (Object.keys(DiscoveryCache).length >50&& DiscoveryCache[targetDeviceId] != undefined)
         DeleteOldestCacheEntry();
-    DiscoveryCache[targetDeviceId] = {"timestamp":GetATimeStamp(),"outputTable":NewoutputTable}
-    metaLog({deviceId: targetDeviceId, type:LOG_TYPE.DEBUG, content:"Cache entry created for: " +  targetDeviceId});
+    DiscoveryCache[targetDeviceId] = {"timestamp":GetATimeStamp(),"outputTable":NewoutputTable,"state":status}
     metaLog({deviceId: targetDeviceId, type:LOG_TYPE.DEBUG, content:DiscoveryCache});
-  
+  return DiscoveryCache[targetDeviceId] 
+    }
+    catch (err) {console.log("error in adddiscovery",err);}
   }
   
   function ValidateDiscoveryCache(targetDeviceId){
+  try{
+    metaLog({deviceId: targetDeviceId, type:LOG_TYPE.VERBOSE, content:"Cache entry checking" });
+    metaLog({deviceId: targetDeviceId, type:LOG_TYPE.DEBUG, content:DiscoveryCache});
     if (DiscoveryCache[targetDeviceId]) {
-      if(GetATimeStamp() - DiscoveryCache[targetDeviceId].timestamp < 120) { //Cache not expired?
-        return DiscoveryCache[targetDeviceId].outputTable;  
-      }
-      else { 
-        metaLog({deviceId: targetDeviceId, type:LOG_TYPE.DEBUG, content:"Disposing of cache entry, as it was too old"});
-        delete DiscoveryCache[targetDeviceId];
-        return 0
-      }
-    }
-    metaLog({deviceId: targetDeviceId, type:LOG_TYPE.DEBUG, content:"DeviceID "+targetDeviceId +" is not cached"});
-    return 0
+        metaLog({deviceId: targetDeviceId, type:LOG_TYPE.VERBOSE, content:"Cache entry found"});
+        return DiscoveryCache[targetDeviceId];  
+        }
+        
+    metaLog({deviceId: targetDeviceId, type:LOG_TYPE.VERBOSE, content:"Cache entry not found"});
+    
+    return CacheEntryNotFound;
   }
+  catch (err) {
+    metaLog({deviceId: targetDeviceId, type:LOG_TYPE.ERROR, content:"Error in ValidateDiscoveryCache: " + err});
+
+    }
+  }
+
   exports.ValidateDiscoveryCache = ValidateDiscoveryCache;
   exports.AddDiscoveryCache = AddDiscoveryCache;
   exports.DeleteCacheEntry = DeleteCacheEntry;
+  exports.EraseCacheCompletely = EraseCacheCompletely;

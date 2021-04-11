@@ -34,6 +34,8 @@ exports.neeoBrainIp = returnBrainIp;
 var mqttClient;
 var DoingDiscoveryMySelf=false;
 const DelayTime = 1000;
+var neeoSettings;
+var doingARestart=false;//used for a local restart of the .meta into neeo.
 //LOGGING SETUP AND WRAPPING
 //Disable the NEEO library console warning.
 console.error = console.info = console.debug = console.warn = console.trace = console.dir = console.dirxml = console.group = console.groupEnd = console.time = console.timeEnd = console.assert = console.profile = function() {};
@@ -377,21 +379,16 @@ let FirstTime = 0;
 metaLog({deviceId: targetDeviceId, type:LOG_TYPE.WARNING, content:"Placing discovery on hold for " + targetDeviceId });
 
   while ((CachedDiscovery.state!=CacheEntryCompleted) &&(FirstTime<25))  {
-    console.log("Top of keeptaskEtc..."); 
     FirstTime += (DelayTime/1000);
     var t = setTimeout(() => {
       if ((FirstTime)&&(!(FirstTime%5)))
         metaLog({deviceId: targetDeviceId, type:LOG_TYPE.WARNING, content:"Parallel discovery waiting for " + FirstTime.toString()  + " seconds "});
 
-      metaLog({type:LOG_TYPE.VERBOSE, content:'Timeout exp'});
-      metaLog({deviceId: targetDeviceId, type:LOG_TYPE.WARNING, content:"Call Sleep done"});
       CachedDiscovery = cacheManager.ValidateDiscoveryCache(targetDeviceId);
   
     }, DelayTime);
-    metaLog({deviceId: targetDeviceId, type:LOG_TYPE.WARNING, content:"Outside settimeout"});
 
     await SleepTimer(DelayTime);
-    metaLog({deviceId: targetDeviceId, type:LOG_TYPE.WARNING, content:"AFTER SLEEPTIMER"});
 
     }
 
@@ -401,7 +398,6 @@ metaLog({deviceId: targetDeviceId, type:LOG_TYPE.WARNING, content:"Placing disco
       metaLog({deviceId: targetDeviceId, type:LOG_TYPE.WARNING, content:"Discovery resuming for " + targetDeviceId});
   }
   catch (err) {console.log("Error in sleep",err)}
-console.log("Leaving wait");
   }
 
 
@@ -448,6 +444,7 @@ function executeDriverCreation (driver, hubController, deviceId) {
 
       //GET ALL CONNECTIONS
       controller.addConnection({"name":"webSocket", "connections":[]})
+      controller.addConnection({"name":"netSocket", "connections":[]})
       controller.addConnection({"name":"jsontcp", "descriptor":driver.jsontcp, "connector":""})
       if (settings.mqtt) {
         metaLog({deviceId: deviceId, type:LOG_TYPE.INFO, content:'Creating the connection MQTT'});
@@ -504,9 +501,7 @@ function executeDriverCreation (driver, hubController, deviceId) {
                     if ((CachedDiscovery != CacheEntryNotFound) &&  (targetDeviceId != undefined))  //Cache-entry found or is this actual discovery new devices?
                       {if (CachedDiscovery.state!=CacheEntryCompleted) // Is another discovery request already active? 
                         {
-                          metaLog({deviceId: targetDeviceId, type:LOG_TYPE.VERBOSE, content:"Placing task in hold"}); // No, can;t wait forever, release held discovery task
-                          CachedDiscovery = KeepTaskInWaitTillCacheCompleted(targetDeviceId,CachedDiscovery);  // Yes, park request for a while
-                          metaLog({deviceId: targetDeviceId, type:LOG_TYPE.VERBOSE, content:"Task resuming"}); // No, can;t wait forever, release held discovery task
+                          CachedDiscovery = KeepTaskInWaitTillCacheCompleted(targetDeviceId,CachedDiscovery);  // Yes, park request for a while                          metaLog({deviceId: targetDeviceId, type:LOG_TYPE.VERBOSE, content:"Task resuming"}); // No, can;t wait forever, release held discovery task
                           CachedDiscovery = cacheManager.ValidateDiscoveryCache(targetDeviceId);
                         }
                       if (CachedDiscovery.state!=CacheEntryCompleted)                 // Is Blocking request done
@@ -831,14 +826,17 @@ function setupNeeo(forceDiscovery) {
 function runNeeo () {
   return new Promise(function (resolve, reject) {
     if (!config.brainport) {config.brainport = 4015}
-    const neeoSettings = {
+    neeoSettings = {
       brain: config.brainip.toString(),
       port: config.brainport.toString(),
       name: "metadriver",
       devices: driverTable
     };
+
+
     metaLog({type:LOG_TYPE.INFO, content:"Current directory: " + __dirname});
     metaLog({type:LOG_TYPE.INFO, content:"Trying to start the meta."});
+    doingARestart=false;
     neeoapi.startServer(neeoSettings)
       .then((result) => {
         metaLog({type:LOG_TYPE.ALWAYS, content:"Driver running, you can search it on the neeo app."});
@@ -853,12 +851,14 @@ function runNeeo () {
               resolve();
             })
           }
-      })
+        })
+
       .catch(err => {
            metaLog({type:LOG_TYPE.ERROR, content:'Failed running Neeo with error: ' + err});
            process.exit(1);
       });
     })
+
 }
     
 
@@ -866,7 +866,27 @@ function enableMQTT (cont, deviceId) {
   mqttClient.subscribe(settings.mqtt_topic + cont.name + "/#", () => {});  //mqttClient.subscribe( "meta/#", () => {});
 
   mqttClient.on('message', function (topic, value) {
-      try {
+      try { 
+        if (topic == "meta/.meta/Reload"&&value=="meta") {
+          if (!doingARestart) {                   // We can be triggered multiple times, 
+            doingARestart=true;                   // make sure we rest only once.
+            metaLog({type:LOG_TYPE.ALWAYS, content:'Requesting neeo to remove Custom drivers'});
+            neeoapi.stopServer(neeoSettings)
+            .then((result) => {
+              metaLog({type:LOG_TYPE.ALWAYS, content:"Neeo reports successful removal"});
+              metaLog({type:LOG_TYPE.ALWAYS, content:"Now forcing restart of meta by closing MQTT-connection"});
+              mqttClient.end();
+              cacheManager.EraseCacheCompletely();         // clear cache so we start fresh
+              metaLog({type:LOG_TYPE.ALWAYS, content:"And reconnecting it will start .meta too"});
+              mqttClient.reconnect();
+            })
+            .catch(err => {
+                metaLog({type:LOG_TYPE.ERROR, content:'Neeo reported this result for stopserver: ' + err});
+                process.exit(1);
+            });
+          }
+        }
+        else 
         if (topic == "meta/.meta/LOGLEVEL") 
           OverrideLoglevel(value);
         else {
@@ -904,7 +924,7 @@ function enableMQTT (cont, deviceId) {
         }
       }
       catch (err) {
-        metaLog({type:LOG_TYPE.ERROR, content:'Parsing incoming message on: '+settings.mqtt_topic + cont.name + "/command"});
+        metaLog({type:LOG_TYPE.ERROR, content:'Parsing incomming message on: '+settings.mqtt_topic + cont.name + "/command"});
         metaLog({type:LOG_TYPE.ERROR, content:err});
       }
   })
@@ -984,19 +1004,25 @@ if (process.argv.length>2) {
     process.exit();
   }
 }
-
 getConfig().then(() => {
   metaLog({type:LOG_TYPE.VERBOSE, content:'Connecting to MQTT: ' + JSON.stringify(settings.mqtt)});
   mqttClient = mqtt.connect('mqtt://' + settings.mqtt, {clientId:"meta"}); // Always connect to the local mqtt broker
+  metaLog({type:LOG_TYPE.VERBOSE, content:'Result of connectMQTT: ' });
+  metaLog({type:LOG_TYPE.VERBOSE, content:mqttClient });
   mqttClient.setMaxListeners(0); //CAREFULL OF MEMORY LEAKS HERE.
+  mqttClient.on('error', (result) => {
+    metaLog({type:LOG_TYPE.ERROR, content:'Error connecting to MQTT: '+ result});
+    });
+  
   mqttClient.on('connect', (result) => {
-  createDevices()
-  .then (() => {
-    setupNeeo().then(() => {
-    })
-  })
-});
-mqttClient.on('error', (result) => {
-  metaLog({type:LOG_TYPE.ERROR, content:'Error connecting to MQTT: '+ result});
+    createDevices()
+      .then (() => {
+        setupNeeo().then(() => {
+      })
+    });
   });
+
+  mqttClient.on('end', (result) => {
+    metaLog({type:LOG_TYPE.ERROR, content:'MQTT-connection ended, restarting .meta locally'});
+    });
 });
