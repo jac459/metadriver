@@ -17,9 +17,12 @@ if (mySeverity == null) {
     if (settings.LogSeverity) { mySeverity = LOG_LEVEL[settings.LogSeverity]; } // Did the user override this setting during runtime?
         else mySeverity == LOG_LEVEL.QUIET;
 }
+
 function OverrideLoglevel(NewLogLevel) {
-    mySeverity = LOG_LEVEL[NewLogLevel];
-    metaMessage({content:"Setting log-level " +NewLogLevel});
+    if (mySeverity != LOG_LEVEL[NewLogLevel])
+        {mySeverity = LOG_LEVEL[NewLogLevel];
+        metaMessage({content:"Setting log-level " +NewLogLevel,type:LOG_TYPE.ALWAYS});
+        }
 }
 
 function initialiseLogSeverity(sever) { mySeverity = LOG_LEVEL[sever];}

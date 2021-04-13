@@ -18,7 +18,10 @@ function GetATimeStamp() {
   
   function EraseCacheCompletely(){
     
-    DiscoveryCache.length=0;
+    DiscoveryCache = {}
+        metaLog({ type:LOG_TYPE.ALWAYS, content:"Delete cache result:"});
+    metaLog({ type:LOG_TYPE.ALWAYS, content:DiscoveryCache});
+
     
   }
 
@@ -52,7 +55,11 @@ function GetATimeStamp() {
     if (Object.keys(DiscoveryCache).length >50&& DiscoveryCache[targetDeviceId] != undefined)
         DeleteOldestCacheEntry();
     DiscoveryCache[targetDeviceId] = {"timestamp":GetATimeStamp(),"outputTable":NewoutputTable,"state":status}
-    metaLog({deviceId: targetDeviceId, type:LOG_TYPE.DEBUG, content:DiscoveryCache});
+    metaLog({deviceId: targetDeviceId, type:LOG_TYPE.VERBOSE, content:DiscoveryCache});
+    if (DiscoveryCache[targetDeviceId].state == "COMPLETED") 
+      metaLog({deviceId: targetDeviceId, type:LOG_TYPE.INFO, content:DiscoveryCache[targetDeviceId]});
+      
+      
   return DiscoveryCache[targetDeviceId] 
     }
     catch (err) {console.log("error in adddiscovery",err);}

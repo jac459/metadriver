@@ -50,8 +50,8 @@ class ProcessingManager {
   initiate(connection) {
     return new Promise((resolve, reject) => {
       this._processor.initiate(connection)
-        .then((result) => { resolve(result); })
-        .catch((err) => reject(err));
+        .then((result) => resolve(result))
+        .catch((err) => reject(err))
     });
   }
   process(params) {
@@ -1154,10 +1154,7 @@ class mqttProcessor {
         if (params.command.replytopic)
           GetThisTopic = params.command.replytopic;        
         //params.connection.connector.subscribe(GetThisTopic, (result) => {metaLog({type:LOG_TYPE.VERBOSE, content:'Subscription MQTT : '+ result})});
-        params.connection.connector.subscribe(GetThisTopic, { qos: 0 }, 
-          function (err, granted){
-            console.log("Subscribe suback", err,granted);
-        });
+        params.connection.connector.subscribe(GetThisTopic);
 
         var t = setTimeout(() => {
           UnsubscribeMQTT(params,GetThisTopic);
@@ -1172,7 +1169,6 @@ class mqttProcessor {
         params.connection.connector.on('message', function (topic, message,packet) {
           let Matched = HandleMQTTIncoming(GetThisTopic,params,topic,message);
           if (Matched) {
-            console.log("Clearing timeout-check");
             clearTimeout(t);
             let StillNeedMessage = false;         // check if we are still subscribed to this topic (duplicates)
             for (const key in params.connection.connector.messageIdToTopic) {
@@ -1181,7 +1177,7 @@ class mqttProcessor {
             }
             if (!StillNeedMessage) {
               metaLog({type:LOG_TYPE.VERBOSE, content:'Already unsubscribed: ' + topic.toString()});
-              //resolve("{\"topic\": \""+ topic.toString()+ "\",\"message\" : " +message.toString()+"}");
+              resolve("{\"topic\": \""+ topic.toString()+ "\",\"message\" : " +message.toString()+"}");
               //console.log("resolved unwanted");
 
             }
@@ -1190,7 +1186,6 @@ class mqttProcessor {
               metaLog({type:LOG_TYPE.VERBOSE, content:'Topic passed through: ' + topic.toString()});
               UnsubscribeMQTT(params,GetThisTopic);
               resolve("{\"topic\": \""+ topic.toString()+ "\",\"message\" : " +message.toString()+"}");
-              console.log("resolved wanted");
               return
 
               }

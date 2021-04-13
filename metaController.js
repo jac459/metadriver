@@ -23,12 +23,12 @@ const CLI = 'cli';
 const REPL = 'repl';
 const WEBSOCKET = 'webSocket';
 const SOCKETIO = 'socketIO';
+const NETSOCKET = 'netSocket';
 const JSONTCP = 'jsontcp';
 const MQTT = 'mqtt';
-
-
 const WOL = 'wol';
-const { ProcessingManager, httpgetProcessor, httprestProcessor, httpgetSoapProcessor, httppostProcessor, cliProcessor, staticProcessor, webSocketProcessor, socketIOProcessor, jsontcpProcessor, mqttProcessor,replProcessor } = require('./ProcessingManager');
+const { ProcessingManager, httpgetProcessor, httprestProcessor, httpgetSoapProcessor, httppostProcessor, cliProcessor, staticProcessor, webSocketProcessor, socketIOProcessor, NetSocketProcessor,jsontcpProcessor, mqttProcessor, replProcessor } = require('./ProcessingManager');
+
 const { metaMessage, LOG_TYPE } = require("./metaMessage");
 
 const processingManager = new ProcessingManager();
@@ -39,9 +39,10 @@ const myCliProcessor = new cliProcessor();
 const myStaticProcessor = new staticProcessor();
 const myWebSocketProcessor = new webSocketProcessor();
 const mySocketIOProcessor = new socketIOProcessor();
+const myNetSocketProcessor = new NetSocketProcessor();
+
 const myJsontcpProcessor = new jsontcpProcessor();
 const myMqttProcessor = new mqttProcessor();
-
 const myReplProcessor = new replProcessor();
 const myHttprestProcessor = new httprestProcessor();
 
@@ -79,7 +80,7 @@ module.exports = function controller(driver) {
   this.addListener = function(params) {
     params = JSON.parse(self.vault.readVariables(params, params.deviceId));
 
-    metaLog({type:LOG_TYPE.VERBOSE, content:'addListener', deviceId:params.deviceId});
+    metaLog({type:LOG_TYPE.VERBOSE, content:'addListener ' + params.name, deviceId:params.deviceId});
     metaLog({type:LOG_TYPE.DEBUG, content:params, deviceId:params.deviceId});
     metaLog({type:LOG_TYPE.DEBUG, content:self.vault.variables, deviceId:params.deviceId});
     let listIndent = self.listeners.findIndex((listen) => {return listen.command == params.command});
@@ -120,7 +121,6 @@ module.exports = function controller(driver) {
   }
 
   this.addConnection = function(params) {
-    
     metaLog({type:LOG_TYPE.VERBOSE, content:'addConnection:'});
     metaLog({type:LOG_TYPE.DEBUG, content:params});
     self.connectionH.push(params);
@@ -325,13 +325,13 @@ module.exports = function controller(driver) {
     else if (commandtype == SOCKETIO) {
       processingManager.processor = mySocketIOProcessor;
     }
+    else if (commandtype == NETSOCKET) {
+      processingManager.processor = myNetSocketProcessor;
+    }
     else if (commandtype == JSONTCP) {
       processingManager.processor = myJsontcpProcessor;
     }
     else if (commandtype == MQTT) {
-      processingManager.processor = myMqttProcessor;
-    }
-    else if (commandtype == MQTTRR) {
       processingManager.processor = myMqttProcessor;
     }
     else if (commandtype == REPL) {
@@ -341,13 +341,13 @@ module.exports = function controller(driver) {
   };
 
   this.initiateProcessor = function(commandtype) { // Initiate communication protocoles
-    metaLog({type:LOG_TYPE.ERROR, content:'initiateprocessor for: '+commandtype});
+    metaLog({type:LOG_TYPE.VERBOSE, content:'initiateprocessor for: '+commandtype});
     return new Promise(function (resolve, reject) {
       self.assignProcessor(commandtype); //to get the correct processing manager.
-      metaLog({type:LOG_TYPE.ERROR, content:'self assign for: '+commandtype});
+      metaLog({type:LOG_TYPE.VERBOSE, content:'self assign for: '+commandtype});
       processingManager.initiate(self.getConnection(commandtype))
         .then((result) => {
-          metaLog({type:LOG_TYPE.ERROR, content:'initiateprocessor result: '+result});
+          metaLog({type:LOG_TYPE.VERBOSE, content:'initiateprocessor result: '+result});
           resolve(result);
         })
         .catch((err) => {
@@ -378,14 +378,10 @@ module.exports = function controller(driver) {
       command = self.vault.readVariables(command, deviceId);
       command = self.assignTo(RESULT, command, '');
       const params = {'command' : command, 'connection' : connection};
-      metaLog({type:LOG_TYPE.VERBOSE, content:'Final command to be processed: ' + commandtype, deviceId:deviceId});
-      metaLog({type:LOG_TYPE.DEBUG, content:command+ ' - ' + commandtype, deviceId:deviceId});
-
+      metaLog({type:LOG_TYPE.VERBOSE, content:'Final command to be processed: '+command+ ' - ' + commandtype, deviceId:deviceId});
       processingManager.process(params)
         .then((result) => {
-          metaLog({type:LOG_TYPE.VERBOSE, content:'Result of the command to be processed: ',deviceId:deviceId});
-          metaLog({type:LOG_TYPE.DEBUG, content:result, deviceId:deviceId});
-
+          metaLog({type:LOG_TYPE.VERBOSE, content:'Result of the command to be processed: '+result, deviceId:deviceId});
           resolve(result);
         })
         .catch((err) => {reject (err);});
@@ -438,6 +434,9 @@ module.exports = function controller(driver) {
           myQueryT[index] = self.vault.readVariables(myQueryT[index], deviceId);
           const params = {'query' : myQueryT[index], 'data' : data};
           processingManager.query(params).then((data) => {
+            metaLog({type:LOG_TYPE.VERBOSE, content:'Result'});
+            metaLog({type:LOG_TYPE.VERBOSE, content:data});
+
             resolve(data);
           });
         });
@@ -562,18 +561,15 @@ module.exports = function controller(driver) {
           if (!name.startsWith(BUTTONHIDE)) {
             self.commandProcessor("{\"topic\":\""+ settings.mqtt_topic + self.name + "/" + deviceId + "/button/" + name + "\",\"message\":\"PRESSED\"}", MQTT, deviceId)
           }
-          if (theButton.command != undefined){ 
-            self.actionManager(deviceId, theButton.type, theButton.command, theButton.queryresult, theButton.evaldo, theButton.evalwrite)
-            .then(()=>{
-              metaLog({type:LOG_TYPE.VERBOSE, content:'Action done.', deviceId:deviceId});
-              resolve('Action done.');
-            })
-            .catch((err) => { 
-              metaLog({type:LOG_TYPE.ERROR, content:'Error when processing the command : ' + err, deviceId:deviceId});
-                resolve(err);
-            });
-          }
-          else {resolve("No command in the button.")}
+          self.actionManager(deviceId, theButton.type, theButton.command, theButton.queryresult, theButton.evaldo, theButton.evalwrite)
+          .then(()=>{
+            metaLog({type:LOG_TYPE.VERBOSE, content:'Action done.', deviceId:deviceId});
+            resolve('Action done.');
+          })
+          .catch((err) => { 
+            metaLog({type:LOG_TYPE.ERROR, content:'Error when processing the command : ' + err, deviceId:deviceId});
+              resolve(err);
+          });
         }
         else if (theButton.type == 'wol') {
           resolve("wol");
