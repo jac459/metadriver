@@ -153,7 +153,7 @@ function createDevices () {
       })
     })
   }
-  catch (err) {metaLog({deviceId: deviceId, type:LOG_TYPE.ERROR, content:'Error in discoveredDriverListBuilder ' + err});}
+  catch (err) {metaLog({deviceId: deviceId, type:LOG_TYPE.ERROR, content:'Error in createDevices ' + err});}
   })
 
 }
@@ -190,9 +190,10 @@ function discoveredDriverListBuilder(inputRawDriverList, outputPreparedDriverLis
           resolve(discoveredDriverListBuilder(inputRawDriverList, outputPreparedDriverList, indent+1, controller, targetDeviceId));
         }
       }
-      else
+      else {
         resolve(discoveredDriverListBuilder(inputRawDriverList, outputPreparedDriverList, indent+1, controller, targetDeviceId));
-    }
+        }
+      }
     else 
       resolve (outputPreparedDriverList);}
     catch (err) {metaLog({deviceId: deviceId, type:LOG_TYPE.ERROR, content:'Error in discoveredDriverListBuilder ' + err});}
@@ -245,7 +246,6 @@ function discoveryDriverPreparator(controller, driver, deviceId, targetDeviceId)
               driverInstance = instanciationHelper(controller, element, driver.template);
               instanciationTable.push(driverInstance);
             });
-
             resolve(instanciationTable)
           })
         })
@@ -479,9 +479,9 @@ function executeDriverCreation (driver, hubController, deviceId) {
               enableDynamicDeviceBuilder: true,
             },
             (targetDeviceId) => {
-              metaLog({deviceId: targetDeviceId, type:LOG_TYPE.INFO, content:"NEEO-Discovery requested for: " + targetDeviceId + " " + driver.name });
-              if (targetDeviceId == undefined)  {
-                metaLog({deviceId: targetDeviceId, type:LOG_TYPE.INFO, content:"Bypassing cache (undefined targetid): " + driver.name });
+              metaLog({deviceId: targetDeviceId, type:LOG_TYPE.INFO, content:"Discovery: NEEO requested for: " + targetDeviceId + " " + driver.name });
+              if (targetDeviceId == undefined)  { //Original code
+                metaLog({deviceId: targetDeviceId, type:LOG_TYPE.INFO, content:"Discovery: result# Bypassing cache (undefined targetid): " + driver.name });
                 return new Promise(function (resolve, reject) {
                 discoveryDriverPreparator(controller, driver, currentDeviceId, targetDeviceId).then((driverList) => {
                   const formatedTable = [];
@@ -490,35 +490,36 @@ function executeDriverCreation (driver, hubController, deviceId) {
                   })
                 })
               })
-            }
-            else
+              }
+              else
                return new Promise(function (resolve, reject) {
-                metaLog({deviceId: targetDeviceId, type:LOG_TYPE.INFO, content:"NEEO-Discovery requested for: " + targetDeviceId + " " + driver.name });
                 var CachedDiscovery;                
                 CachedDiscovery = cacheManager.ValidateDiscoveryCache(targetDeviceId);
-                  if (CachedDiscovery == CacheEntryNotFound) {
-                    metaLog({deviceId: targetDeviceId, type:LOG_TYPE.INFO, content:"Starting actual discovery for: " + targetDeviceId + " " + driver.name });
+                  if (CachedDiscovery == CacheEntryNotFound) { // First time an existing device is discovered again
+                    metaLog({deviceId: targetDeviceId, type:LOG_TYPE.VERBOSE, content:"Discovery: Init#Starting actual discovery for: " + targetDeviceId + " " + driver.name });
                     cacheManager.AddDiscoveryCache(targetDeviceId,"Discovery started",CacheEntryTemp);
                     return new Promise(function (resolve, reject) {
                       discoveryDriverPreparator(controller, driver, currentDeviceId, targetDeviceId).then((driverList) => {
                         const formatedTable = [];
                         discoveredDriverListBuilder(driverList, formatedTable, 0, controller, targetDeviceId).then((outputTable) => {
                           cacheManager.AddDiscoveryCache(targetDeviceId,outputTable,CacheEntryCompleted);
-                          resolve(outputTable); 
+                          metaLog({deviceId: targetDeviceId, type:LOG_TYPE.INFO, content:"Discovery: result#Adding final cache-entry " + targetDeviceId + " " + driver.name  });
+                          metaLog({deviceId: targetDeviceId, type:LOG_TYPE.DEBUG, content:outputTable });
+                          resolve(outputTable);
                         })
                       })
                     })
                   }
                   else 
-                    if (CachedDiscovery.state==CacheEntryCompleted) {
-                        metaLog({deviceId: targetDeviceId, type:LOG_TYPE.INFO, content:"Cache direct-return for: " + targetDeviceId + " " + driver.name });
-                        let myResult  = CachedDiscovery;
-                        resolve(myResult);
+                    if (CachedDiscovery.state==CacheEntryCompleted) {// next time an existing device is discovered again, it was already resolved the first time
+                        metaLog({deviceId: targetDeviceId, type:LOG_TYPE.INFO, content:"Discovery: result#Cache direct-return for: " + targetDeviceId + " " + driver.name });
+                        resolve(CachedDiscovery.outputTable);
                       }
-                    else {
-                      metaLog({deviceId: targetDeviceId, type:LOG_TYPE.INFO, content:"Parking: " + targetDeviceId + " " + driver.name });
+                    else {// next time an existing device is discovered again, it has not yet been resolved for the first time
+                      metaLog({deviceId: targetDeviceId, type:LOG_TYPE.INFO, content:"Discovery: init#Parking: " + targetDeviceId + " " + driver.name });
                       DoParkedDiscovery(targetDeviceId,driver,currentDeviceId,controller).then((myResult) => {
-                        resolve(myResult);
+                        CachedDiscovery = cacheManager.ValidateDiscoveryCache(targetDeviceId);
+                        resolve(CachedDiscovery.outputTable);
                       })
                     }
                 
@@ -661,8 +662,8 @@ function executeDriverCreation (driver, hubController, deviceId) {
 }
 
 async function DoParkedDiscovery(targetDeviceId,driver,currentDeviceId,controller) 
- {
-  metaLog({deviceId: targetDeviceId, type:LOG_TYPE.DEBUG, content:'Parking handler ' + targetDeviceId + " " + driver.name});
+ {var CachedDiscovery;
+  metaLog({deviceId: targetDeviceId, type:LOG_TYPE.VERBOSE, content:'Discovery: init#Parking handler ' + targetDeviceId + " " + driver.name});
 	let myCount = 0;
     let promise =   new Promise(function (resolve, reject) {                                            
 
@@ -670,7 +671,8 @@ async function DoParkedDiscovery(targetDeviceId,driver,currentDeviceId,controlle
                     try {
                         continueCheckingForCompletion();
                     }
-                    catch (err) {console.log("catch handler", err )}
+                    catch (err)   {metaLog({deviceId: targetDeviceId, type:LOG_TYPE.ERROR, content:"Error in DoParkedDiscovery"})
+                                  metaLog({deviceId: targetDeviceId, type:LOG_TYPE.ERROR, content:err})}
                 }
 
                 function continueCheckingForCompletion(){
@@ -691,25 +693,23 @@ async function DoParkedDiscovery(targetDeviceId,driver,currentDeviceId,controlle
 
     let result = await promise  
     if (result=="") {
-      metaLog({deviceId: targetDeviceId, type:LOG_TYPE.INFO, content:'Parking time ran out, doing discovery ' + targetDeviceId + " " + driver.name});
+      metaLog({deviceId: targetDeviceId, type:LOG_TYPE.INFO, content:'Discovery: result#Parking time ran out, doing discovery ' + targetDeviceId + " " + driver.name});
       return new Promise(function (resolve, reject) {
         discoveryDriverPreparator(controller, driver, currentDeviceId, targetDeviceId).then((driverList) => {
           const formatedTable = [];
           discoveredDriverListBuilder(driverList, formatedTable, 0, controller, targetDeviceId).then((outputTable) => {
             cacheManager.AddDiscoveryCache(targetDeviceId,outputTable,CacheEntryCompleted);
+            metaLog({deviceId: targetDeviceId, type:LOG_TYPE.INFO, content:'Discovery: result#' + targetDeviceId + " " + driver.name});
             return(outputTable); 
           })
         })
       })
     }
     else {
-      metaLog({deviceId: targetDeviceId, type:LOG_TYPE.INFO, content:'Released parking for ' + targetDeviceId + " " + driver.name});
-      return(result);
+      metaLog({deviceId: targetDeviceId, type:LOG_TYPE.INFO, content:'Discovery: init#Released parked  ' + targetDeviceId + " " + driver.name});
+      return(CachedDiscovery.outputTable);
     }
         
-          
-    console.log("Done with promise", result);
-
 }
 
 
@@ -942,8 +942,6 @@ if (process.argv.length>2) {
 getConfig().then(() => {
   metaLog({type:LOG_TYPE.VERBOSE, content:'Connecting to MQTT: ' + JSON.stringify(settings.mqtt)});
   mqttClient = mqtt.connect('mqtt://' + settings.mqtt, {clientId:"meta"}); // Always connect to the local mqtt broker
-  metaLog({type:LOG_TYPE.VERBOSE, content:'Result of connectMQTT: ' });
-  metaLog({type:LOG_TYPE.VERBOSE, content:mqttClient });
   mqttClient.setMaxListeners(0); //CAREFULL OF MEMORY LEAKS HERE.
   mqttClient.on('error', (result) => {
     metaLog({type:LOG_TYPE.ERROR, content:'Error connecting to MQTT: '+ result});

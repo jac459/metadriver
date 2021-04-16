@@ -1089,16 +1089,15 @@ function UnsubscribeMQTT(params,TheTopic) {
     }
     if (params.connection.connector.messageIdToTopic[key].length<=0) delete params.connection.connector.messageIdToTopic[key] 
   }
-  metaLog({type:LOG_TYPE.DEBUG, content :"Done unsubscribing, subscriptions are now:"})
+  metaLog({type:LOG_TYPE.INFO, content :"Done unsubscribing, subscriptions are now:"})
   metaLog({type:LOG_TYPE.DEBUG, content : params.connection.connector.messageIdToTopic});
 
 }
-
 function HandleMQTTIncoming(GetThisTopic,params,topic,message){
 
-  metaLog({type:LOG_TYPE.DEBUG, content:'Topic received : ' + topic.toString()});
-  metaLog({type:LOG_TYPE.DEBUG, content:'Message received : ' + message.toString()});
-  metaLog({type:LOG_TYPE.DEBUG, content:'Looking for topic : ' + GetThisTopic});
+  metaLog({type:LOG_TYPE.VERBOSE, content:'Topic received : ' + topic.toString()});
+  metaLog({type:LOG_TYPE.VERBOSE, content:'Message received : ' + message.toString()});
+  metaLog({type:LOG_TYPE.VERBOSE, content:'Looking for topic : ' + GetThisTopic});
 
   var RcvdTopicPart = topic.split("/"),i;
   var ParamsTopicPart = GetThisTopic.split("/");
@@ -1124,10 +1123,10 @@ function HandleMQTTIncoming(GetThisTopic,params,topic,message){
   if (Matched) {
     let GotMyMessage = false;         // check if we are still subscribed to this topic (duplicates)
     metaLog({type:LOG_TYPE.VERBOSE, content:'Topic match: ' + topic.toString()});
-    for (const key in params.connection.connector.messageIdToTopic) {
+    /*for (const key in params.connection.connector.messageIdToTopic) {
         if (GetThisTopic == params.connection.connector.messageIdToTopic[key])
            GotMyMessage=true;
-    }
+    }*/
     return(Matched);
   }
 
@@ -1136,24 +1135,73 @@ function HandleMQTTIncoming(GetThisTopic,params,topic,message){
 class mqttProcessor {
   initiate(connection) {
     return new Promise(function (resolve, reject) {
+
+
       resolve('');
       //nothing to do, it is done globally.
       //connection.connector = mqttClient;
     }); 
   } 
+  OnMessage (topic, message,packet) {
+    let Matched = HandleMQTTIncoming(GetThisTopic,params,topic,message);
+    if (Matched) {
+      console.log("We have a message",topic.toString() ,message.toString(),process.mylistener)
+
+      clearTimeout(t);
+      UnsubscribeMQTT(params,GetThisTopic);
+      resolve("{\"topic\": \""+ topic.toString()+ "\",\"message\" : " +message.toString()+"}");                          
+    } 
+
+  }
+  foo() {
+    console.log("foo")
+  }
   process (params) {
-    try {
+/*    try {
+      if (process.mylistener == undefined) {
+        process.mylistener = "";
+
+        // Test to see how many "on message" handlers are activated by default (should be 4)
+        console.log("Event Handlers for message are now:",params.connection.connector._events.message.length);
+        params.connection.connector.on('message', this.foo); //add one on('message' handlers (makes 5)
+        params.connection.connector.on('message', this.foo); //=> 6 
+        params.connection.connector.on('message', this.foo); //=> 7
+        params.connection.connector.on('message', this.foo); //=8
+        console.log("Event Handlers for message are now:",params.connection.connector._events.message.length); // should be 8
+         params.connection.connector.off('message', this.foo); // should remove one, result goes to =>7
+         params.connection.connector.off('message', this.foo); // =>6
+         params.connection.connector.off('message', this.foo); // =>7
+         params.connection.connector.off('message', this.foo); / => 4
+         console.log("Event Handlers for message are now:",params.connection.connector._events.message.length); // All should be removed
+        // This works great for a statically defined function:  emitter.off(eventName, listener), where listener is a static function like foo
+        // BUT.... we use "on the fly defined functions": params.connection.connector.on('message', FUNCTION (topic, message,packet) {
+        // and obviously node.js matches the function provided with the emitter.off with his internal list..... and won;t find a match
+
+        // possible solutions: Use statically defined functions/methods with (on message' 
+        // So, why "emitter.remove==>ALL<==listeners? "
+
+      }
+
+      if (process.mylistener!="") { 
+        process.mylistener.removeListener('message', function () {console.log("remove message handler as removelistener")});
+        console.log("Event Handlers for message are now:",params.connection.connector._events.message.length);
+      }
+//      var rawlisteners = params.connection.connector.removeAllListeners("message")
+ //     console.log("raw",rawlisteners)
+        //params.connection.connector.off();
+    }
+    catch (err){console.log("error in off",err) }*/
     return new Promise(function (resolve, reject) {
-      metaLog({type:LOG_TYPE.VERBOSE, content:'MQTT Processing'});
-      metaLog({type:LOG_TYPE.VERBOSE, content:params.command});
- 
+      metaLog({type:LOG_TYPE.INFO, content:'MQTT Processing'});
+      metaLog({type:LOG_TYPE.DEBUG, content:params.command});
       params.command = JSON.parse(params.command);
 
       if ((params.command.replytopic)||(params.command.topic&&!params.command.message)) {//here we get a value from a topic
         let GetThisTopic = params.command.topic;
+        console.log("We need to get a message from",GetThisTopic)
         if (params.command.replytopic)
-          GetThisTopic = params.command.replytopic;        
-        //params.connection.connector.subscribe(GetThisTopic, (result) => {metaLog({type:LOG_TYPE.VERBOSE, content:'Subscription MQTT : '+ result})});
+          GetThisTopic = params.command.replytopic;   
+          console.log("Subscribing to ",GetThisTopic)     
         params.connection.connector.subscribe(GetThisTopic);
 
         var t = setTimeout(() => {
@@ -1161,45 +1209,31 @@ class mqttProcessor {
           metaLog({type:LOG_TYPE.ERROR, content:'Timeout waiting for MQTT-topic ' + GetThisTopic});
           reject('');
         }, (params.command.timeout ? params.command.timeout  : 10000));
-        metaLog({type:LOG_TYPE.VERBOSE, content:'Timer: '});
-        metaLog({type:LOG_TYPE.VERBOSE, content:t});
 
 
-        
-        params.connection.connector.on('message', function (topic, message,packet) {
+        metaLog({type:LOG_TYPE.INFO, content:'Add message handler'});  
+        process.mylistener = params.connection.connector.on('message', function (topic, message,packet) {
           let Matched = HandleMQTTIncoming(GetThisTopic,params,topic,message);
           if (Matched) {
+            console.log("We have a message",topic.toString() ,message.toString(),process.mylistener)
             clearTimeout(t);
-            let StillNeedMessage = false;         // check if we are still subscribed to this topic (duplicates)
-            for (const key in params.connection.connector.messageIdToTopic) {
-                if (GetThisTopic == params.connection.connector.messageIdToTopic[key])
-                StillNeedMessage=true;
-            }
-            if (!StillNeedMessage) {
-              metaLog({type:LOG_TYPE.VERBOSE, content:'Already unsubscribed: ' + topic.toString()});
-              resolve("{\"topic\": \""+ topic.toString()+ "\",\"message\" : " +message.toString()+"}");
-              //console.log("resolved unwanted");
-
-            }
-            else
-              {
-              metaLog({type:LOG_TYPE.VERBOSE, content:'Topic passed through: ' + topic.toString()});
-              UnsubscribeMQTT(params,GetThisTopic);
-              resolve("{\"topic\": \""+ topic.toString()+ "\",\"message\" : " +message.toString()+"}");
-              return
-
-              }
-          }
-        
+            UnsubscribeMQTT(params,GetThisTopic);
+            resolve("{\"topic\": \""+ topic.toString()+ "\",\"message\" : " +message.toString()+"}");                          
+          }        
         })
       }
+
       if (params.command.message) {// here we publish into a topic
-        metaLog({type:LOG_TYPE.VERBOSE, content:'MQTT publishing ' + params.command.message + ' to ' + settings.mqtt_topic + params.command.topic + ' with options : ' + params.command.options});
+        metaLog({type:LOG_TYPE.INFO, content:'MQTT publishing ' + params.command.message + ' to ' + settings.mqtt_topic + params.command.topic + ' with options : ' + params.command.options});
         try {
           params.connection.connector.publish(params.command.topic, params.command.message, (params.command.options ? JSON.parse(params.command.options) : ""));
-          if (!params.command.replytopic) {//Only resolve when not waiting on response
+          try {
+          console.log("Replytopic:",params.command.replytopic)}
+          catch (err) {console.log("Apparently, we do not have a replytopic")}
+          if (params.command.replytopic== undefined) {//Only resolve when not waiting on response
+            console.log("empty return from MQTT")
             resolve('');
-          }
+          }else console.log("Waiting for reply on ",params.command.replytopic)
         }
         catch (err) {
           metaLog({type:LOG_TYPE.ERROR, content:'Meta found an error processing the MQTT command'});
@@ -1210,11 +1244,12 @@ class mqttProcessor {
         metaLog({type:LOG_TYPE.ERROR, content:"Meta Error: Your command MQTT seems incorrect"});
         metaLog({type:LOG_TYPE.ERROR, content:err});
       }
+
     })
-  }
-  catch (err) {
-    metaLog({type:LOG_TYPE.ERROR,content:"Error in ProcessingManager.js MQTT-process: "+err});
-  }
+ // }
+ // catch (err) {
+ //   metaLog({type:LOG_TYPE.ERROR,content:"Error in ProcessingManager.js MQTT-process: "+err});
+ // }
   }
   query(params) {
     return new Promise(function (resolve, reject) {
