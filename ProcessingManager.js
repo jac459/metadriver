@@ -599,7 +599,8 @@ process(params) {
         params.connection.connections.push({"descriptor": params.command.connection, "connector": theConnector});
         connectionIndex = params.connection.connections.length - 1;
         let theresult = params.connection.connections[connectionIndex].connector.connect(5900, params.command.connection);
-        console.log("Connect result:",theresult);
+        metaLog({type:LOG_TYPE.DEBUG, content:theresult});
+
       }
 
 
@@ -1145,8 +1146,7 @@ class mqttProcessor {
   OnMessage (topic, message,packet) {
     let Matched = HandleMQTTIncoming(GetThisTopic,params,topic,message);
     if (Matched) {
-      console.log("We have a message",topic.toString() ,message.toString(),process.mylistener)
-
+      metaLog({type:LOG_TYPE.VERBOSE, content:"We have a message " + topic.toString() + " "  + message.toString()});
       clearTimeout(t);
       UnsubscribeMQTT(params,GetThisTopic);
       resolve("{\"topic\": \""+ topic.toString()+ "\",\"message\" : " +message.toString()+"}");                          
@@ -1198,10 +1198,10 @@ class mqttProcessor {
 
       if ((params.command.replytopic)||(params.command.topic&&!params.command.message)) {//here we get a value from a topic
         let GetThisTopic = params.command.topic;
-        console.log("We need to get a message from",GetThisTopic)
+        //console.log("We need to get a message from",GetThisTopic)
         if (params.command.replytopic)
           GetThisTopic = params.command.replytopic;   
-          console.log("Subscribing to ",GetThisTopic)     
+          metaLog({type:LOG_TYPE.VERBOSE, content:"Subscribing to " + GetThisTopic });     
         params.connection.connector.subscribe(GetThisTopic);
 
         var t = setTimeout(() => {
@@ -1215,7 +1215,7 @@ class mqttProcessor {
         process.mylistener = params.connection.connector.on('message', function (topic, message,packet) {
           let Matched = HandleMQTTIncoming(GetThisTopic,params,topic,message);
           if (Matched) {
-            console.log("We have a message",topic.toString() ,message.toString(),process.mylistener)
+            metaLog({type:LOG_TYPE.VERBOSE, content:"We have a message " + topic.toString() + " "  + message.toString()});
             clearTimeout(t);
             UnsubscribeMQTT(params,GetThisTopic);
             resolve("{\"topic\": \""+ topic.toString()+ "\",\"message\" : " +message.toString()+"}");                          
@@ -1227,13 +1227,8 @@ class mqttProcessor {
         metaLog({type:LOG_TYPE.INFO, content:'MQTT publishing ' + params.command.message + ' to ' + settings.mqtt_topic + params.command.topic + ' with options : ' + params.command.options});
         try {
           params.connection.connector.publish(params.command.topic, params.command.message, (params.command.options ? JSON.parse(params.command.options) : ""));
-          try {
-          console.log("Replytopic:",params.command.replytopic)}
-          catch (err) {console.log("Apparently, we do not have a replytopic")}
-          if (params.command.replytopic== undefined) {//Only resolve when not waiting on response
-            console.log("empty return from MQTT")
+          if (params.command.replytopic== undefined) //Only resolve when not waiting on response
             resolve('');
-          }else console.log("Waiting for reply on ",params.command.replytopic)
         }
         catch (err) {
           metaLog({type:LOG_TYPE.ERROR, content:'Meta found an error processing the MQTT command'});
