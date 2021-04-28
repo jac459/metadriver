@@ -403,12 +403,13 @@ module.exports = function controller(driver) {
       .catch((err) => {reject (err);});
     });    
   };
-
+  
   this.stopListenProcessor = function(listener, deviceId) { // process any command according to the target protocole
     return new Promise(function (resolve, reject) {
       if (listener.deviceId == deviceId) {
         self.assignProcessor(listener.type);
-        let connection = self.getConnection(listener.commandtype);
+        console.log("Stoplistening for ",listener.type,listener.command) 
+        let connection = self.getConnection(listener.command);
         processingManager.stopListen(listener, connection);
       }
       else {
@@ -465,7 +466,7 @@ module.exports = function controller(driver) {
   };
   
   this.onListenExecute = function (result, listener, deviceId) {
-    process.stdout.write('.');  
+//    process.stdout.write('.');  
   
     self.queryProcessor(result, listener.queryresult, listener.type, deviceId).then((result) => {
        if (listener.evalwrite) {self.evalWrite(listener.evalwrite, result, deviceId);}
@@ -543,6 +544,8 @@ module.exports = function controller(driver) {
 
       if (name == '__CLEANUP') {//listener management to listen to other devices. Stop listening on power off.
         self.listeners.forEach(listener => {
+          console.log("Listeners:",listener)
+
           if (listener.deviceId == deviceId) {//we stop only the listeners of this device !!!
             self.stopListenProcessor(listener, deviceId);
           }

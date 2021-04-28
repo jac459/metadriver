@@ -47,7 +47,25 @@ function GetATimeStamp() {
     delete DiscoveryCache[Oldest];
   
   }
-  
+  function DisplayCache() {
+    var targetDeviceId = "init";
+  try {
+    DiscoveryCacheKeys = Object.keys(DiscoveryCache);
+    metaLog({type:LOG_TYPE.DEBUG, content:"Cache-contents, dept =" + DiscoveryCacheKeys.length});
+
+    metaLog({type:LOG_TYPE.DEBUG, content:"dept:" + DiscoveryCacheKeys.length});
+    for (var i =0;i<DiscoveryCacheKeys.length;i++) {
+      targetDeviceId = DiscoveryCacheKeys[i];
+      metaLog({deviceId: targetDeviceId, type:LOG_TYPE.DEBUG, content:"==========" + i});      
+      metaLog({deviceId: targetDeviceId, type:LOG_TYPE.DEBUG, content:DiscoveryCache[DiscoveryCacheKeys[i]].timestamp});
+      metaLog({deviceId: targetDeviceId, type:LOG_TYPE.DEBUG, content:DiscoveryCache[DiscoveryCacheKeys[i]].outputTable});
+      metaLog({deviceId: targetDeviceId, type:LOG_TYPE.DEBUG, content:DiscoveryCache[DiscoveryCacheKeys[i]].state});
+      metaLog({deviceId: targetDeviceId, type:LOG_TYPE.DEBUG, content:"==========" +i});      
+      }
+  }
+catch (err) {metaLog({type:LOG_TYPE.VERBOSE, content:"Error in DisplayCache "+ err});}
+}
+
   function AddDiscoveryCache(targetDeviceId,NewoutputTable,status){
     try { 
     metaLog({deviceId: targetDeviceId, type:LOG_TYPE.VERBOSE, content:"Adding "+status+" cache-entry for: " +  targetDeviceId});
@@ -88,3 +106,4 @@ function GetATimeStamp() {
   exports.AddDiscoveryCache = AddDiscoveryCache;
   exports.DeleteCacheEntry = DeleteCacheEntry;
   exports.EraseCacheCompletely = EraseCacheCompletely;
+  exports.DisplayCache = DisplayCache;

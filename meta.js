@@ -27,7 +27,7 @@ var brainDiscovered = false;
 var brainConsoleGivenIP = undefined;
 var driverTable = [];
 var localDevices = [];
-var localByMacDevices = [];
+var localByMacDevices = ['kaasje'];
 exports.localDevices = localDevices;
 exports.localByMacDevices = localByMacDevices;
 exports.neeoBrainIp = returnBrainIp;
@@ -680,7 +680,7 @@ async function DoParkedDiscovery(targetDeviceId,driver,currentDeviceId,controlle
                   if (CachedDiscovery.state==CacheEntryCompleted)                 // Is Blocking request done
                     resolve(CachedDiscovery);
                   else
-                    if(++myCount <40){
+                    if(++myCount <120){
                         setTimeout(CheckCacheState,DelayTime);
                     }
                     else{
@@ -809,10 +809,11 @@ function MetaMQTTHandler (cont, deviceId) {
             neeoapi.stopServer(neeoSettings)
             .then((result) => {
               metaLog({type:LOG_TYPE.ALWAYS, content:"Neeo reports successful removal"});
-              metaLog({type:LOG_TYPE.ALWAYS, content:"Now forcing restart of meta by closing MQTT-connection"});
+              metaLog({type:LOG_TYPE.ALWAYS, content:"Now disconnect MQTT-connection"});
               mqttClient.end();
-              cacheManager.EraseCacheCompletely();         // clear cache so we start fresh
-              metaLog({type:LOG_TYPE.ALWAYS, content:"And reconnecting it will start .meta too"});
+              cacheManager.DisplayCache();         // Show content of cache for debugging purposes
+              cacheManager.EraseCacheCompletely(); // clear cache so we start fresh
+              metaLog({type:LOG_TYPE.ALWAYS, content:"And reconnecting it, will start .meta too"});
               mqttClient.reconnect();
             })
             .catch(err => {
@@ -867,14 +868,38 @@ function MetaMQTTHandler (cont, deviceId) {
 //MAIN
 process.chdir(__dirname);
 metaLog({type:LOG_TYPE.ALWAYS, content:'.Meta starting'});
-
+if (process.argv.length>2) {
+  try {
+    if (process.argv[2]) {
+      let arguments = JSON.parse(process.argv[2]);
+      if (arguments.Brain) {
+        brainConsoleGivenIP = arguments.Brain;
+      }
+      if (arguments.LogSeverity) {
+        initialiseLogSeverity(arguments.LogSeverity);
+      }
+      if (arguments.Components) {
+        initialiseLogComponents(arguments.Components);
+      }
+    }
+    else {
+      metaLog({type:LOG_TYPE.FATAL, content:'Wrong arguments: ' + process.argv[2] + (process.argv.length>3? ' ' + process.argv[3]: '') + ' You can try for example node meta \'{"Brain":"192.168.1.144","LogSeverity":"INFO","Components":["meta"]}\', Or example: node meta \'{"Brain":"localhost","LogSeverity":"VERBOSE","Components":["metaController", "variablesVault"]}\', all items are optionals, LogSeverity can be VERBOSE, INFO, WARNING or QUIET, components can be meta, metaController, variablesVault, processingManager, sensorHelper, sliderHeper, switchHelper, imageHelper or directoryHelper if you want to focus the logs on a specific function. If components is empty, all modules are shown.'});
+      process.exit();
+    }
+  }
+  catch (err)
+  {
+    metaLog({type:LOG_TYPE.FATAL, content:'Wrong arguments: ' + process.argv[2] + (process.argv.length>3? ' ' + process.argv[3]: '') + ' You can try for example node meta \'{"Brain":"192.168.1.144","LogSeverity":"INFO","Components":["meta"]}\', Or example: node meta \'{"Brain":"localhost","LogSeverity":"VERBOSE","Components":["metaController", "variablesVault"]}\', all items are optionals, LogSeverity can be VERBOSE, INFO, WARNING or QUIET, components can be meta, metaController, variablesVault, processingManager, sensorHelper, sliderHeper, switchHelper, imageHelper or directoryHelper if you want to focus the logs on a specific function. If components is empty, all modules are shown.'});
+    metaLog({type:LOG_TYPE.FATAL, content:err});
+    process.exit();
+  }
+}
 //Unleaching discovery
 //Mac addresses.
 find().then(devices => {
-  localByMacDevices = devices;
-  metaLog({type:LOG_TYPE.DEBUG, content:'MAC discovery found: '});
-  metaLog({type:LOG_TYPE.DEBUG, content:localByMacDevices});
-
+  this.localByMacDevices = devices;
+  metaLog({type:LOG_TYPE.VERBOSE, content:'MAC discovery found: '});
+  metaLog({type:LOG_TYPE.VERBOSE, content:this.localByMacDevices});
 });
 
 //mDNS
@@ -906,39 +931,15 @@ browser.on('serviceUp', (service) => {
 });
 
 //mDNS DISCOVERY PART
+metaLog({type:LOG_TYPE.INFO, content:'mDNS discovery starting, this will take 100 seconds (of silence while we detect your devices)'});
+
 browser.start();
 setTimeout(() => {
   browser.stop();
-  metaLog({type:LOG_TYPE.VERBOSE, content:'mDNS discovery stopped'});
+  metaLog({type:LOG_TYPE.WARNING, content:'mDNS discovery stopped'});
   metaLog({type:LOG_TYPE.DEBUG, content:localDevices});
 }, 100000);
 
-if (process.argv.length>2) {
-  try {
-    if (process.argv[2]) {
-      let arguments = JSON.parse(process.argv[2]);
-      if (arguments.Brain) {
-        brainConsoleGivenIP = arguments.Brain;
-      }
-      if (arguments.LogSeverity) {
-        initialiseLogSeverity(arguments.LogSeverity);
-      }
-      if (arguments.Components) {
-        initialiseLogComponents(arguments.Components);
-      }
-    }
-    else {
-      metaLog({type:LOG_TYPE.FATAL, content:'Wrong arguments: ' + process.argv[2] + (process.argv.length>3? ' ' + process.argv[3]: '') + ' You can try for example node meta \'{"Brain":"192.168.1.144","LogSeverity":"INFO","Components":["meta"]}\', Or example: node meta \'{"Brain":"localhost","LogSeverity":"VERBOSE","Components":["metaController", "variablesVault"]}\', all items are optionals, LogSeverity can be VERBOSE, INFO, WARNING or QUIET, components can be meta, metaController, variablesVault, processingManager, sensorHelper, sliderHeper, switchHelper, imageHelper or directoryHelper if you want to focus the logs on a specific function. If components is empty, all modules are shown.'});
-      process.exit();
-    }
-  }
-  catch (err)
-  {
-    metaLog({type:LOG_TYPE.FATAL, content:'Wrong arguments: ' + process.argv[2] + (process.argv.length>3? ' ' + process.argv[3]: '') + ' You can try for example node meta \'{"Brain":"192.168.1.144","LogSeverity":"INFO","Components":["meta"]}\', Or example: node meta \'{"Brain":"localhost","LogSeverity":"VERBOSE","Components":["metaController", "variablesVault"]}\', all items are optionals, LogSeverity can be VERBOSE, INFO, WARNING or QUIET, components can be meta, metaController, variablesVault, processingManager, sensorHelper, sliderHeper, switchHelper, imageHelper or directoryHelper if you want to focus the logs on a specific function. If components is empty, all modules are shown.'});
-    metaLog({type:LOG_TYPE.FATAL, content:err});
-    process.exit();
-  }
-}
 getConfig().then(() => {
   metaLog({type:LOG_TYPE.VERBOSE, content:'Connecting to MQTT: ' + JSON.stringify(settings.mqtt)});
   mqttClient = mqtt.connect('mqtt://' + settings.mqtt, {clientId:"meta"}); // Always connect to the local mqtt broker
@@ -946,7 +947,7 @@ getConfig().then(() => {
   mqttClient.on('error', (result) => {
     metaLog({type:LOG_TYPE.ERROR, content:'Error connecting to MQTT: '+ result});
     });
-  
+    
   mqttClient.on('connect', (result) => {
     createDevices()
       .then (() => {
