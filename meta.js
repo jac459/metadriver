@@ -35,7 +35,7 @@ var mqttClient;
 var DoingDiscoveryMySelf=false;
 const DelayTime = 250;
 var neeoSettings;
-var doingARestart=false;//used for a local restart of the .meta into neeo.
+var EliminatingRepeatedActions=false; //used to prevent repeatedly executing meta-commands fromm the aspp.
 //LOGGING SETUP AND WRAPPING
 //Disable the NEEO library console warning.
 console.error = console.info = console.debug = console.warn = console.trace = console.dir = console.dirxml = console.group = console.groupEnd = console.time = console.timeEnd = console.assert = console.profile = function() {};
@@ -771,7 +771,6 @@ function runNeeo () {
 
     metaLog({type:LOG_TYPE.INFO, content:"Current directory: " + __dirname});
     metaLog({type:LOG_TYPE.INFO, content:"Trying to start the meta."});
-    doingARestart=false;
     neeoapi.startServer(neeoSettings)
       .then((result) => {
         metaLog({type:LOG_TYPE.ALWAYS, content:"Driver running, you can search it on the neeo app."});
@@ -795,36 +794,56 @@ function runNeeo () {
     })
 
 }
-    
+function AlreadyhandlingAppCommand(Command) {     // Purpose: Eliminate repeated messages
+  // Command is passed, but we don not use it (yet).
+  if (EliminatingRepeatedActions) {
+    metaLog({type:LOG_TYPE.VERBOSE, content:'Suppressing repeated command: ' + Command});
+    return true 
+  }
+  
+  EliminatingRepeatedActions = true
+  setTimeout(() => {
+    EliminatingRepeatedActions = false;   //and reset after 3 seconds
+    }, 3000);
+  return false
+  }
 
 function MetaMQTTHandler (cont, deviceId) {
   mqttClient.subscribe(settings.mqtt_topic + cont.name + "/#", () => {});  //mqttClient.subscribe( "meta/#", () => {});
 
   mqttClient.on('message', function (topic, value) {
-      try { 
-        if (topic == "meta/.meta/Reload"&&value=="meta") {
-          if (!doingARestart) {                   // We can be triggered multiple times, 
-            doingARestart=true;                   // make sure we rest only once.
-            metaLog({type:LOG_TYPE.ALWAYS, content:'Requesting neeo to remove Custom drivers'});
-            neeoapi.stopServer(neeoSettings)
-            .then((result) => {
-              metaLog({type:LOG_TYPE.ALWAYS, content:"Neeo reports successful removal"});
-              metaLog({type:LOG_TYPE.ALWAYS, content:"Now disconnect MQTT-connection"});
-              mqttClient.end();
-              cacheManager.DisplayCache();         // Show content of cache for debugging purposes
-              cacheManager.EraseCacheCompletely(); // clear cache so we start fresh
-              metaLog({type:LOG_TYPE.ALWAYS, content:"And reconnecting it, will start .meta too"});
-              mqttClient.reconnect();
-            })
-            .catch(err => {
-                metaLog({type:LOG_TYPE.ERROR, content:'Neeo reported this result for stopserver: ' + err});
-                process.exit(1);
-            });
+  try {
+    if (topic == "meta/.meta/Reload"&&value=="meta") {
+        if (!AlreadyhandlingAppCommand("reload")) {    // Eliminate repeated messages
+          metaLog({type:LOG_TYPE.ALWAYS, content:'Requesting neeo to remove Custom drivers'});
+          neeoapi.stopServer(neeoSettings)
+          .then((result) => {
+            metaLog({type:LOG_TYPE.ALWAYS, content:"Neeo reports successful removal"});
+            metaLog({type:LOG_TYPE.ALWAYS, content:"Now disconnect MQTT-connection"});
+            mqttClient.end(); 
+            cacheManager.DisplayCache();         // Show content of cache for debugging purposes
+            cacheManager.EraseCacheCompletely(); // clear cache so we start fresh
+            metaLog({type:LOG_TYPE.ALWAYS, content:"And reconnecting it, will start .meta too"});
+            mqttClient.reconnect();
+          })
+          .catch(err => {
+          metaLog({type:LOG_TYPE.ERROR, content:'Neeo reported this result for stopserver: ' + err});
+          process.exit(1);
+          });
+        } 
+    }
+    else 
+      if (topic == "meta/.meta/LOGLEVEL") {
+        if (!AlreadyhandlingAppCommand("Loglevel"))     // Eliminate repeated messages
+          OverrideLoglevel(value);
+      }
+      else 
+        if (topic == "meta/.meta/Clear" &&value == "Cache")  {
+          if (!AlreadyhandlingAppCommand("Cache"))   {  // Eliminate repeated messages
+            metaLog({type:LOG_TYPE.ALWAYS, content:"Clearing cache"});
+            cacheManager.EraseCacheCompletely(); // clear cache
           }
         }
-        else 
-        if (topic == "meta/.meta/LOGLEVEL") 
-          OverrideLoglevel(value);
         else {
           let theTopic = topic.split("/");
           if (theTopic.length == 6 && theTopic[5] == "set") {
@@ -939,6 +958,13 @@ setTimeout(() => {
   metaLog({type:LOG_TYPE.WARNING, content:'mDNS discovery stopped'});
   metaLog({type:LOG_TYPE.DEBUG, content:localDevices});
 }, 100000);
+
+var TimesTell = 90
+for (var i=1;i<10;i++) // a crude way of counting down the mDNS process.
+  setTimeout(() => {
+  metaLog({type:LOG_TYPE.WARNING, content:'mDNS discovery still running, '+  (TimesTell ) + ' seconds before done'});
+  TimesTell = TimesTell - 10
+}, i * 10000);
 
 getConfig().then(() => {
   metaLog({type:LOG_TYPE.VERBOSE, content:'Connecting to MQTT: ' + JSON.stringify(settings.mqtt)});
