@@ -1,962 +1,1293 @@
-//"use strict";
+const { exec } = require("child_process");
+const xpath = require('xpath');
 const path = require('path');
+const http = require('http.min');
+const { JSONPath } = require ('jsonpath-plus');
+const io = require('socket.io-client');
+const rpc = require('json-rpc2');
+const lodash = require('lodash');
+const { parserXMLString, xmldom } = require("./metaController");
+const got = require('got');
+const Net = require('net');
+const Promise = require('bluebird');
+
+const CONSTANTS =  {KEY_DELAY: 100,
+  CONNECTION_STATE: {
+    DISCONNECTED: 0,
+    CONNECTING: 1,
+    AUTHENTICATING: 2,
+    AUTHENTICATED: 3,
+    CONNECTED: 4
+  }}
+
 const settings = require(path.join(__dirname,'settings'));
-const neeoapi = require("neeo-sdk");
-const metacontrol = require(path.join(__dirname,'metaController'));
-const cacheManager = require(path.join(__dirname,'cacheManager'));
-const CacheEntryTemp = "TEMP";
-const CacheEntryCompleted = "COMPLETED";
-const CacheEntryNotFound = '';
+//const { connect } = require("socket.io-client");
+const WebSocket = require('ws');
+var socket = "";
 
-//Discovery tools
-const dnssd = require('dnssd2');
-const find = require('local-devices');
 
-const fs = require('fs');
-var activatedModule = path.join(__dirname,'activated');
-if (settings.drivers[0].variables.ActivatedLib) {activatedModule = settings.drivers[0].variables.ActivatedLib;}
-const BUTTONHIDE = '__';
-const DATASTOREEXTENSION = 'DataStore.json';
-const DEFAULT = 'default'; //NEEO SDK deviceId default value for devices
-const mqtt = require('mqtt');
-const { metaMessage, OverrideLoglevel, LOG_TYPE, initialiseLogComponents, initialiseLogSeverity } = require("./metaMessage");
-
-config = {brainip : '', brainport : ''};
-function returnBrainIp() { return config.brainip;}
-var brainDiscovered = false;
-var brainConsoleGivenIP = undefined;
-var driverTable = [];
-var localDevices = [];
-var localByMacDevices = ['kaasje'];
-exports.localDevices = localDevices;
-exports.localByMacDevices = localByMacDevices;
-exports.neeoBrainIp = returnBrainIp;
-var mqttClient;
-var DoingDiscoveryMySelf=false;
-const DelayTime = 250;
-var neeoSettings;
-var doingARestart=false;//used for a local restart of the .meta into neeo.
 //LOGGING SETUP AND WRAPPING
 //Disable the NEEO library console warning.
+const { metaMessage, LOG_TYPE } = require("./metaMessage");
 console.error = console.info = console.debug = console.warn = console.trace = console.dir = console.dirxml = console.group = console.groupEnd = console.time = console.timeEnd = console.assert = console.profile = function() {};
 function metaLog(message) {
-  let initMessage = { component:'meta', type:LOG_TYPE.INFO, content:'', deviceId: null };
+  let initMessage = { component:'processingManager', type:LOG_TYPE.INFO, content:'', deviceId: null };
   let myMessage = {...initMessage, ...message}
   return metaMessage (myMessage);
 } 
 
-
-function getConfig() {
-  return new Promise(function (resolve, reject) {
-    fs.readFile(__dirname + '/config.js', (err, data) => {
-      if (err) { 
-        metaLog({type:LOG_TYPE.ERROR, content:'No config file, the initial setup will be launched'});
-        resolve(null);
-        }
-      else {
-        if (data && (data != '')) {
-          config = JSON.parse(data);
-          resolve(config);
-        }
-        else {
-          resolve (config);}
-      }
-    }) 
-  })
-}
-        
-function getHelper (HelpTable, prop, deviceId) {
-  return HelpTable[HelpTable.findIndex((item) => { return (item.name==prop && item.deviceId==deviceId) })];
-}
-
-function getHelper (HelpTable, prop, deviceId) {
-  return HelpTable[HelpTable.findIndex((item) => { return (item.name==prop && item.deviceId==deviceId) })];
-}
-
-function getIndividualActivatedDrivers(files, driverList, driverIterator) {
-  return new Promise(function (resolve, reject) {
-    if (files) {
-      if (driverIterator < files.length) {
-        if (!files[driverIterator].endsWith(DATASTOREEXTENSION)){ //To separate from datastore
-          metaLog({content:'Activating drivers: ' + files[driverIterator]});
-          fs.readFile(path.join(activatedModule,files[driverIterator]), (err, data) => {
-            if (data) {
-              try {
-                const driver = JSON.parse(data);
-                driver.filename = files[driverIterator];
-                if (driver.template) { //persisted variables management
-                  driver.template.filename = files[driverIterator];
-                }
-                driverList.push(driver);
-              }
-              catch (err) {
-                metaLog({type:LOG_TYPE.ERROR, content:' Parsing driver : ' + files[driverIterator]});
-                metaLog({type:LOG_TYPE.ERROR, content:err});
-              }
-            }
-            if (err) {
-              metaLog({type:LOG_TYPE.ERROR, content:' Loading the driver file : ' + files[driverIterator]});
-              metaLog({type:LOG_TYPE.ERROR, content:err});
-          }
-            resolve(getIndividualActivatedDrivers(files, driverList, driverIterator+1));
-          })
-        }
-        else {resolve(getIndividualActivatedDrivers(files, driverList, driverIterator+1));}
-      } 
-      else { 
-        resolve(driverList)
-       }
-    }
-    else {resolve([])
-    }
-  })
-}
-
-function getActivatedDrivers() {
-  return new Promise(function (resolve, reject) {
-    metaLog({type:LOG_TYPE.VERBOSE, content:'Searching drivers in : ' + activatedModule});
-    fs.readdir(activatedModule, (err, files) => {
-      metaLog({content:'drivers found'});
-      var driverList = [];
-      getIndividualActivatedDrivers(files, driverList,0).then((list) => {
-        resolve(list);
-      })
-    })
-  })
-}
-
-function getDataStorePath(filename) {
-  try {
-    if (filename) {
-      return path.join(activatedModule, filename.split('.json')[0] + '-DataStore.json');
-    }
-    else {return null;}
+//STRATEGY FOR THE COMMAND TO BE USED (HTTPGET, post, websocket, ...) New processor to be added here. This strategy mix both transport and data format (json, soap, ...)
+class ProcessingManager {
+  constructor() {
+    this._processor = null;
+  };
+  set processor(processor) {
+    this._processor = processor;
+  };
+  get processor() {
+    return this._processor;
   }
-  catch (err) {
-    metaLog({type:LOG_TYPE.ERROR, content:'your path (' + filename + ') given seems to be wrong :'});
-    metaLog({type:LOG_TYPE.ERROR, content:err});
+  initiate(connection) {
+    return new Promise((resolve, reject) => {
+      this._processor.initiate(connection)
+        .then((result) => resolve(result))
+        .catch((err) => reject(err))
+    });
+  }
+  process(params) {
+    return new Promise((resolve, reject) => {
+      this._processor.process(params)
+        .then((result) => { resolve(result); })
+        .catch((err) => reject(err));
+    });
+  }
+  query(params) {
+    return this._processor.query(params);
+  }
+  startListen(params, deviceId) {
+    return this._processor.startListen(params, deviceId);
+  }
+  stopListen(params) {
+    return this._processor.stopListen(params);
+  }
+  wrapUp(connection) {
+    return new Promise((resolve, reject) => {
+      this._processor.wrapUp(connection)
+        .then((result) => { resolve(result); })
+        .catch((err) => reject(err));
+    });
   }
 }
+exports.ProcessingManager = ProcessingManager;
 
-function createDevices () {
-  return new Promise(function (resolve, reject) {
-    try { 
-    getActivatedDrivers().then((drivers) => {
-      drivers = drivers.concat(settings.drivers);
-      const driverCreationTable = [];
-      drivers.forEach((driver) => {
-        driverCreationTable.push(executeDriverCreation(driver))
-      })
-      Promise.all(driverCreationTable).then((driverTab) => {
-        driverTable = driverTab;
-        resolve(driverTable);
-      })
-    })
-  }
-  catch (err) {metaLog({deviceId: deviceId, type:LOG_TYPE.ERROR, content:'Error in createDevices ' + err});}
-  })
-
-}
-
-function discoveredDriverListBuilder(inputRawDriverList, outputPreparedDriverList, indent, controller, targetDeviceId) {
-  return new Promise (function (resolve, reject) {
-  try { 
-    if (indent < inputRawDriverList.length) {
-      if (inputRawDriverList[indent].dynamicname && inputRawDriverList[indent].dynamicname != "") {
-        if (targetDeviceId == undefined || targetDeviceId == inputRawDriverList[indent].dynamicid)
-        {
-          executeDriverCreation(inputRawDriverList[indent], controller, inputRawDriverList[indent].dynamicid).then((builtdevice) => {
-            builtdevice.addCapability("dynamicDevice");
-            const discoveredDevice = {
-              id:inputRawDriverList[indent].dynamicid,
-              name:inputRawDriverList[indent].dynamicname,
-              reachable:true,
-              device : builtdevice
-            }
-            outputPreparedDriverList.push(discoveredDevice);
-
-            driverTable.push(builtdevice);
-            if (targetDeviceId == undefined) {//initial creation of the driver, need the full list to be returned
-              resolve(discoveredDriverListBuilder(inputRawDriverList, outputPreparedDriverList, indent+1, controller, targetDeviceId));
-            }
-            else {//on the spot creation of a specific driver, we leave after creation.
-              resolve(outputPreparedDriverList);
-            }
-
-          })
-          
-        }//all these else to ensure proper timely construction and not a resolve before end of creation.
-        else {
-          resolve(discoveredDriverListBuilder(inputRawDriverList, outputPreparedDriverList, indent+1, controller, targetDeviceId));
-        }
-      }
-      else {
-        resolve(discoveredDriverListBuilder(inputRawDriverList, outputPreparedDriverList, indent+1, controller, targetDeviceId));
-        }
-      }
-    else 
-      resolve (outputPreparedDriverList);}
-    catch (err) {metaLog({deviceId: deviceId, type:LOG_TYPE.ERROR, content:'Error in discoveredDriverListBuilder ' + err});}
-    
-    })
-}
-
-function instanciationHelper(controller, givenResult, jsonDriver) {
-  jsonDriver = JSON.stringify(jsonDriver);
-  let slicedDriver = jsonDriver.split("DYNAMIK_INST_START ");
-  let reconstructedDriver = slicedDriver[0];
-  for (let index = 1; index < slicedDriver.length; index++) {
-    //TODO Correct ugly hack suppressing the escape of quote..
-    let tempoResult = slicedDriver[index].split(" DYNAMIK_INST_END")[0].replace(/\\/g, "");
-    //let tempoResult = slicedDriver[index].split(" DYNAMIK_INST_END")[0];
-    tempoResult = controller.vault.readVariables(tempoResult, DEFAULT);
-    tempoResult = controller.assignTo("$Result", tempoResult, givenResult);
-    reconstructedDriver = reconstructedDriver + tempoResult;
-    reconstructedDriver = reconstructedDriver + slicedDriver[index].split(" DYNAMIK_INST_END")[1];
-  }
-  metaLog({type:LOG_TYPE.VERBOSE, content:'reconstructedDriver'});
-  metaLog({type:LOG_TYPE.DEBUG, content:reconstructedDriver});
-
-  return JSON.parse(controller.vault.readVariables(reconstructedDriver, DEFAULT));
-}
-
-function discoveryDriverPreparator(controller, driver, deviceId, targetDeviceId) {
-  metaLog({deviceId: deviceId, type:LOG_TYPE.DEBUG, content:'DiscoveryDriverPreparator'});
-  
-  return new Promise(function (resolve, reject) {
-
-            try {           
-
-    if (driver.discover) {
-
-      let instanciationTable = [];
-
-      controller.initiateProcessor(driver.discover.command.type).then(() => {
-        controller.commandProcessor(driver.discover.command.command, driver.discover.command.type, deviceId).then((result)=>{
-
-          controller.queryProcessor(result, driver.discover.command.queryresult, driver.discover.command.type, deviceId).then((result) => {
-            if (driver.discover.command.evalwrite) {controller.evalWrite(driver.discover.command.evalwrite, result, deviceId)};
-
-            if (!Array.isArray(result)) {
-              let tempo = [];
-              tempo.push(result);
-              result = tempo;
-            }
-            result.forEach(element => {
-              driverInstance = instanciationHelper(controller, element, driver.template);
-              instanciationTable.push(driverInstance);
-            });
-            resolve(instanciationTable)
-          })
-        })
-      })
-
-    }
-    else 
-      resolve();
-  }
-    catch (err) {metaLog({deviceId: deviceId, type:LOG_TYPE.ERROR, content:'Error in discoveryDriverPreparator ' + err});}
-  })
-
-}
-
-function getRegistrationCode(controller, credentials, driver, deviceId){
-  return new Promise(function (resolve, reject) {
-    controller.vault.addVariable("RegistrationCode", credentials.securityCode, deviceId, true)
-    registerDevice(controller, driver, deviceId).then((result)=>{
-      if (result) {
-        resolve(true);
-      }
-      else {
-        resolve(false)
-      }
-    })
-  })
-}
-
-function registerDevice(controller, driver, deviceId) {
-  return new Promise(function (resolve, reject) {
-    controller.actionManager(DEFAULT, driver.register.registrationcommand.type, driver.register.registrationcommand.command, driver.register.registrationcommand.queryresult, '', driver.register.registrationcommand.evalwrite)
-    .then((result) => {
-      metaLog({deviceId: deviceId, type:LOG_TYPE.VERBOSE, content:'Result of the registration command: '});
-      metaLog({deviceId: deviceId, type:LOG_TYPE.DEBUG, content:result});
-
-      controller.reInitVariablesValues(deviceId);
-      controller.reInitConnectionsValues(deviceId);
-      controller.vault.snapshotDataStore();
-      if (controller.vault.getValue("IsRegistered", deviceId)) {
-        metaLog({deviceId: deviceId, type:LOG_TYPE.INFO, content:"Registration success"});
-        resolve(true);
-      }
-      else {
-        metaLog({deviceId: deviceId, type:LOG_TYPE.WARNING, content:'Registration Failure'});
-        resolve(false);
-      }
-    })
-  })
-}
-
-function isDeviceRegistered(controller, driver, deviceId) {
-  return new Promise(function (resolve, reject) {
-    let retValue = controller.vault.getValue("IsRegistered", deviceId);
-    metaLog({deviceId: deviceId, type:LOG_TYPE.VERBOSE, content:'is registered ? : ' + retValue});
-    if (retValue) {resolve(retValue);}
-    else {
-      registerDevice(controller, driver, deviceId).then((result)=>{
-        metaLog({deviceId: deviceId, type:LOG_TYPE.VERBOSE, content:'the result of the registration process is '+result});
-        if (result) {
-          resolve(true);
-        }
-        else {
-          resolve(false)
-        }
-      })
-    }
-  })
-}
-
-function createController(hubController, driver) {//Discovery specific
-  if (hubController) {//We are inside a discovered item no new controller to be created.
-    return hubController;
-  }
-  else {//normal device, controller to be created.
-    const controller = new metacontrol(driver);
-    return controller;
-  }
-}
-
-function assignControllers(controller, driver, currentDeviceId) {
-  for (var prop in driver.buttons) { // Dynamic creation of all buttons
-    if (Object.prototype.hasOwnProperty.call(driver.buttons, prop)) {
-      controller.addButton(currentDeviceId, prop, driver.buttons[prop])
-    }
-  } 
-
-  for (var prop in driver.images) { // Dynamic creation of all images
-    if (Object.prototype.hasOwnProperty.call(driver.images, prop)) {
-      controller.addImageHelper(currentDeviceId, prop, driver.images[prop].listen)
-    }
-  }
-
-  for (var prop in driver.labels) { // Dynamic creation of all labels
-    if (Object.prototype.hasOwnProperty.call(driver.labels, prop)) {
-      controller.addLabelHelper(currentDeviceId, prop, driver.labels[prop].listen, driver.labels[prop].actionlisten)
-    }
-  }
-
-  for (var prop in driver.sensors) { // Dynamic creation of all sensors
-    if (Object.prototype.hasOwnProperty.call(driver.sensors, prop)) {
-      controller.addSensorHelper(currentDeviceId, prop, driver.sensors[prop].listen)
-    }
-  }
-
-  for (var prop in driver.switches) { // Dynamic creation of all sliders
-    if (Object.prototype.hasOwnProperty.call(driver.switches, prop)) {
-      controller.addSwitchHelper(currentDeviceId, prop, driver.switches[prop].listen, driver.switches[prop].evaldo);
-    }
-  }
-
-  for (var prop in driver.sliders) { // Dynamic creation of all sliders
-    if (Object.prototype.hasOwnProperty.call(driver.sliders, prop)) {
-      controller.addSliderHelper(currentDeviceId, driver.sliders[prop].listen, driver.sliders[prop].evaldo, prop);
-    }
-  }
-
-  for (var prop in driver.directories) { // Dynamic creation of directories
-    if (Object.prototype.hasOwnProperty.call(driver.directories, prop)) {
-      const theHelper = controller.addDirectoryHelper(currentDeviceId, prop);
-      for (var feed in driver.directories[prop].feeders) {
-        let feedConfig = {"name":feed, 
-                          "label":driver.directories[prop].feeders[feed].label, 
-                          "commandset":driver.directories[prop].feeders[feed].commandset, 
-                        };
-        theHelper.addFeederHelper(feedConfig);
-      }
-    }
-  }
-
-}
-
-function KeepTaskInWaitTillCacheCompleted(loopCount,targetDeviceId,CachedDiscovery) {
-
-  if (loopCount--) {
-    if (loopCount%4==0)
-      metaLog({deviceId: targetDeviceId, type:LOG_TYPE.WARNING, content:"Discovery waiting time left max " + (loopCount/4).toString() + " sec" });
-    setTimeout(() => {
-      CachedDiscovery = cacheManager.ValidateDiscoveryCache(targetDeviceId);
-      if (CachedDiscovery.state==CacheEntryCompleted )  {
-        metaLog({deviceId: targetDeviceId, type:LOG_TYPE.WARNING, content:"Waitloop: Discovery got completed cache, resuming " + targetDeviceId});
-        return CachedDiscovery;}
-      else 
-        KeepTaskInWaitTillCacheCompleted(loopCount,targetDeviceId,CachedDiscovery)   
-    }, DelayTime);
-  }
-  else 
-    metaLog({deviceId: targetDeviceId, type:LOG_TYPE.ERROR, content:"Parallel discovery waiting time exceeded , releasing now" });
-}
-
-
-function executeDriverCreation (driver, hubController, deviceId) { 
-  var targetDeviceId;
+class httprestProcessor {
+  constructor() {
+  };
+  initiate(connection) {
     return new Promise(function (resolve, reject) {
-    //driverTable.length = 0; //Reset the table without cleaning the previous reference (to avoid destructing other devices when running Discovery).
-      let currentDeviceId = deviceId ? deviceId : DEFAULT; //to add the deviceId of the real discovered device in the Helpers
-
-      let controller = createController(hubController, driver);
-
-      //TODO check if this is still usefull
-      //if (hubController) {controller.assignDiscoverHubController(hubController)}; //if the device is a discovered device.
-      const theDevice = neeoapi.buildDevice(".meta " + driver.name) 
-        .setType(driver.type) 
-        .setDriverVersion(driver.version)
-        .setManufacturer(driver.manufacturer)
-        if (driver.icon) {
-            theDevice.setIcon(driver.icon)
-        }
-        if (driver.alwayson) {
-           theDevice.addCapability("alwaysOn");
-        }
-        
-       //CREATING VARIABLES
-       for (var prop in driver.variables) { // Initialisation of the variables
-        if (Object.prototype.hasOwnProperty.call(driver.variables, prop)) {
-          controller.vault.addVariable(prop, driver.variables[prop], currentDeviceId)
-        }
-      }
-
-      if (driver.persistedvariables){
-        for (var prop in driver.persistedvariables) { // Initialisation of the variables to be persisted
-          if (Object.prototype.hasOwnProperty.call(driver.persistedvariables, prop)) {
-            controller.vault.addVariable(prop, driver.persistedvariables[prop], currentDeviceId, true);
-          }
-        }
-      }
-
-      controller.vault.initialiseVault(getDataStorePath(driver.filename)).then(() => {//Retrieve the value form the vault
-
-      //CREATING CONTROLLERS
-      assignControllers(controller, driver, currentDeviceId);
-
-
-      //GET ALL CONNECTIONS
-      controller.addConnection({"name":"webSocket", "connections":[]})
-      controller.addConnection({"name":"netSocket", "connections":[]})
-      controller.addConnection({"name":"jsontcp", "descriptor":driver.jsontcp, "connector":""})
-      if (settings.mqtt) {
-        metaLog({deviceId: deviceId, type:LOG_TYPE.INFO, content:'Creating the connection MQTT'});
-        controller.addConnection({"name":"mqtt", "descriptor":settings.mqtt, "connector":mqttClient})//early loading
-
-        //controller.initiateProcessor('mqtt');
-      }
-      if (driver.repl) {
-        controller.addConnection({"name":"repl", "descriptor":driver.repl, "connector":""})
-      }
-    
-      //PreInit
-      controller.onButtonPressed("__PREINIT",currentDeviceId).then(() => {
-        //Registration
-        if (driver.register) {
-          theDevice.enableRegistration(
-          {
-            type: 'SECURITY_CODE',
-            headerText: driver.register.registerheadertext,
-            description: driver.register.registerdescription,
-          },
-          {
-            register: (credentials) => getRegistrationCode(controller, credentials, driver, currentDeviceId),
-            isRegistered: () => {return new Promise(function (resolve, reject) {isDeviceRegistered(controller, driver, currentDeviceId).then((res)=>{resolve(res)})})},
+      resolve();
+    });
+  }
+  process(params) {
+    return new Promise(function (resolve, reject) {
+      try {
+        if (typeof (params.command) == 'string') { params.command = JSON.parse(params.command); }
+        if (params.command.verb == 'post') {
+          got.post(params.command.call, {json:params.command.message, responseType: 'json'})
+         .then((response) => {
+            resolve(response.body);
           })
+          .catch((err) => {
+            metaLog({type:LOG_TYPE.ERROR, content:'Post request didn\'t work : '});
+            metaLog({type:LOG_TYPE.ERROR, content:params});
+            metaLog({type:LOG_TYPE.ERROR, content:err});
+            reject(err);
+          });
         }
-
-
-        //DISCOVERY  
-        if (driver.discover) {
-          DoingDiscoveryMySelf = true;
-          theDevice.enableDiscovery(
-            {
-              headerText: driver.discover.welcomeheadertext,
-              description: driver.discover.welcomedescription,
-              enableDynamicDeviceBuilder: true,
-            },
-            (targetDeviceId) => {
-              metaLog({deviceId: targetDeviceId, type:LOG_TYPE.INFO, content:"Discovery: NEEO requested for: " + targetDeviceId + " " + driver.name });
-              if (targetDeviceId == undefined)  { //Original code
-                metaLog({deviceId: targetDeviceId, type:LOG_TYPE.INFO, content:"Discovery: result# Bypassing cache (undefined targetid): " + driver.name });
-                return new Promise(function (resolve, reject) {
-                discoveryDriverPreparator(controller, driver, currentDeviceId, targetDeviceId).then((driverList) => {
-                  const formatedTable = [];
-                  discoveredDriverListBuilder(driverList, formatedTable, 0, controller, targetDeviceId).then((outputTable) => {
-                    resolve(outputTable); 
-                  })
-                })
-              })
-              }
-              else
-               return new Promise(function (resolve, reject) {
-                var CachedDiscovery;                
-                CachedDiscovery = cacheManager.ValidateDiscoveryCache(targetDeviceId);
-                  if (CachedDiscovery == CacheEntryNotFound) { // First time an existing device is discovered again
-                    metaLog({deviceId: targetDeviceId, type:LOG_TYPE.VERBOSE, content:"Discovery: Init#Starting actual discovery for: " + targetDeviceId + " " + driver.name });
-                    cacheManager.AddDiscoveryCache(targetDeviceId,"Discovery started",CacheEntryTemp);
-                    return new Promise(function (resolve, reject) {
-                      discoveryDriverPreparator(controller, driver, currentDeviceId, targetDeviceId).then((driverList) => {
-                        const formatedTable = [];
-                        discoveredDriverListBuilder(driverList, formatedTable, 0, controller, targetDeviceId).then((outputTable) => {
-                          cacheManager.AddDiscoveryCache(targetDeviceId,outputTable,CacheEntryCompleted);
-                          metaLog({deviceId: targetDeviceId, type:LOG_TYPE.INFO, content:"Discovery: result#Adding final cache-entry " + targetDeviceId + " " + driver.name  });
-                          metaLog({deviceId: targetDeviceId, type:LOG_TYPE.DEBUG, content:outputTable });
-                          resolve(outputTable);
-                        })
-                      })
-                    })
-                  }
-                  else 
-                    if (CachedDiscovery.state==CacheEntryCompleted) {// next time an existing device is discovered again, it was already resolved the first time
-                        metaLog({deviceId: targetDeviceId, type:LOG_TYPE.INFO, content:"Discovery: result#Cache direct-return for: " + targetDeviceId + " " + driver.name });
-                        resolve(CachedDiscovery.outputTable);
-                      }
-                    else {// next time an existing device is discovered again, it has not yet been resolved for the first time
-                      metaLog({deviceId: targetDeviceId, type:LOG_TYPE.INFO, content:"Discovery: init#Parking: " + targetDeviceId + " " + driver.name });
-                      DoParkedDiscovery(targetDeviceId,driver,currentDeviceId,controller).then((myResult) => {
-                        CachedDiscovery = cacheManager.ValidateDiscoveryCache(targetDeviceId);
-                        resolve(CachedDiscovery.outputTable);
-                      })
-                    }
-                
-              })
-            })
-          }
-
-        controller.reInitConnectionsValues(currentDeviceId);
-        
-        //CREATING LISTENERS
-        for (var prop in driver.listeners) { // Initialisation of the variables
-          if (Object.prototype.hasOwnProperty.call(driver.listeners, prop)) {
-              controller.addListener({
-                name : prop, 
-                deviceId: currentDeviceId,
-                type : driver.listeners[prop].type,
-                command : driver.listeners[prop].command,
-                timer : "", //prepare the the listener to save the timer here.
-                pooltime : driver.listeners[prop].pooltime,
-                poolduration : driver.listeners[prop].poolduration,
-                queryresult : driver.listeners[prop].queryresult,
-                evalwrite : driver.listeners[prop].evalwrite,
-                evaldo : driver.listeners[prop].evaldo
-              })
-          }
-        }
-        
-          //CREATING INDIVIDUAL SHORTCUTS
-
-          for (var prop in driver.buttons) { // Dynamic creation of all buttons
-            if (Object.prototype.hasOwnProperty.call(driver.buttons, prop)) {
-              if (theDevice.buttons.findIndex((item) => {return (item.param.name == prop)})<0) {//not button of same name (in case included in a widget)
-                if (!prop.startsWith(BUTTONHIDE)){ //If the button doesnt need to be hidden.
-                  theDevice.addButton({name: prop, label: (driver.buttons[prop].label == '') ? (prop) : (driver.buttons[prop].label)})
-                }
-              }
-            }
-          }
-  
-          for (var prop in driver.images) { // Dynamic creation of all images
-            if (Object.prototype.hasOwnProperty.call(driver.images, prop)) {
-              if (theDevice.imageUrls.findIndex((item) => {return (item.param.name == prop)})<0) {//not image of same name (in case included in a widget)
-                const helperI = getHelper(controller.imageH, prop, currentDeviceId);
-                theDevice.addImageUrl({name: prop, label: (driver.images[prop].label == '') ? (prop) : (driver.images[prop].label),
-                      size : driver.images[prop].size},
-                (deviceId) => helperI.get(deviceId))
-              }
-            }
-          }
-
-          for (var prop in driver.labels) { // Dynamic creation of all labels
-            if (Object.prototype.hasOwnProperty.call(driver.labels, prop)) {
-              if (theDevice.textLabels.findIndex((item) => {return (item.param.name == prop)})<0) {//not item of same name (in case included in a widget)
-                const helperL = getHelper(controller.labelH, prop, currentDeviceId);
-                theDevice.addTextLabel({name: prop, label: (driver.labels[prop].label == '') ? (prop) : (driver.labels[prop].label)},
-                helperL.get);
-              }
-            }
-          }
-
-          for (var prop in driver.sensors) { // Dynamic creation of all sensors
-            if (Object.prototype.hasOwnProperty.call(driver.sensors, prop)) {
-              if (theDevice.sensors.findIndex((item) => {return (item.param.name == prop)})<0) {//not item of same name (in case included in a widget)
-                const helperSe = getHelper(controller.sensorH, prop, currentDeviceId);
-                theDevice.addSensor({name: prop, label: (driver.sensors[prop].label == '') ? (prop) : (driver.sensors[prop].label),
-                type:driver.sensors[prop].type},
-                {
-                  getter: helperSe.get
-                });
-              }
-            }
-          }
-
-          for (var prop in driver.switches) { // Dynamic creation of all sliders
-            if (Object.prototype.hasOwnProperty.call(driver.switches, prop)) {
-              if (theDevice.switches.findIndex((item) => {return (item.param.name == prop)})<0) {//not item of same name (in case included in a widget)
-              const helperSw = getHelper(controller.switchH, prop, currentDeviceId);
-              theDevice.addSwitch({
-                name: prop, 
-                label: (driver.switches[prop].label == '') ? (prop) : (driver.switches[prop].label),
-              },
-              {
-                setter: helperSw.set, getter: helperSw.get
-              })
-            }
-          }
-        }
-
-          for (var prop in driver.sliders) { // Dynamic creation of all sliders
-            if (Object.prototype.hasOwnProperty.call(driver.sliders, prop)) {
-              if (theDevice.sliders.findIndex((item) => {return (item.param.name == prop)})<0) {//not slider of same name (in case included in a widget)
-                const helperS = getHelper(controller.sliderH, prop, currentDeviceId);
-                theDevice.addSlider({
-                  name: prop, 
-                  label: (driver.sliders[prop].label == '') ? (prop) : (driver.sliders[prop].label),
-                  range: [0,100], unit: driver.sliders[prop].unit 
-                },
-                {
-                  setter: helperS.set, getter: helperS.get
-                })
-              }
-            }
-          }
-
-          for (var prop in driver.directories) { // Dynamic creation of directories
-            if (Object.prototype.hasOwnProperty.call(driver.directories, prop)) {
-              if (theDevice.directories.findIndex((item) => {return (item.param.name == prop)})<0) {//not directory of same name (in case included in a widget)
-                const helperD = getHelper(controller.directoryH, prop, currentDeviceId);
-                theDevice.addDirectory({
-                  name: prop, 
-                  label: (driver.directories[prop].label == '') ? (prop) : (driver.directories[prop].label),
-                }, helperD.browse)
-              }
-            }
-          }
-
-          theDevice.addButtonHandler((name, deviceId) => controller.onButtonPressed(name, deviceId))
-          theDevice.registerSubscriptionFunction((updateCallback) => {controller.sendComponentUpdate = updateCallback});
-          theDevice.registerInitialiseFunction(() => {controller.registerInitiationCallback(currentDeviceId)});
-          theDevice.registerDeviceSubscriptionHandler(
-            {
-              deviceAdded: (deviceId) => {
-                  metaLog({deviceId: deviceId, type:LOG_TYPE.VERBOSE, content:'device added'});
-                  controller.dynamicallyAssignSubscription(deviceId,false);
-              },
-              deviceRemoved: (deviceId) => {
-                metaLog({deviceId: deviceId, type:LOG_TYPE.VERBOSE, content:'device removed'});
-              },
-              initializeDeviceList: (deviceIds) => {
-                metaLog({deviceId: deviceId, type:LOG_TYPE.VERBOSE, content:"INITIALIZED DEVICES:" + deviceIds});
-              },
-            } 
-          )
-          metaLog({deviceId: deviceId, type:LOG_TYPE.INFO, content:"Device " + driver.name + " has been created."});
-          MetaMQTTHandler(controller, currentDeviceId);
-          resolve(theDevice);
-        });
-      })
-  })
-}
-
-async function DoParkedDiscovery(targetDeviceId,driver,currentDeviceId,controller) 
- {var CachedDiscovery;
-  metaLog({deviceId: targetDeviceId, type:LOG_TYPE.VERBOSE, content:'Discovery: init#Parking handler ' + targetDeviceId + " " + driver.name});
-	let myCount = 0;
-    let promise =   new Promise(function (resolve, reject) {                                            
-
-                function CheckCacheState(){
-                    try {
-                        continueCheckingForCompletion();
-                    }
-                    catch (err)   {metaLog({deviceId: targetDeviceId, type:LOG_TYPE.ERROR, content:"Error in DoParkedDiscovery"})
-                                  metaLog({deviceId: targetDeviceId, type:LOG_TYPE.ERROR, content:err})}
-                }
-
-                function continueCheckingForCompletion(){
-                  CachedDiscovery = cacheManager.ValidateDiscoveryCache(targetDeviceId);
-                  if (CachedDiscovery.state==CacheEntryCompleted)                 // Is Blocking request done
-                    resolve(CachedDiscovery);
-                  else
-                    if(++myCount <120){
-                        setTimeout(CheckCacheState,DelayTime);
-                    }
-                    else{
-                        resolve('');
-                    }
-                }
-
-                continueCheckingForCompletion();
-            });
-
-    let result = await promise  
-    if (result=="") {
-      metaLog({deviceId: targetDeviceId, type:LOG_TYPE.INFO, content:'Discovery: result#Parking time ran out, doing discovery ' + targetDeviceId + " " + driver.name});
-      return new Promise(function (resolve, reject) {
-        discoveryDriverPreparator(controller, driver, currentDeviceId, targetDeviceId).then((driverList) => {
-          const formatedTable = [];
-          discoveredDriverListBuilder(driverList, formatedTable, 0, controller, targetDeviceId).then((outputTable) => {
-            cacheManager.AddDiscoveryCache(targetDeviceId,outputTable,CacheEntryCompleted);
-            metaLog({deviceId: targetDeviceId, type:LOG_TYPE.INFO, content:'Discovery: result#' + targetDeviceId + " " + driver.name});
-            return(outputTable); 
+        else if (params.command.verb == 'put') {
+          metaLog({type:LOG_TYPE.VERBOSE, content:'Put http request. Final address:'});
+          metaLog({type:LOG_TYPE.VERBOSE, content:params.command.call});
+          got.put(params.command.call, {json:params.command.message, responseType: 'json'})
+          .then((response) => {
+            resolve(response.body[0]);
           })
-        })
-      })
-    }
-    else {
-      metaLog({deviceId: targetDeviceId, type:LOG_TYPE.INFO, content:'Discovery: init#Released parked  ' + targetDeviceId + " " + driver.name});
-      return(CachedDiscovery.outputTable);
-    }
-        
-}
-
-
-//DISCOVERING BRAIN
-        
-function discoverBrain() {
-  return new Promise(function (resolve, reject) {
-    metaLog({type:LOG_TYPE.INFO, content:"Trying to discover a NEEO Brain..."});
- 
-    brainDiscovered = true;
-    neeoapi.discoverOneBrain()
-      .then((brain) => {
-        metaLog({type:LOG_TYPE.INFO, content:"Brain Discovered at IP : " + brain.iparray.toString()});
-        config.brainip = brain.iparray.toString();
-         resolve();
-      })
-      .catch ((err) => {
-        metaLog({type:LOG_TYPE.FATAL, content:"Brain couldn't be discovered, check if it is on and on the same wifi network: " + err});
-        reject();
-      })
-    })
-}
-
-function setupNeeo(forceDiscovery) {
-  return new Promise(function (resolve, reject) {
-    if (forceDiscovery) {
-      discoverBrain().then(() => {
-        runNeeo();
-      })
-    }
-    else if (brainConsoleGivenIP)  { 
-      config.brainip = brainConsoleGivenIP;
-      metaLog({type:LOG_TYPE.INFO, content:"Using brain-IP from CommandLine: " + brainConsoleGivenIP});
-      runNeeo();
-    }
-   else
-    if (config.brainip == ''){
-        discoverBrain().then(() => {
-          runNeeo();
-        })
-    }
-    else {
-      runNeeo();
-    }
-    resolve();
-  })
-}
-
-function runNeeo () {
-  return new Promise(function (resolve, reject) {
-    if (!config.brainport) {config.brainport = 4015}
-    neeoSettings = {
-      brain: config.brainip.toString(),
-      port: config.brainport.toString(),
-      name: "metadriver",
-      devices: driverTable
-    };
-
-
-    metaLog({type:LOG_TYPE.INFO, content:"Current directory: " + __dirname});
-    metaLog({type:LOG_TYPE.INFO, content:"Trying to start the meta."});
-    doingARestart=false;
-    neeoapi.startServer(neeoSettings)
-      .then((result) => {
-        metaLog({type:LOG_TYPE.ALWAYS, content:"Driver running, you can search it on the neeo app."});
-        metaLog({type:LOG_TYPE.INFO, content:result});
-        if (brainDiscovered) {
-            fs.writeFile(__dirname + '/config.js', JSON.stringify(config), err => {
-              if (err) {
-                metaLog({type:LOG_TYPE.ERROR, content:"Error writing the config file. " + err});
-                 } else {
-                  metaLog({type:LOG_TYPE.INFO, content:"Initial configuration saved"});
-                }
-              resolve();
-            })
-          }
-        })
-
-      .catch(err => {
-           metaLog({type:LOG_TYPE.ERROR, content:'Failed running Neeo with error: ' + err});
-           process.exit(1);
-      });
-    })
-
-}
-    
-
-function MetaMQTTHandler (cont, deviceId) {
-  mqttClient.subscribe(settings.mqtt_topic + cont.name + "/#", () => {});  //mqttClient.subscribe( "meta/#", () => {});
-
-  mqttClient.on('message', function (topic, value) {
-      try { 
-        if (topic == "meta/.meta/Reload"&&value=="meta") {
-          if (!doingARestart) {                   // We can be triggered multiple times, 
-            doingARestart=true;                   // make sure we rest only once.
-            metaLog({type:LOG_TYPE.ALWAYS, content:'Requesting neeo to remove Custom drivers'});
-            neeoapi.stopServer(neeoSettings)
-            .then((result) => {
-              metaLog({type:LOG_TYPE.ALWAYS, content:"Neeo reports successful removal"});
-              metaLog({type:LOG_TYPE.ALWAYS, content:"Now disconnect MQTT-connection"});
-              mqttClient.end();
-              cacheManager.DisplayCache();         // Show content of cache for debugging purposes
-              cacheManager.EraseCacheCompletely(); // clear cache so we start fresh
-              metaLog({type:LOG_TYPE.ALWAYS, content:"And reconnecting it, will start .meta too"});
-              mqttClient.reconnect();
-            })
-            .catch(err => {
-                metaLog({type:LOG_TYPE.ERROR, content:'Neeo reported this result for stopserver: ' + err});
-                process.exit(1);
-            });
-          }
+          .catch((err) => {
+            metaLog({type:LOG_TYPE.ERROR, content:'Put request didn\'t work : '});
+            metaLog({type:LOG_TYPE.ERROR, content:params});
+            metaLog({type:LOG_TYPE.ERROR, content:err});
+            reject(err);
+          });
         }
-        else 
-        if (topic == "meta/.meta/LOGLEVEL") 
-          OverrideLoglevel(value);
-        else {
-          let theTopic = topic.split("/");
-          if (theTopic.length == 6 && theTopic[5] == "set") {
-
-            if (theTopic[3] == "button") {
-              cont.onButtonPressed(theTopic[4], theTopic[2]);
-            }
-            else if (theTopic[3] == "slider") {
-              let sliI = cont.sliderH.findIndex((sli)=>{return sli.name == theTopic[4]});
-              if (sliI>=0){
-                cont.sliderH[sliI].set(theTopic[2], value)
-              }   
-            }
-            else if (theTopic[3] == "switch") {
-              let sliI = cont.switchH.findIndex((sli)=>{return sli.name == theTopic[4]});
-              if (sliI>=0){
-                cont.switchH[sliI].set(theTopic[2], value)
-              }   
-            }
-            else if (theTopic[3] == "image") {
-              let imaI = cont.imageH.findIndex((ima)=>{return ima.name == theTopic[4]});
-              if (imaI>=0){
-                cont.imageH[imaI].set(theTopic[2], value)
-              }   
-            }
-            else if (theTopic[3] == "label") {
-              let labI = cont.labelH.findIndex((lab)=>{return lab.name == theTopic[4]});
-              if (labI>=0){
-                cont.labelH[labI].set(theTopic[2], value)
-              }   
-            }
-          }
+        else if (params.command.verb == 'get') {
+          got(params.command.call)
+          .then(function (result) {
+            metaLog({type:LOG_TYPE.VERBOSE, content:'result of Request Get before query result, request size and content'});
+            metaLog({type:LOG_TYPE.VERBOSE, content:result.body.length});
+            metaLog({type:LOG_TYPE.VERBOSE, content:result.body});
+            resolve(result.body);
+          })
+          .catch((err) => {
+            reject(err);
+          });
         }
       }
       catch (err) {
-        metaLog({type:LOG_TYPE.ERROR, content:'Parsing incomming message on: '+settings.mqtt_topic + cont.name + "/command"});
+        metaLog({type:LOG_TYPE.ERROR, content:'Meta Error during the rest command processing'});
         metaLog({type:LOG_TYPE.ERROR, content:err});
       }
-  })
-}
-//MAIN
-process.chdir(__dirname);
-metaLog({type:LOG_TYPE.ALWAYS, content:'.Meta starting'});
-if (process.argv.length>2) {
-  try {
-    if (process.argv[2]) {
-      let arguments = JSON.parse(process.argv[2]);
-      if (arguments.Brain) {
-        brainConsoleGivenIP = arguments.Brain;
-      }
-      if (arguments.LogSeverity) {
-        initialiseLogSeverity(arguments.LogSeverity);
-      }
-      if (arguments.Components) {
-        initialiseLogComponents(arguments.Components);
-      }
+     });
     }
-    else {
-      metaLog({type:LOG_TYPE.FATAL, content:'Wrong arguments: ' + process.argv[2] + (process.argv.length>3? ' ' + process.argv[3]: '') + ' You can try for example node meta \'{"Brain":"192.168.1.144","LogSeverity":"INFO","Components":["meta"]}\', Or example: node meta \'{"Brain":"localhost","LogSeverity":"VERBOSE","Components":["metaController", "variablesVault"]}\', all items are optionals, LogSeverity can be VERBOSE, INFO, WARNING or QUIET, components can be meta, metaController, variablesVault, processingManager, sensorHelper, sliderHeper, switchHelper, imageHelper or directoryHelper if you want to focus the logs on a specific function. If components is empty, all modules are shown.'});
-      process.exit();
+    query(params) {
+      return new Promise(function (resolve, reject) {
+        if (params.query) {
+          try {
+            metaLog({type:LOG_TYPE.VERBOSE, content:'Rest command query processing, parameters, result JSON path: '+ JSONPath(params.query, params.data)});
+            if (typeof (params.data) == 'string') { params.data = JSON.parse(params.data); }
+            resolve(JSONPath(params.query, params.data));
+          }
+          catch (err) {
+            metaLog({type:LOG_TYPE.ERROR, content:'HTTP Error ' + err + ' in JSONPATH ' + params.query + ' processing of :' + params.data});
+          }
+        }
+        else { resolve(params.data); }
+      });
     }
+  startListen(params, deviceId) {
+    return new Promise(function (resolve, reject) {
+      let previousResult = '';
+      clearInterval(params.listener.timer);
+      params.listener.timer = setInterval(() => {
+        http(params.command)
+          .then(function (result) {
+            //if (result != previousResult) {
+              previousResult = result;
+              params._listenCallback(result, params.listener, deviceId);
+            //}
+            resolve('');
+          })
+          .catch((err) => { metaLog({type:LOG_TYPE.ERROR, content:err});
+; });
+      }, (params.listener.pooltime ? params.listener.pooltime : 1000));
+      if (params.listener.poolduration && (params.listener.poolduration != '')) {
+        setTimeout(() => {
+          clearInterval(params.listener.timer);
+        }, params.listener.poolduration);
+      }
+    });
   }
-  catch (err)
-  {
-    metaLog({type:LOG_TYPE.FATAL, content:'Wrong arguments: ' + process.argv[2] + (process.argv.length>3? ' ' + process.argv[3]: '') + ' You can try for example node meta \'{"Brain":"192.168.1.144","LogSeverity":"INFO","Components":["meta"]}\', Or example: node meta \'{"Brain":"localhost","LogSeverity":"VERBOSE","Components":["metaController", "variablesVault"]}\', all items are optionals, LogSeverity can be VERBOSE, INFO, WARNING or QUIET, components can be meta, metaController, variablesVault, processingManager, sensorHelper, sliderHeper, switchHelper, imageHelper or directoryHelper if you want to focus the logs on a specific function. If components is empty, all modules are shown.'});
-    metaLog({type:LOG_TYPE.FATAL, content:err});
-    process.exit();
+  stopListen(params) {
+    clearInterval(params.timer);
   }
 }
-//Unleaching discovery
-//Mac addresses.
-find().then(devices => {
-  this.localByMacDevices = devices;
-  metaLog({type:LOG_TYPE.VERBOSE, content:'MAC discovery found: '});
-  metaLog({type:LOG_TYPE.VERBOSE, content:this.localByMacDevices});
-});
+exports.httprestProcessor = httprestProcessor;
 
-//mDNS
-const browser = dnssd.Browser(dnssd.all(),{resolve:true});
-browser.on('serviceUp', (service) => {
-  metaLog({type:LOG_TYPE.DEBUG, content:'mDNS discovery found: ' + service.name});
-  let tempBro = undefined;
-  try {
-     tempBro = dnssd.Browser(dnssd.tcp(service.name));
-  } catch (err) {
-    metaLog({type:LOG_TYPE.ERROR, content:'Error during mDNS discovery - ' + service.name});
-    metaLog({type:LOG_TYPE.ERROR, content:err});
+class httpgetProcessor {
+
+  initiate(connection) {
+    return new Promise(function (resolve, reject) {
+      resolve();
+    });
   }
-  if (tempBro) {
-    tempBro.on('serviceUp', (service) => {
-      metaLog({type:LOG_TYPE.DEBUG, content:'mDNS discovery Service Up: ' + service.fullname});
-      if (0 > localDevices.findIndex((ld)=>{
-                return (ld.name == service.name && ld.fullname == service.fullname && ld.type == service.type && ld.domain == service.domain && ld.host == service.host)
-              })) 
+process(params) {
+    return new Promise(function (resolve, reject) {
+      metaLog({type:LOG_TYPE.ERROR,content:"Single command"});
+
+      got(params.command)
+        .then(function (result) {
+          resolve(result.body);
+        })
+        .catch((err) => {
+          reject(err);
+        });
+    });
+  }
+  query(params) {
+    try {
+
+    return new Promise(function (resolve, reject) {
+      if (params.query) {
+        try {
+          if (typeof (params.data) == 'string') { params.data = JSON.parse(params.data); };
+          resolve(JSONPath(params.query, params.data));
+        }
+        catch (err) {
+          metaLog({type:LOG_TYPE.ERROR, content:err});
+        }
+      }
+      else { resolve(params.data); }
+    });
+  }
+  catch (err) {
+    metaLog({type:LOG_TYPE.ERROR,content:"Error in ProcessingManager.js process: "+err});
+  }
+
+  }
+  startListen(params, deviceId) {
+    try {
+    return new Promise(function (resolve, reject) {
+      let previousResult = '';
+      clearInterval(params.listener.timer);
+      params.listener.timer = setInterval(() => {
+        if (params.command == "") {resolve("")}; //for 
+        http(params.command)
+          .then(function (result) {
+            if (result.data != previousResult) {
+              previousResult = result.data;
+              params._listenCallback(result.data, params.listener, deviceId);
+            }
+            resolve('');
+          })
+          .catch((err) => { 
+            metaLog({type:LOG_TYPE.ERROR, content:err});
+           });
+        }, (params.listener.pooltime ? params.listener.pooltime : 1000));
+        if (params.listener.poolduration && (params.listener.poolduration != '')) {
+          setTimeout(() => {
+            clearInterval(params.listener.timer);
+          }, params.listener.poolduration);
+        }
+      });
+    }
+    catch (err) {
+      metaLog({type:LOG_TYPE.ERROR,content:"Error in ProcessingManager.js startlisten" + err});
+    }
+  
+    }
+    stopListen(params) {
+      clearInterval(params.timer);
+    }
+}
+exports.httpgetProcessor = httpgetProcessor;
+class webSocketProcessor {
+  initiate() {
+  }
+  process(params) {
+    return new Promise(function (resolve, reject) {
+      if (typeof (params.command) == 'string') { params.command = JSON.parse(params.command); }
+      if  (!params.connection.connections) { params.connection.connections = []};
+      let connectionIndex = params.connection.connections.findIndex((con) => {return con.descriptor == params.command.connection});
+      metaLog({type:LOG_TYPE.VERBOSE, content:'Connection Index:' + connectionIndex});
+      metaLog({type:LOG_TYPE.DEBUG, content:params.connection.connections[connectionIndex]});
+      if  (connectionIndex < 0) { //checking if connection exist
+        try {
+          let theConnector = new WebSocket(params.command.connection);
+          params.connection.connections.push({"descriptor": params.command.connection, "connector": theConnector});
+          connectionIndex = params.connection.connections.length - 1;
+          theConnector.on('error', (result) => { 
+            if (params.connection.connections) {
+              if (params.connection.connections[connectionIndex]) {
+                if (params.connection.connections[connectionIndex].connector) {
+                  params.connection.connections[connectionIndex].connector.terminate();
+                  params.connection.connections[connectionIndex].connector = null;
+                  params.connection.connections.splice(connectionIndex, 1);
+                  metaLog({type:LOG_TYPE.WARNING, content:'Error event called on the webSocket.'});
+                }
+              }
+            }
+          });
+          theConnector.on('close', (result) => { 
+            if (params.connection.connections) {
+              if (params.connection.connections[connectionIndex]) {
+                if (params.connection.connections[connectionIndex].connector) {
+                  params.connection.connections[connectionIndex].connector.terminate();
+                  params.connection.connections[connectionIndex].connector = null;
+                  params.connection.connections.splice(connectionIndex, 1);
+                  metaLog({type:LOG_TYPE.WARNING, content:'Error event called on the webSocket.'});
+                }
+              }
+            }
+          });
+          theConnector.on('open', (result) => { 
+            try {
+              metaLog({type:LOG_TYPE.INFO, content:'Connection webSocket open.'});
+              metaLog({type:LOG_TYPE.VERBOSE, content:'New Connection Index:' + connectionIndex});
+              metaLog({type:LOG_TYPE.DEBUG, content:params});
+            }
+            catch (err) {
+              metaLog({type:LOG_TYPE.WARNING, content:'Error while intenting connection to the target device.'});
+              metaLog({type:LOG_TYPE.WARNING, content:err});
+              
+            }
+          });
+          resolve('');
+        }
+        catch (err) {
+          metaLog({type:LOG_TYPE.WARNING, content:'Error while intenting connection to the target device.'});
+          metaLog({type:LOG_TYPE.WARNING, content:err});
+          resolve('');
+        }
+      }
+      else if (params.command.message) {
+        if (typeof (params.command.message) != 'string') {params.command.message = JSON.stringify(params.command.message)}
+        try {
+          metaLog({type:LOG_TYPE.VERBOSE, content:'Emitting: ' + params.command.message});
+          if (params.connection.connections[connectionIndex]) {
+            if (params.connection.connections[connectionIndex].connector) {
+              params.connection.connections[connectionIndex].connector.send(params.command.message);
+            }
+          }
+          resolve('');
+        }
+        catch (err) {
+          metaLog({type:LOG_TYPE.WARNING, content:'Error while sending message to the target device.'});
+          metaLog({type:LOG_TYPE.WARNING, content:err});
+          if (params.connection.connections) {
+            if (params.connection.connections[connectionIndex]) {
+              if (params.connection.connections[connectionIndex].connector) {
+                params.connection.connections[connectionIndex].connector.terminate();
+                params.connection.connections[connectionIndex].connector = null;
+                params.connection.connections.splice(connectionIndex, 1);
+              }
+            }
+          }
+          resolve('');
+        }
+      }
+    });
+  }
+  query(params) {
+    return new Promise(function (resolve, reject) {
+      try {
+        if (params.query) {
+          resolve(JSONPath(params.query, params.data));
+        }
+        else {
+          resolve(params.data);
+        }
+      }
+      catch (err) {
+        metaLog({type:LOG_TYPE.ERROR, content:err});
+        resolve('');
+      }
+    });
+  }
+  
+  startListen(params, deviceId) {
+    return new Promise(function (resolve, reject) {
+      try {
+        metaLog({type:LOG_TYPE.VERBOSE, content:params});
+        if  (!params.connection.connections) { params.connection.connections = []};
+        if (typeof (params.command) == 'string') { params.command = JSON.parse(params.command); }
+        metaLog({type:LOG_TYPE.VERBOSE, content:'Starting to listen with this params:'});
+        metaLog({type:LOG_TYPE.DEBUG, content:params});
+        if (params.command.connection)
+        {
+          let connectionIndex = params.connection.connections.findIndex((con)=> {return con.descriptor == params.command.connection});
+          if  (connectionIndex < 0) { //checking if connection exist
+              try {
+              let theConnector = new WebSocket(params.command.connection);
+              params.connection.connections.push({"descriptor": params.command.connection, "connector": theConnector});
+              connectionIndex = params.connection.connections.length - 1;
+              theConnector.on('error', (result) => { 
+                if (params.connection.connections) {
+                  if (params.connection.connections[connectionIndex]) {
+                    if (params.connection.connections[connectionIndex].connector) {
+                      params.connection.connections[connectionIndex].connector.terminate();
+                      params.connection.connections[connectionIndex].connector = null;
+                      params.connection.connections.splice(connectionIndex, 1);
+                      metaLog({type:LOG_TYPE.WARNING, content:'Error event called on the webSocket.'});
+                    }
+                  }
+                }
+              });
+              theConnector.on('close', (result) => { 
+                if (params.connection.connections) {
+                  if (params.connection.connections[connectionIndex]) {
+                    if (params.connection.connections[connectionIndex].connector) {
+                      params.connection.connections[connectionIndex].connector.terminate();
+                      params.connection.connections[connectionIndex].connector = null;
+                      params.connection.connections.splice(connectionIndex, 1);
+                      metaLog({type:LOG_TYPE.WARNING, content:'Error event called on the webSocket.'});
+                    }
+                  }
+                }
+              });
+              theConnector.on('open', (result) => { 
+                try {
+                  metaLog({type:LOG_TYPE.INFO, content:'Connection webSocket open.'});
+                  metaLog({type:LOG_TYPE.VERBOSE, content:'New Connection Index:' + connectionIndex});
+                  metaLog({type:LOG_TYPE.DEBUG, content:params});
+                  params.connection.connections[connectionIndex].connector.on((params.command.message?params.command.message:'message'), (result) => { params._listenCallback(result, params.listener, deviceId); });
+                }
+                catch (err) {
+                  metaLog({type:LOG_TYPE.WARNING, content:'Error while intenting connection to the target device.'});
+                  metaLog({type:LOG_TYPE.WARNING, content:err});
+                  
+                }
+              });
+              resolve('');
+            }
+            catch (err) {
+              metaLog({type:LOG_TYPE.WARNING, content:'Error while intenting connection to the target device.'});
+              metaLog({type:LOG_TYPE.WARNING, content:err});
+              resolve('');
+            }
+          }
+          else { //checking if connection exist
+            try {
+              if (params.connection.connections[connectionIndex]) {
+                if (params.connection.connections[connectionIndex].connector) {
+                  params.connection.connections[connectionIndex].connector.on((params.command.message?params.command.message:'message'), (result) => { params._listenCallback(result, params.listener, deviceId); });
+                }
+              }
+            }
+            catch (err) {
+              metaLog({type:LOG_TYPE.ERROR, content:'Error while intenting connection to the target device.'});
+              metaLog({type:LOG_TYPE.ERROR, content:err});
+              resolve('');
+            }
+          }
+   
+        resolve('');
+        }  
+      }
+      catch (err) {
+        metaLog({type:LOG_TYPE.ERROR, content:'Error with listener configuration.'});
+        metaLog({type:LOG_TYPE.ERROR, content:err});
+        resolve('');
+      }
+
+    });
+  }
+  stopListen(params) {
+ 
+  }
+  wrapUp(connection) { 
+      connection.connections.forEach(myCon => {
+        myCon.connector.terminate();
+        myCon.connector = null;
+      });
+      connection.connections = undefined;
+   }
+}
+exports.webSocketProcessor = webSocketProcessor;
+class socketIOProcessor {
+
+  initiate(connection) {
+   
+  }
+  process(params) {
+    return new Promise(function (resolve, reject) {
+      if  (!params.connection.connections) { params.connection.connections = []};
+      if (typeof (params.command) == 'string') { params.command = JSON.parse(params.command); }
+      let connectionIndex = params.connection.connections.findIndex((con) => {return con.descriptor == params.command.connection});
+      metaLog({type:LOG_TYPE.VERBOSE, content:'Connection Index:' + connectionIndex});
+      metaLog({type:LOG_TYPE.VERBOSE, content:params.connection.connections[connectionIndex]});
+
+      if  (connectionIndex < 0) { //checking if connection exist
+        try {
+          //  if (params.command.connection != "" && params.command.connection != undefined) {
+          //    connection.connector.close();
+          //  } //to avoid opening multiple
+          params.connection.connections.push({"descriptor": params.command.connection, "connector":io.connect(params.command.connection)});
+          connectionIndex = params.connection.connections.length - 1;
+          metaLog({type:LOG_TYPE.VERBOSE, content:'New Connection Index:' + connectionIndex});
+          metaLog({type:LOG_TYPE.DEBUG, content:params});
+            }
+        catch (err) {
+          metaLog({type:LOG_TYPE.ERROR, content:'Error while intenting connection to the target device.'});
+          metaLog({type:LOG_TYPE.ERROR, content:err});
+        }
+      }
+      if (params.command.message.call) {
+        metaLog({type:LOG_TYPE.VERBOSE, content:'Emitting: ' + params.command.message.call});
+        params.connection.connections[connectionIndex].connector.emit(params.command.message.call, params.command.message.message);
+        resolve('');
+      }
+    });
+  }
+  query(params) {
+    return new Promise(function (resolve, reject) {
+      try {
+        if (params.query) {
+          resolve(JSONPath(params.query, params.data));
+        }
+        else {
+          resolve(params.data);
+        }
+      }
+      catch (err) {
+        metaLog({type:LOG_TYPE.ERROR, content:err});
+      }
+    });
+  }
+  startListen(params, deviceId) {
+    return new Promise(function (resolve, reject) {
+      if  (!params.connection.connections) { params.connection.connections = []};
+      if (typeof (params.command) == 'string') { params.command = JSON.parse(params.command); }
+      metaLog({type:LOG_TYPE.VERBOSE, content:'Starting to listen with this params:'});
+      metaLog({type:LOG_TYPE.DEBUG, content:params});
+      if (params.command.connection)
       {
-        localDevices.push({name:service.name, fullname:service.fullname, type:service.type, domain:service.domain, host:service.host, port:service.port, addresses:service.addresses })
+        let connectionIndex = params.connection.connections.findIndex((con)=> {return con.descriptor == params.command.connection});
+        if  (connectionIndex < 1) { //checking if connection exist
+          try {
+            params.connection.connections.push({"descriptor": params.command.connection, "connector":io.connect(params.command.connection)});
+            connectionIndex = params.connection.connections.length - 1;
+          }
+          catch (err) {
+            metaLog({type:LOG_TYPE.ERROR, content:'Error while intenting connection to the target device.'});
+            metaLog({type:LOG_TYPE.ERROR, content:err});
+          }
+        }
+        metaLog({type:LOG_TYPE.VERBOSE, content:'listening with this params:' + connectionIndex});
+        metaLog({type:LOG_TYPE.DEBUG, content:params});
+        params.connection.connections[connectionIndex].connector.on(params.command.message, (result) => { params._listenCallback(result, params.listener, deviceId); });
+      }  
+      resolve('');
+
+    });
+  }
+  stopListen(params) {
+  }
+  wrapUp(connection) {
+    return new Promise(function (resolve, reject) {
+      if (connection.connector != "" && connection.connector != undefined) {
+        connection.connector.close();
+      }
+      resolve(connection);
+    });
+  }
+}
+exports.socketIOProcessor = socketIOProcessor;
+
+
+class netsocketProcessor {
+  constructor() {
+    this.currentPowerState = false;
+		this.modelName = 'modelName';
+		this.modelDescription = 'modelDescription';
+    this.Restarting = false;
+    this.RestartTimer;
+		// This keeps an array of digits, to make it possible to send just one 'command' for changing to channel e.g. "311" instead of 3 seperate connections.
+		this.channelSelectTimer = null;
+		this.channelDigits = [];
+  };
+
+  initiate(connection) {
+    return new Promise(function (resolve, reject) {
+      resolve();
+    });
+  }
+  Hex2Bin(s) {
+    return Buffer.from(s, 'hex')
+    //return new Buffer(s, "hex");
+  }
+    
+
+  sendBinary(socket,data) {
+    try {
+      socket.write(data);
+    }
+  catch (err) {metaLog({type:LOG_TYPE.ERROR, content:err});}
+  } 
+
+process(params) {
+
+
+  var _this = this;
+  metaLog({type:LOG_TYPE.VERBOSE, content:'Process netSocket:' + params});
+
+  try {
+    if (typeof (params.command) == 'string') { params.command = JSON.parse(params.command); }
+    if  (!params.connection.connections) { params.connection.connections = []};
+    let connectionIndex = params.connection.connections.findIndex((con) => {return con.descriptor == params.command.connection});
+
+
+    if  (connectionIndex < 0) { //checking if connection exist
+        let theConnector =   new Net.Socket(); 
+        params.connection.connections.push({"descriptor": params.command.connection, "connector": theConnector});
+        connectionIndex = params.connection.connections.length - 1;
+        let theresult = params.connection.connections[connectionIndex].connector.connect(params.command.port, params.command.connection);
+        metaLog({type:LOG_TYPE.DEBUG, content:theresult});
+
+      }
+
+
+//        if (this.connectionState == CONSTANTS.CONNECTION_STATE.DISCONNECTED) {
+//          this.disconnected('BOX_CONNECTION_CLOSED');
+//          return;
+//        }
+
+  if (params.command.message == "RESETDRIVER") 
+      this.startListen(params)
+    else
+    if (params.command.format == "HEX2BIN") {
+      metaLog({type:LOG_TYPE.VERBOSE,content:"Sending Hex2Bin data:" + params.command.message});
+      this.sendBinary(params.connection.connections[connectionIndex].connector,this.Hex2Bin(params.command.message));
+    }
+    else { 
+      metaLog({type:LOG_TYPE.VERBOSE,content:"Sending ASCII data: " + params.command.message});
+      this.sendBinary(params.connection.connections[connectionIndex].connector,params.command.message);
+    }
+  }
+  catch (err) {console.log("Process error",err)}
+  return '';
+}
+
+query(params) {
+  try {
+
+    return new Promise(function (resolve, reject) {
+      if (params.query) {
+        try {
+          if (typeof (params.data) == 'string') { params.data = JSON.parse(params.data); };
+          resolve(JSONPath(params.query, params.data));
+        }
+        catch (err) {
+          metaLog({type:LOG_TYPE.ERROR, content:err});
+        }
+      }
+      else { resolve(params.data); }
+    });
+  }
+  catch (err) {
+    metaLog({type:LOG_TYPE.ERROR,content:"Error in ProcessingManager.js process: "+err});
+  }
+
+}
+startListen(params, deviceId) {
+  var _this = this;
+  var connectionIndex ;
+  return new Promise(function (resolve, reject) {
+    try {
+        metaLog({type:LOG_TYPE.VERBOSE, content:'Starting to listen NetSocket with this params:'});
+        metaLog({type:LOG_TYPE.VERBOSE, content:params});
+
+        if  (!params.connection.connections) { params.connection.connections = []};
+
+        if (typeof (params.command) == 'string') { params.command = JSON.parse(params.command); }
+        if ((!params.command.connection)||(params.command.connection==""))
+            {metaLog({type:LOG_TYPE.ERROR, content:'Connection requires field connection in command'});
+            reject('');
+        }
+
+        connectionIndex = params.connection.connections.findIndex((con)=> {return con.descriptor == params.command.connection});
+        if  (connectionIndex < 0) { //checking if connection exist
+          metaLog({type:LOG_TYPE.VERBOSE, content:'Connection was not yet defined, doing so now'});
+          params.connection.connections.push({"descriptor": params.command.connection, "connector": new Net.Socket()});
+          connectionIndex = params.connection.connections.length - 1;
+
+          if (params.command.errorhandling == "yes") {
+            metaLog({type:LOG_TYPE.VERBOSE, content:'Error handling within meta.'});
+            params.connection.connections[connectionIndex].connector.on('error', (result) => { 
+              metaLog({type:LOG_TYPE.ERROR, content:'Error event called on the netSocket, closing it.'});
+            });
+            metaLog({type:LOG_TYPE.VERBOSE, content:'Error handler set.'});
+
+            params.connection.connections[connectionIndex].connector.on('close', (result) => { 
+              if (params.connection.connections) {
+                if (params.connection.connections[connectionIndex]) {
+                  if (params.connection.connections[connectionIndex].connector) {
+                    metaLog({type:LOG_TYPE.ERROR, content:'Close event called on the webSocket.'});
+                    _this.Restarting = true;
+                    _this.RestartTimer = setTimeout(() => {
+                      metaLog({type:LOG_TYPE.VERBOSE, content:'Restarting connection listener ' + params.command.connection});
+                      params.connection.connections[connectionIndex].connector.connect(params.command.port, params.command.connection);
+                    }, 250);
+                  }
+                }
+              }
+            });
+            metaLog({type:LOG_TYPE.VERBOSE, content:'Close handler set.'});
+          }
+
+          // Data handler
+          params.connection.connections[connectionIndex].connector.on('data', (result) => { 
+            if (_this.Restarting) {
+              metaLog({type:LOG_TYPE.ERROR, content:'Remove timer for reconnect.'});
+              clearTimeout(_this.RestartTimer);
+                _this.Restarting = false;
+              }
+          });
+  
+          // Open handler
+          params.connection.connections[connectionIndex].connector.on('open', (result) => { 
+              metaLog({type:LOG_TYPE.VERBOSE, content:'Connection netSocket open.'});
+          });
+  
+          metaLog({type:LOG_TYPE.VERBOSE, content:'Connecting to ' + params.command.connection});
+          params.connection.connections[connectionIndex].connector.connect(params.command.port, params.command.connection);
+          metaLog({type:LOG_TYPE.VERBOSE, content:'Connection done'});
+          metaLog({type:LOG_TYPE.VERBOSE, content: params.connection.connections[connectionIndex].connector});
+        }
+
+        try {
+      //  if (params.connection.connections[connectionIndex].connector.message) {
+          metaLog({type:LOG_TYPE.VERBOSE, content:'Subscribing to:' + params.command.message});                  
+          params.connection.connections[connectionIndex].connector.on(params.command.message, (result) => { 
+              metaLog({type:LOG_TYPE.VERBOSE, content:'Triggered on:' + params.command.message});                  
+
+              metaLog({type:LOG_TYPE.DEBUG, content:'Result:' +  result});  
+              metaLog({type:LOG_TYPE.DEBUG, content:'listener:' +  params.listener});  
+              params._listenCallback(result.toString(), params.listener, deviceId); });
+          metaLog({type:LOG_TYPE.VERBOSE, content:'Subscribed to:' + params.command.message});    
+              
+            }
+            catch (err) {
+                metaLog({type:LOG_TYPE.ERROR, content:'Error while setting up '+ params.command.message + ' subscription.'});
+                metaLog({type:LOG_TYPE.ERROR, content:err});
+                resolve('');
+            }
+                
+        }
+        catch (err) {
+          metaLog({type:LOG_TYPE.ERROR, content:'Error while intenting connection to the target device.'});
+          metaLog({type:LOG_TYPE.ERROR, content:err});
+          resolve('');
+        }
+          
+        resolve('');
+      });
+  }
+  wrapUp(connection) { 
+        connection.connections.forEach(myCon => {
+          myCon.connector.terminate();
+          myCon.connector = null;
+        });
+        connection.connections = undefined;
+  }
+  
+    
+  stopListen(params) {
+      clearInterval(params.timer);
+  }
+}
+exports.NetSocketProcessor = netsocketProcessor;
+
+
+class jsontcpProcessor {
+  initiate(connection) {
+    return new Promise(function (resolve, reject) {
+      //if (connection.connector == "" || connection.connector == undefined) {
+      rpc.SocketConnection.$include({
+        write: function ($super, data) {
+          return $super(data + "\r\n");
+        },
+        call: function ($super, method, params, callback) {
+          if (!lodash.isArray(params) && !lodash.isObject(params)) {
+            params = [params];
+          }
+          `A`;
+          var id = null;
+          if (lodash.isFunction(callback)) {
+            id = ++this.latestId;
+            this.callbacks[id] = callback;
+          }
+
+          var data = JSON.stringify({ jsonrpc: '2.0', method: method, params: params, id: id });
+          this.write(data);
+        }
+      });
+      let mySocket = rpc.Client.$create(1705, connection.descriptor, null, null);
+      mySocket.connectSocket(function (err, conn) {
+        if (err) {
+          metaLog({type:LOG_TYPE.ERROR, content:'Error connecting to the target device.'});
+          metaLog({type:LOG_TYPE.ERROR, content:err});
+        }
+        if (conn) {
+          connection.connector = conn; 
+          metaLog({type:LOG_TYPE.VERBOSE, content:'Connection to the JSONTCP device successful'});
+          resolve(connection);
+        }
+      });
+      //} //to avoid opening multiple
+    });
+  }
+  process(params) {
+    return new Promise(function (resolve, reject) {
+      if (typeof (params.command) == 'string') { params.command = JSON.parse(params.command); }
+
+      if (params.command.call) {
+        params.connection.connector.call(params.command.call, params.command.message, function (err, result) {
+          if (err) { 
+            metaLog({type:LOG_TYPE.ERROR, content:err});
+          }
+          resolve(result);
+        });
+
       }
     });
-    tempBro.on('serviceDown', (service) => {
-      metaLog({type:LOG_TYPE.DEBUG, content:'mDNS discovery Service Down: ' + service.fullname});
-    });
-    tempBro.start();
   }
-});
-
-//mDNS DISCOVERY PART
-metaLog({type:LOG_TYPE.INFO, content:'mDNS discovery starting, this will take 100 seconds (of silence while we detect your devices)'});
-
-browser.start();
-setTimeout(() => {
-  browser.stop();
-  metaLog({type:LOG_TYPE.WARNING, content:'mDNS discovery stopped'});
-  metaLog({type:LOG_TYPE.DEBUG, content:localDevices});
-}, 100000);
-
-getConfig().then(() => {
-  metaLog({type:LOG_TYPE.VERBOSE, content:'Connecting to MQTT: ' + JSON.stringify(settings.mqtt)});
-  mqttClient = mqtt.connect('mqtt://' + settings.mqtt, {clientId:"meta"}); // Always connect to the local mqtt broker
-  mqttClient.setMaxListeners(0); //CAREFULL OF MEMORY LEAKS HERE.
-  mqttClient.on('error', (result) => {
-    metaLog({type:LOG_TYPE.ERROR, content:'Error connecting to MQTT: '+ result});
+  query(params) {
+    return new Promise(function (resolve, reject) {
+      try {
+        if (params.query) {
+          resolve(JSONPath(params.query, params.data));
+        }
+        else {
+          resolve(params.data);
+        }
+      }
+      catch (err) {
+        metaLog({type:LOG_TYPE.ERROR, content:err});
+      }
     });
-    
-  mqttClient.on('connect', (result) => {
-    createDevices()
-      .then (() => {
-        setupNeeo().then(() => {
-      })
+  }
+  startListen(params, deviceId) {
+    return new Promise(function (resolve, reject) {
+      params.socketIO.on(params.command, (result) => { params._listenCallback(result, params.listener, deviceId); });
+      resolve('');
+    });
+  }
+  stopListen(params) {
+    metaLog({type:LOG_TYPE.INFO, content:'Stop listening to the device.'});
+  }
+}
+exports.jsontcpProcessor = jsontcpProcessor;
+function convertXMLTable2JSON(TableXML, indent, TableJSON) {
+  return new Promise(function (resolve, reject) {
+    parserXMLString.parseStringPromise(TableXML[indent]).then((result) => {
+      if (result) {
+        TableJSON.push(result);
+        indent = indent + 1;
+        if (indent < TableXML.length) {
+          resolve(convertXMLTable2JSON(TableXML, indent, TableJSON));
+        }
+        else {
+          resolve(TableJSON);
+        }
+
+      }
+      else {
+        metaLog({type:LOG_TYPE.ERROR, content:err});
+      }
     });
   });
-
-  mqttClient.on('end', (result) => {
-    metaLog({type:LOG_TYPE.ERROR, content:'MQTT-connection ended, restarting .meta locally'});
+}
+class httpgetSoapProcessor {
+  initiate(connection) {
+    return new Promise(function (resolve, reject) {
+      resolve();
     });
-});
+  }  
+  process(params) {
+    return new Promise(function (resolve, reject) {
+      http(params.command)
+        .then(function (result) {
+          resolve(result.data);
+        })
+        .catch((err) => { reject(err); });
+    });
+  }
+  query(params) {
+    return new Promise(function (resolve, reject) {
+      if (params.query) {
+        try {
+          var doc = new xmldom().parseFromString(params.data);
+          //console.log('RAW XPATH Return elt 0.1: ' + doc);
+          //console.log('RAW XPATH Return elt 0.1: ' + query);
+          var nodes = xpath.select(params.query, doc);
+          //console.log('RAW XPATH Return elt : ' + nodes);
+          //console.log('RAW XPATH Return elt 2: ' + nodes.toString());
+          let JSonResult = [];
+          convertXMLTable2JSON(nodes, 0, JSonResult).then((result) => {
+   //         console.log('Result of conversion +> ');
+     //       console.log(result);
+            resolve(result);
+          });
+        }
+        catch (err) {
+          metaLog({type:LOG_TYPE.ERROR, content:err});
+        }
+      }
+      else { resolve(params.data); }
+    });
+  }
+  listen(params) {
+    return '';
+  }
+}
+exports.httpgetSoapProcessor = httpgetSoapProcessor;
+class httppostProcessor {
+  initiate(connection) {
+    return new Promise(function (resolve, reject) {
+      resolve();
+    });
+  }
+  process(params) {
+    return new Promise(function (resolve, reject) {
+      if (typeof (params.command) == 'string') { params.command = JSON.parse(params.command); }
+      if (params.command.call) {
+        http.post(params.command.call, params.command.message)
+          .then(function (result) {
+            resolve(result.data);
+          })
+          .catch((err) => {  metaLog({type:LOG_TYPE.ERROR, content:err});reject(err); });
+      }
+      else { reject('no post command provided or improper format'); }
+    });
+  }
+  query(params) {
+    return new Promise(function (resolve, reject) {
+      try {
+        resolve(JSONPath(params.query, JSON.parse(params.data)));
+      }
+      catch (err) {
+        metaLog({type:LOG_TYPE.ERROR, content:err});
+      }
+    });
+  }
+  listen(params) {
+    return '';
+  }
+}
+exports.httppostProcessor = httppostProcessor;
+class staticProcessor {
+  initiate(connection) {
+    return new Promise(function (resolve, reject) {
+      resolve();
+    });
+  }
+  process(params) {
+    return new Promise(function (resolve, reject) {
+      resolve(params.command);
+    });
+  }
+  query(params) {
+    return new Promise(function (resolve, reject) {
+      try {
+        if (params.query != undefined  && params.query != '') {
+          resolve(JSONPath(params.query, JSON.parse(params.data)));
+        }
+        else {
+          if (params.data != undefined) {
+            if (typeof(params.data) == string){
+              resolve(JSON.parse(params.data));
+            }
+            else 
+            {
+              resolve(params.data)
+            }
+          }
+          else { resolve(); }
+        }
+      }
+      catch {
+        metaLog({type:LOG_TYPE.INFO, content:'Value is not JSON after processed by query: ' + params.query + ' returning as text:' + params.data});
+        resolve(params.data)
+      }
+    });
+  }
+  startListen(params, deviceId) {
+    return new Promise(function (resolve, reject) {
+      clearInterval(params.listener.timer);
+      params.listener.timer = setInterval(() => {
+        params._listenCallback(params.command, params.listener, deviceId);
+        resolve(params.command)
+      }, (params.listener.pooltime ? params.listener.pooltime : 1000));
+      if (params.listener.poolduration && (params.listener.poolduration != '')) {
+        setTimeout(() => {
+          clearInterval(params.listener.timer);
+        }, params.listener.poolduration);
+      }
+    });
+  }
+  stopListen(listener) {
+    clearInterval(listener.timer);
+  }
+}
+exports.staticProcessor = staticProcessor;
+class cliProcessor {
+  initiate(connection) {
+    return new Promise(function (resolve, reject) {
+      resolve();
+    });
+  }
+  process(params) {
+    return new Promise(function (resolve, reject) {
+      exec(params.command, (stdout, stderr) => {
+        if (stdout) {
+          resolve(stdout);
+        }
+        else {
+          resolve(stderr);
+        }
+      });
+    });
+  }
+  query(params) {
+    return new Promise(function (resolve, reject) {
+      try {
+        //let resultArray = new [];
+        if (params.query!=undefined) {
+          if (params.query!="") {
+            let literal = params.query.slice(params.query.indexOf('/')+1, params.query.lastIndexOf('/'));
+            let modifier = params.query.slice(params.query.lastIndexOf('/')+1);
+            metaLog({type:LOG_TYPE.VERBOSE, content:"RegEx literal : " + literal + ", regEx modifier : " + modifier});
+            let regularEx = new RegExp(literal, modifier);
+           // let result = params.data.toString().match(regularEx);
+           // if (result != null) {
+              resolve(params.data.toString().match(regularEx));
+           // }
+           // else {
+           //   resolve();
+           // }
+          }
+          else {
+            resolve(params.data.toString())
+          }
+        }
+        else {resolve();}
+      }
+      catch {
+        metaLog({type:LOG_TYPE.ERROR, content:'error in string.match regex :' + params.query + ' processing of :' + params.data});
+        metaLog({type:LOG_TYPE.ERROR, content:err});
+      }
+    });
+  }
+  listen(params) {
+    return '';
+  }
+}
+exports.cliProcessor = cliProcessor;
+class replProcessor {
+  initiate(connection) {
+    return new Promise(function (resolve, reject) {
+      try {
+        if (connection.connector != "" && connection.connector != undefined) {
+          connection.connector.close();
+        } //to avoid opening multiple
+        connection.connector = io.connect(connection.descriptor);
+        resolve(connection);
+      }
+      catch (err) {
+        metaLog({type:LOG_TYPE.ERROR, content:'Error while intenting connection to the target device.'});
+        metaLog({type:LOG_TYPE.ERROR, content:err});
+      }
+    });
+  }
+  process(params) {
+    return new Promise(function (resolve, reject) {
+      if (params.interactiveCLIProcess) {
+        params.interactiveCLIProcess.stdin.write(params.command + '\n');
+        resolve('Finished ' + params.command);
+      }
+    });
+  }
+  query(params) {
+    return new Promise(function (resolve, reject) {
+      try {
+        //let resultArray = new [];
+        resolve(params.data.split(params.query));
+      }
+      catch {
+        metaLog({type:LOG_TYPE.ERROR, content:err});
+      }
+    });
+  }
+  listen(params) {
+    return '';
+  }
+}
+exports.replProcessor = replProcessor;
+function UnsubscribeMQTT(params,TheTopic) {
+  params.connection.connector.unsubscribe(TheTopic);
+  for (const key in params.connection.connector.messageIdToTopic) {
+    for (let i = 0; i < params.connection.connector.messageIdToTopic[key].length; i++) {
+      let elem = params.connection.connector.messageIdToTopic[key][i]
+      if (elem == TheTopic)  params.connection.connector.messageIdToTopic[key].splice(i, 1);
+    }
+    if (params.connection.connector.messageIdToTopic[key].length<=0) delete params.connection.connector.messageIdToTopic[key] 
+  }
+  metaLog({type:LOG_TYPE.INFO, content :"Done unsubscribing, subscriptions are now:"})
+  metaLog({type:LOG_TYPE.DEBUG, content : params.connection.connector.messageIdToTopic});
+
+}
+function HandleMQTTIncoming(GetThisTopic,params,topic,message){
+
+  metaLog({type:LOG_TYPE.VERBOSE, content:'Topic received : ' + topic.toString()});
+  metaLog({type:LOG_TYPE.VERBOSE, content:'Message received : ' + message.toString()});
+  metaLog({type:LOG_TYPE.VERBOSE, content:'Looking for topic : ' + GetThisTopic});
+
+  var RcvdTopicPart = topic.split("/"),i;
+  var ParamsTopicPart = GetThisTopic.split("/");
+  var Matched = true; 
+
+  for (i = 0; i < RcvdTopicPart.length; i++) {
+    if (ParamsTopicPart.length < i) {   // Does the topic we received have less sections than asked for?
+      Matched=false;
+      break;                      // Yes, it is not a match
+    }
+    if (ParamsTopicPart[i]=="#") {      // Full-Wildcard placed in this section, so exit compare-loop now
+       Matched=true;
+       break;
+     }
+     if (ParamsTopicPart[i]=="+")  {    // Section-wildcard placed in this section, so continue compare-loop now
+        continue;
+      }
+    if (ParamsTopicPart[i]!=RcvdTopicPart[i]) {
+      Matched=false;
+      break;
+    }
+  }  
+  if (Matched) {
+    let GotMyMessage = false;         // check if we are still subscribed to this topic (duplicates)
+    metaLog({type:LOG_TYPE.VERBOSE, content:'Topic match: ' + topic.toString()});
+    /*for (const key in params.connection.connector.messageIdToTopic) {
+        if (GetThisTopic == params.connection.connector.messageIdToTopic[key])
+           GotMyMessage=true;
+    }*/
+    return(Matched);
+  }
+
+}
+
+class mqttProcessor {
+  initiate(connection) {
+    return new Promise(function (resolve, reject) {
+
+
+      resolve('');
+      //nothing to do, it is done globally.
+      //connection.connector = mqttClient;
+    }); 
+  } 
+  OnMessage (topic, message,packet) {
+    let Matched = HandleMQTTIncoming(GetThisTopic,params,topic,message);
+    if (Matched) {
+      metaLog({type:LOG_TYPE.VERBOSE, content:"We have a message " + topic.toString() + " "  + message.toString()});
+      clearTimeout(t);
+      UnsubscribeMQTT(params,GetThisTopic);
+      resolve("{\"topic\": \""+ topic.toString()+ "\",\"message\" : " +message.toString()+"}");                          
+    } 
+
+  }
+  foo() {
+    console.log("foo")
+  }
+  process (params) {
+/*    try {
+      if (process.mylistener == undefined) {
+        process.mylistener = "";
+
+        // Test to see how many "on message" handlers are activated by default (should be 4)
+        console.log("Event Handlers for message are now:",params.connection.connector._events.message.length);
+        params.connection.connector.on('message', this.foo); //add one on('message' handlers (makes 5)
+        params.connection.connector.on('message', this.foo); //=> 6 
+        params.connection.connector.on('message', this.foo); //=> 7
+        params.connection.connector.on('message', this.foo); //=8
+        console.log("Event Handlers for message are now:",params.connection.connector._events.message.length); // should be 8
+         params.connection.connector.off('message', this.foo); // should remove one, result goes to =>7
+         params.connection.connector.off('message', this.foo); // =>6
+         params.connection.connector.off('message', this.foo); // =>7
+         params.connection.connector.off('message', this.foo); / => 4
+         console.log("Event Handlers for message are now:",params.connection.connector._events.message.length); // All should be removed
+        // This works great for a statically defined function:  emitter.off(eventName, listener), where listener is a static function like foo
+        // BUT.... we use "on the fly defined functions": params.connection.connector.on('message', FUNCTION (topic, message,packet) {
+        // and obviously node.js matches the function provided with the emitter.off with his internal list..... and won;t find a match
+
+        // possible solutions: Use statically defined functions/methods with (on message' 
+        // So, why "emitter.remove==>ALL<==listeners? "
+
+      }
+
+      if (process.mylistener!="") { 
+        process.mylistener.removeListener('message', function () {console.log("remove message handler as removelistener")});
+        console.log("Event Handlers for message are now:",params.connection.connector._events.message.length);
+      }
+//      var rawlisteners = params.connection.connector.removeAllListeners("message")
+ //     console.log("raw",rawlisteners)
+        //params.connection.connector.off();
+    }
+    catch (err){console.log("error in off",err) }*/
+    return new Promise(function (resolve, reject) {
+      metaLog({type:LOG_TYPE.INFO, content:'MQTT Processing'});
+      metaLog({type:LOG_TYPE.DEBUG, content:params.command});
+      params.command = JSON.parse(params.command);
+
+      if ((params.command.replytopic)||(params.command.topic&&!params.command.message)) {//here we get a value from a topic
+        let GetThisTopic = params.command.topic;
+        //console.log("We need to get a message from",GetThisTopic)
+        if (params.command.replytopic)
+          GetThisTopic = params.command.replytopic;   
+          metaLog({type:LOG_TYPE.VERBOSE, content:"Subscribing to " + GetThisTopic });     
+        params.connection.connector.subscribe(GetThisTopic);
+
+        var t = setTimeout(() => {
+          UnsubscribeMQTT(params,GetThisTopic);
+          metaLog({type:LOG_TYPE.ERROR, content:'Timeout waiting for MQTT-topic ' + GetThisTopic});
+          reject('');
+        }, (params.command.timeout ? params.command.timeout  : 10000));
+
+
+        metaLog({type:LOG_TYPE.INFO, content:'Add message handler'});  
+        process.mylistener = params.connection.connector.on('message', function (topic, message,packet) {
+          let Matched = HandleMQTTIncoming(GetThisTopic,params,topic,message);
+          if (Matched) {
+            metaLog({type:LOG_TYPE.INFO, content:'Add message handler'});  
+            metaLog({type:LOG_TYPE.VERBOSE, content:"We have a message " + topic.toString() + " "  + message.toString()});
+            clearTimeout(t);
+            UnsubscribeMQTT(params,GetThisTopic);
+            resolve("{\"topic\": \""+ topic.toString()+ "\",\"message\" : " +message.toString()+"}");                          
+          }        
+        })
+      }
+
+      if (params.command.message) {// here we publish into a topic
+        metaLog({type:LOG_TYPE.INFO, content:'MQTT publishing ' + params.command.message + ' to ' + settings.mqtt_topic + params.command.topic + ' with options : ' + params.command.options});
+        try {
+          params.connection.connector.publish(params.command.topic, params.command.message, (params.command.options ? JSON.parse(params.command.options) : ""));
+          if (params.command.replytopic== undefined) //Only resolve when not waiting on response
+            resolve('');
+        }
+        catch (err) {
+          metaLog({type:LOG_TYPE.ERROR, content:'Meta found an error processing the MQTT command'});
+          metaLog({type:LOG_TYPE.ERROR, content:err});
+        }
+      }
+      else {
+        metaLog({type:LOG_TYPE.ERROR, content:"Meta Error: Your command MQTT seems incorrect"});
+        metaLog({type:LOG_TYPE.ERROR, content:err});
+      }
+
+    })
+ // }
+ // catch (err) {
+ //   metaLog({type:LOG_TYPE.ERROR,content:"Error in ProcessingManager.js MQTT-process: "+err});
+ // }
+  }
+  query(params) {
+    return new Promise(function (resolve, reject) {
+      if (params.query) {
+        metaLog({type:LOG_TYPE.VERBOSE, content:"MQTT params.query and data"});
+        metaLog({type:LOG_TYPE.DEBUG, content:params.query});
+        metaLog({type:LOG_TYPE.DEBUG, content:params.data});
+        try {
+          if (typeof (params.data) == 'string') { params.data = JSON.parse(params.data); }
+          resolve(JSONPath(params.query, params.data));
+        }
+        catch (err) {
+          metaLog({type:LOG_TYPE.ERROR, content:'error ' + err + ' in JSONPATH ' + params.query + ' processing of :'});
+          metaLog({type:LOG_TYPE.ERROR, content:params.data});
+        }
+      }
+      else { resolve(params.data); }
+    });
+  }
+  startListen(params, deviceId) {
+
+    return new Promise(function (resolve, reject) {
+      metaLog({type:LOG_TYPE.VERBOSE, content:'startlisten'  });
+
+      params.connection.connector.subscribe(params.command, (result) => {metaLog({type:LOG_TYPE.VERBOSE, content:'Subscription MQTT : '+ result})});
+      params.connection.connector.on('message', function (topic, message,packet) {
+      let  Matched = HandleMQTTIncoming(params.command,params,topic,message);
+        if (Matched) {  
+          params._listenCallback("{\"topic\": \""+ topic.toString()+ "\",\"message\" : " +message.toString()+"}", params.listener, deviceId);
+        }
+      });
+      resolve('');
+    });
+  }
+  stopListen(params) {
+    metaLog({type:LOG_TYPE.INFO, content:'Stop listening to the MQTT device.'});
+  };
+  wrapUp(connection) {
+    return new Promise(function (resolve, reject) {
+      resolve(connection);
+    });
+  };
+}
+exports.mqttProcessor = mqttProcessor;
+
