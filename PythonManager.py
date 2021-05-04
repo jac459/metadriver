@@ -6,6 +6,10 @@ from urllib.parse import urlparse, parse_qs
 from adb_shell.adb_device import AdbDeviceTcp, AdbDeviceUsb
 from adb_shell.auth.sign_pythonrsa import PythonRSASigner
 
+import logging
+logger = logging.getLogger('websockets')
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 ConnectedHosts = []
 ADBHostList = {}
 BroadlinkHostList = []
@@ -14,13 +18,12 @@ BroadlinkHostList = []
 def Connect_ADB(host):
     global ADBDevice
     global ConnectedHosts
-    print("ADB_Driver: connecting to host:",host)
-
+    logger.info("ADB_Driver: connecting to host: "+host)
     try:                                            # Checking if we are already connected.
        ADBDevice = ADBHostList[host]["ADBSocket"]       
        return 
     except:
-        print("Setting up connection ADB with",host)
+        logger.info("Setting up connection ADB with "+host)
 
     ADBDevice = AdbDeviceTcp(host, 5555, default_transport_timeout_s=5.)
     ## Load the public and private keys so we can connect to Android and authenticate ourself (also for future use) 
@@ -35,7 +38,8 @@ def Connect_ADB(host):
     ADBDevice.connect(rsa_keys=[signer],auth_timeout_s=5)
 
     ADBHostList.setdefault(host, {})["ADBSocket"] = ADBDevice
-    print("Hostlist is now ",ADBHostList)
+    logger.info("Hostlist is now ")
+    logger.info(ADBHostList)
 
     return 
     
@@ -60,7 +64,7 @@ def ADB(Arguments):
         except Exception as err:
             MyParm.append("") # mzke sure the number of parameters in list  is okay.
             if isRequired:
-                print("An exception occurred, no " + Parms[x] +" parameter was provided")
+                logger.error("An exception occurred, no " + Parms[x] +" parameter was provided")
                 return "An exception occurred, no " + Parms[x] + " parameter was provided"
         isRequired = True
         
@@ -145,11 +149,12 @@ def Convert_GC_to_Broadlink(stream):
     return result 
 
 def Convert_Broadlink_to_GC(stream): 
-    print("Connect_Broadlink....")
+    logger.info("Connect_Broadlink....")
     #First convert Broadlink-format to Lirc
     data = bytearray.fromhex(''.join(stream))
     durations = to_microseconds(data)
-    print("Broadlink: durations",durations)
+    logger.info("Broadlink: durations ")
+    logger.info(durations)
     #Then convert format from Lirc to GC
     result = lirc2gc(durations)
     return result
@@ -161,73 +166,74 @@ def Convert_Broadlink_to_GC(stream):
 
 
 def Connect_Broadlink(Arguments):
-   print("Connect_Broadlink....")
+   logger.info("Connect_Broadlink....")
    #host = request.args.get('host')
    #type = int(request.args.get('type'),16) 
    #mac  = bytearray.fromhex(request.args.get('mac'))
    host = Arguments["host"][0]
    type = int(Arguments["type"][0],16)
    mac = bytearray.fromhex(Arguments["mac"][0])
-   print("host, type, mac:",host,type,mac)
+   logger.info("host, type, mac: " +host +" "  + type + " " + mac)
    dev = broadlink.gendevice(type, (host, 80), mac)
-   print("We have a device") 
+   logger.info("We have a device") 
    dev.auth()
-   print('dev=',dev)
+   logger.info('dev=')
+   logger.info(dev)
    return dev
 
 def _xmit(Arguments):
-    print("Broadlink_Driver: xmit-request")
+    logger.info("Broadlink_Driver: xmit-request")
 
     dev = Connect_Broadlink(Arguments)  
-    print("Broadlink_Driver: Connection to Broadlink succeeded")
+    logger.info("Broadlink_Driver: Connection to Broadlink succeeded")
     #data = request.args.get('stream')
     data = Arguments["stream"][0]
-    print("Broadlink_Driver: Sending data", data)
+    logger.info("Broadlink_Driver: Sending data " + data)
     SendThis = bytearray.fromhex(data)
     dev.send_data(SendThis)
     return 'OK'
 
 def _xmitGC(Arguments):
-    print("Broadlink_Driver: Send GC requested")
+    logger.info("Broadlink_Driver: Send GC requested")
     dev = Connect_Broadlink()  
-    print("Broadlink_Driver: Connection to Broadlink succeeded")
+    logger.info("Broadlink_Driver: Connection to Broadlink succeeded")
     #data = request.args.get('stream')
     data = Arguments["stream"][0]
-    print("Broadlink_Driver: Input data", data)
+    logger.info("Broadlink_Driver: Input data " + data)
 
     # Now convert the Global Cache format to our format
-    print("Broadlink_Driver: GC data", data)    
+    logger.info("Broadlink_Driver: GC data "+ data)    
     ConvData = Convert_GC_to_Broadlink(data)    
-    print("Broadlink_Driver: Conversion done, sending this data", ConvData)
+    logger.info("Broadlink_Driver: Conversion done, sending this data "+ ConvData)
     SendThis = bytearray.fromhex(ConvData)
     dev.send_data(SendThis)
     return 'OK'
 
 def ConvertBroadtoGC(Stream):
-    print("Broadlink_Driver: Conversion GC to Broadlink  requested")
+    logger.info("Broadlink_Driver: Conversion GC to Broadlink  requested")
     # Now convert the Global Cache format to our format
     ConvData = Convert_GC_to_Broadlink(Stream)    
-    print("Broadlink_Driver: Conversion done, returning this data", ConvData)
+    logger.info("Broadlink_Driver: Conversion done, returning this data " + ConvData)
     #SendThis = bytearray.fromhex(ConvData)
     SendThis = ConvData    
     return SendThis
 
 def BroadtoGC(Arguments):
-    print("Broadlink_Driver: Conversion Broadlink to GC  requested")
+    logger.info("Broadlink_Driver: Conversion Broadlink to GC  requested")
     #data = request.args.get('stream')
     data = Arguments["stream"][0]
-    print("Broadlink_Driver: Input data", data)
+    logger.info("Broadlink_Driver: Input data " + data)
     ConvData = ConvertBroadtoGC(data)
     # Now convert the Global Cache format to our format
-    print("Broadlink_Driver: GC data", ConvData)    
+    logger.info("Broadlink_Driver: GC data " + ConvData)    
     return ConvData 
 
 def _rcve(Arguments):
     #data = request.args.get['stream']
-    print("Broadlink_Driver: Learning requested")
+    logger.info("Broadlink_Driver: Learning requested")
     dev = Connect_Broadlink()
-    print("Broadlink_Driver: Connection to Broadlink succeeded")    
-    print("Broadlink_Driver: Learning for",TIMEOUT,"ms")
+    logger.info("Broadlink_Driver: Connection to Broadlink succeeded")    
+    logger.info("Broadlink_Driver: Learning for" + TIMEOUT +"ms")
     dev.enter_learning()
     start = time.time()
     while time.time() - start < TIMEOUT:
@@ -239,14 +245,14 @@ def _rcve(Arguments):
         else:
             break
     else:
-        #print("No data received...")
+        #logger.info("No data received...")
         return 'timeout'
     Learned = ''.join(format(x, '02x') for x in bytearray(data))
-    print("Broadlink_Driver: Learned:", Learned)
+    logger.info("Broadlink_Driver: Learned:"+ Learned)
     return Learned
 
 def _rcveGC(Arguments):
-    print("rcveGC....")
+    logger.info("rcveGC....")
 
     Learned=_rcve()
     return ConvertBroadtoGC(Learned)
@@ -256,11 +262,11 @@ def Validate_Method(Arguments):
     try:
         MyMethod = Arguments["method"][0]
     except:
-        print("Missing method, returning unsuccessful request")
+        logger.info("Missing method, returning unsuccessful request")
         return "Exception: Missing method"
 
     MyMethod = MyMethod.lower()
-    print("Method =",MyMethod)
+    logger.info("Method = "+MyMethod)
     if MyMethod ==  "adb": 
         return ADB(Arguments) 
     elif MyMethod ==  "xmit":
@@ -276,17 +282,20 @@ def Validate_Method(Arguments):
     elif MyMethod ==  ("rcvegc"):
         return _rcveGC(Arguments) 
     else:
-        print("Exception....")
+        logger.error("Exception....")
         return "Exception, unknown method: " + MyMethod
 
 async def Determine_Method(websocket,path): 
-    async for message in websocket:
-        print("Receiving a message",message)
-        Arguments = parse_qs(message)
-        MyResponse = Validate_Method(Arguments) 
-        await websocket.send(MyResponse)
+    try:
+        async for message in websocket:
+           Arguments = parse_qs(message)
+           MyResponse = Validate_Method(Arguments) 
+           await websocket.send(MyResponse)
+    except websockets.ConnectionClosed as exc:
+          logger.info('Connection with .Meta closed')
+          logger.info(exc)
 
 asyncio.get_event_loop().run_until_complete(
     websockets.serve(Determine_Method, 'localhost', 8765))
-print("Accepting websocket-connections on port 8765")
+logger.info("Accepting websocket-connections on port 8765")
 asyncio.get_event_loop().run_forever()
