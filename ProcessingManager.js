@@ -10,6 +10,7 @@ const { parserXMLString, xmldom } = require("./metaController");
 const got = require('got');
 const Net = require('net');
 const Promise = require('bluebird');
+const mqtt = require('mqtt');
 
 const CONSTANTS =  {KEY_DELAY: 100,
   CONNECTION_STATE: {
@@ -24,7 +25,7 @@ const settings = require(path.join(__dirname,'settings'));
 //const { connect } = require("socket.io-client");
 const WebSocket = require('ws');
 var socket = "";
-
+var mqttClient;
 
 //LOGGING SETUP AND WRAPPING
 //Disable the NEEO library console warning.
@@ -1195,15 +1196,31 @@ class mqttProcessor {
       metaLog({type:LOG_TYPE.INFO, content:'MQTT Processing'});
       metaLog({type:LOG_TYPE.DEBUG, content:params.command});
       params.command = JSON.parse(params.command);
-
+      if  (!params.connection.connections) { params.connection.connections = []};
+      let connectionIndex = params.connection.connections.findIndex((con) => {return con.descriptor == params.command.connection});
+      metaLog({type:LOG_TYPE.VERBOSE, content:'Connection Index:' + connectionIndex});
+      metaLog({type:LOG_TYPE.DEBUG, content:params.connection.connections[connectionIndex]});
+      if  (connectionIndex < 0) { //checking if connection exist
+        try {
+          let MQTT_IP = (params.command.connection)?'mqtt:'+params.command.connection:'mqtt://' + settings.mqtt
+          metaLog({type:LOG_TYPE.VERBOSE, content:'Connecting MQTT on: ' + MQTT_IP});
+          mqttClient = mqtt.connect(MQTT_IP, {clientId:"processingCntroller"}); // Connect to the designated mqtt broker
+          mqttClient.setMaxListeners(0); //CAREFULL OF MEMORY LEAKS HERE.
+          params.connection.connections.push({"descriptor": params.command.connection, "connector": mqttClient});
+          connectionIndex = params.connection.connections.length - 1;
+        }
+        catch (err) {metaLog({type:LOG_TYPE.ERROR, content:'Error setting up MQTT-connection ' + err});}
+      }
+      metaLog({type:LOG_TYPE.DEBUG, content:params.connection.connections[connectionIndex].connector});
+      var MQTTSubscribed = false;
       if ((params.command.replytopic)||(params.command.topic&&!params.command.message)) {//here we get a value from a topic
         let GetThisTopic = params.command.topic;
         //console.log("We need to get a message from",GetThisTopic)
         if (params.command.replytopic)
           GetThisTopic = params.command.replytopic;   
           metaLog({type:LOG_TYPE.VERBOSE, content:"Subscribing to " + GetThisTopic });     
-        params.connection.connector.subscribe(GetThisTopic);
-
+        params.connection.connections[connectionIndex].connector.subscribe(GetThisTopic);
+        MQTTSubscribed = true;
         var t = setTimeout(() => {
           UnsubscribeMQTT(params,GetThisTopic);
           metaLog({type:LOG_TYPE.ERROR, content:'Timeout waiting for MQTT-topic ' + GetThisTopic});
@@ -1212,7 +1229,7 @@ class mqttProcessor {
 
 
         metaLog({type:LOG_TYPE.INFO, content:'Add message handler'});  
-        process.mylistener = params.connection.connector.on('message', function (topic, message,packet) {
+        process.mylistener = params.connection.connections[connectionIndex].connector.on('message', function (topic, message,packet) {
           let Matched = HandleMQTTIncoming(GetThisTopic,params,topic,message);
           if (Matched) {
             metaLog({type:LOG_TYPE.INFO, content:'Add message handler'});  
@@ -1223,11 +1240,16 @@ class mqttProcessor {
           }        
         })
       }
+      console.log("Message:",params.command.message)
+      console.log("MQTTSubscribed:",MQTTSubscribed)
+      console.log("IF:",(params.command.message || (!MQTTSubscribed && !params.command.message)))
 
-      if (params.command.message) {// here we publish into a topic
+         
+         // Next is complex: if we have a message to send **OR** No listen action started and no message to send? Then send a message (though it may be empty)
+      if (params.command.message || (!MQTTSubscribed && !params.command.message)) {    
         metaLog({type:LOG_TYPE.INFO, content:'MQTT publishing ' + params.command.message + ' to ' + settings.mqtt_topic + params.command.topic + ' with options : ' + params.command.options});
         try {
-          params.connection.connector.publish(params.command.topic, params.command.message, (params.command.options ? JSON.parse(params.command.options) : ""));
+          params.connection.connections[connectionIndex].connector.publish(params.command.topic, params.command.message, (params.command.options ? JSON.parse(params.command.options) : ""));
           if (params.command.replytopic== undefined) //Only resolve when not waiting on response
             resolve('');
         }
@@ -1235,7 +1257,7 @@ class mqttProcessor {
           metaLog({type:LOG_TYPE.ERROR, content:'Meta found an error processing the MQTT command'});
           metaLog({type:LOG_TYPE.ERROR, content:err});
         }
-      }
+      }     
       else {
         metaLog({type:LOG_TYPE.ERROR, content:"Meta Error: Your command MQTT seems incorrect"});
         metaLog({type:LOG_TYPE.ERROR, content:err});
@@ -1268,10 +1290,27 @@ class mqttProcessor {
   startListen(params, deviceId) {
 
     return new Promise(function (resolve, reject) {
-      metaLog({type:LOG_TYPE.VERBOSE, content:'startlisten'  });
-
-      params.connection.connector.subscribe(params.command, (result) => {metaLog({type:LOG_TYPE.VERBOSE, content:'Subscription MQTT : '+ result})});
-      params.connection.connector.on('message', function (topic, message,packet) {
+      metaLog({type:LOG_TYPE.VERBOSE, content:'startlisten mqtt'  });
+      // Here, we need top add handler for ip-address of mqtt-server, if provided; else 'mqtt://' + settings.mqtt
+      if (typeof (params.command) == 'string') { params.command = JSON.parse(params.command); }
+      if  (!params.connection.connections) { params.connection.connections = []};
+      let connectionIndex = params.connection.connections.findIndex((con) => {return con.descriptor == params.command.connection});
+      metaLog({type:LOG_TYPE.VERBOSE, content:'Connection Index:' + connectionIndex});
+      metaLog({type:LOG_TYPE.DEBUG, content:params.connection.connections[connectionIndex]});
+      if  (connectionIndex < 0) { //checking if connection exist
+        try {
+          let MQTT_IP = (params.command.connection)?'mqtt:'+params.command.connection:'mqtt://' + settings.mqtt;
+                    mqttClient = mqtt.connect(MQTT_IP, {clientId:"processingCntroller"}); // Connect to the designated mqtt broker
+          mqttClient.setMaxListeners(0); //CAREFULL OF MEMORY LEAKS HERE.
+//          let theConnector = new WebSocket(params.command.connection);
+          params.connection.connections.push({"descriptor": params.command.connection, "connector": mqttClient});
+          connectionIndex = params.connection.connections.length - 1;
+        }
+        catch (err) {metaLog({type:LOG_TYPE.ERROR, content:'Error setting up MQTT-connection ' + err});}
+      }
+      params.connection.connections[connectionIndex].connector.terminate()
+      params.connection.connections[connectionIndex].connector.subscribe(params.command, (result) => {metaLog({type:LOG_TYPE.VERBOSE, content:'Subscription MQTT : '+ result})});
+      params.connection.connections[connectionIndex].connector.on('message', function (topic, message,packet) {
       let  Matched = HandleMQTTIncoming(params.command,params,topic,message);
         if (Matched) {  
           params._listenCallback("{\"topic\": \""+ topic.toString()+ "\",\"message\" : " +message.toString()+"}", params.listener, deviceId);
