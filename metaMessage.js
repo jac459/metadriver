@@ -23,7 +23,7 @@ function OverrideLoglevel(NewLogLevel) {
         {mySeverity = LOG_LEVEL[NewLogLevel];
         let SavemyComponents = myComponents   // temporary set components to 'all"
         myComponents = []
-        metaMessage({content:"Setting log-level " +NewLogLevel,type:LOG_TYPE.ALWAYS}); so this message WILL be displayed
+        metaMessage({content:"Setting log-level " +NewLogLevel,type:LOG_TYPE.ALWAYS}); // so this message WILL be displayed
         myComponents = SavemyComponents;       // and restore old components
         }
 }
