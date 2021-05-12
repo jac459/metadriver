@@ -22,10 +22,11 @@ const STATIC = 'static';
 const CLI = 'cli';
 const REPL = 'repl';
 const WEBSOCKET = 'webSocket';
+const SOCKETIO = 'socketIO';
 const JSONTCP = 'jsontcp';
 const MQTT = 'mqtt';
 const WOL = 'wol';
-const { ProcessingManager, httpgetProcessor, httprestProcessor, httpgetSoapProcessor, httppostProcessor, cliProcessor, staticProcessor, webSocketProcessor, jsontcpProcessor, mqttProcessor, replProcessor } = require('./ProcessingManager');
+const { ProcessingManager, httpgetProcessor, httprestProcessor, httpgetSoapProcessor, httppostProcessor, cliProcessor, staticProcessor, webSocketProcessor, socketIOProcessor, jsontcpProcessor, mqttProcessor, replProcessor } = require('./ProcessingManager');
 const { metaMessage, LOG_TYPE } = require("./metaMessage");
 
 const processingManager = new ProcessingManager();
@@ -35,6 +36,7 @@ const myHttppostProcessor = new httppostProcessor();
 const myCliProcessor = new cliProcessor();
 const myStaticProcessor = new staticProcessor();
 const myWebSocketProcessor = new webSocketProcessor();
+const mySocketIOProcessor = new socketIOProcessor();
 const myJsontcpProcessor = new jsontcpProcessor();
 const myMqttProcessor = new mqttProcessor();
 const myReplProcessor = new replProcessor();
@@ -239,7 +241,6 @@ module.exports = function controller(driver) {
     if (evalwrite) { //case we want to write inside a variable
       evalwrite.forEach(evalW => {
         if (evalW.deviceId) {deviceId = evalW.deviceId} //this is specific for listeners and discovery, when one command should be refreshing data of multiple devices (example hue bulbs)
-        
         //process the value
         let finalValue = self.vault.readVariables(evalW.value, deviceId);
         finalValue = self.assignTo(RESULT, finalValue, result);
@@ -289,7 +290,10 @@ module.exports = function controller(driver) {
   };
 
   this.getConnection = function(commandtype) {
-    return self.connectionH[self.connectionH.findIndex((item) => { return (item.name==commandtype); })];
+    if (self.connectionH) {
+      return self.connectionH[self.connectionH.findIndex((item) => { return (item.name==commandtype); })];
+    }
+    else {return null;} 
   };
 
   this.assignProcessor = function(commandtype) {
@@ -313,6 +317,9 @@ module.exports = function controller(driver) {
     }
     else if (commandtype == WEBSOCKET) {
       processingManager.processor = myWebSocketProcessor;
+    }
+    else if (commandtype == SOCKETIO) {
+      processingManager.processor = mySocketIOProcessor;
     }
     else if (commandtype == JSONTCP) {
       processingManager.processor = myJsontcpProcessor;
@@ -375,9 +382,8 @@ module.exports = function controller(driver) {
     return new Promise(function (resolve, reject) {
 
       self.assignProcessor(commandtype);
-      //TODO Replace by let
-      const connection = self.getConnection(commandtype);
-      
+      //TODO WARNING BEFORE WAS CONST, SEE IMPACT 
+      let connection = self.getConnection(commandtype);
       command = self.vault.readVariables(command, deviceId);
       let params = {'command' : command, 'listener' : listener, '_listenCallback' : self.onListenExecute, 'connection' : connection};
       processingManager.startListen(params, deviceId)
@@ -392,7 +398,8 @@ module.exports = function controller(driver) {
     return new Promise(function (resolve, reject) {
       if (listener.deviceId == deviceId) {
         self.assignProcessor(listener.type);
-        processingManager.stopListen(listener);
+        let connection = self.getConnection(listener.commandtype);
+        processingManager.stopListen(listener, connection);
       }
       else {
         metaLog({type:LOG_TYPE.WARNING, content:'Trying to stop a listener from the wrong device', deviceId:deviceId});
@@ -443,7 +450,9 @@ module.exports = function controller(driver) {
   };
   
   this.onListenExecute = function (result, listener, deviceId) {
-    process.stdout.write('.');  
+    metaLog({type:LOG_TYPE.VERBOSE, content:'Event received', deviceId:deviceId});
+    metaLog({type:LOG_TYPE.VERBOSE, content:result, deviceId:deviceId});
+  
     self.queryProcessor(result, listener.queryresult, listener.type, deviceId).then((result) => {
        if (listener.evalwrite) {self.evalWrite(listener.evalwrite, result, deviceId);}
        if (listener.evaldo) {self.evalDo(listener.evaldo, result, deviceId);}
@@ -538,18 +547,15 @@ module.exports = function controller(driver) {
           if (!name.startsWith(BUTTONHIDE)) {
             self.commandProcessor("{\"topic\":\""+ settings.mqtt_topic + self.name + "/" + deviceId + "/button/" + name + "\",\"message\":\"PRESSED\"}", MQTT, deviceId)
           }
-          if (theButton.command != undefined){ 
-            self.actionManager(deviceId, theButton.type, theButton.command, theButton.queryresult, theButton.evaldo, theButton.evalwrite)
-            .then(()=>{
-              metaLog({type:LOG_TYPE.VERBOSE, content:'Action done.', deviceId:deviceId});
-              resolve('Action done.');
-            })
-            .catch((err) => { 
-              metaLog({type:LOG_TYPE.ERROR, content:'Error when processing the command : ' + err, deviceId:deviceId});
-                resolve(err);
-            });
-          }
-          else {resolve("No command in the button.")}
+          self.actionManager(deviceId, theButton.type, theButton.command, theButton.queryresult, theButton.evaldo, theButton.evalwrite)
+          .then(()=>{
+            metaLog({type:LOG_TYPE.VERBOSE, content:'Action done.', deviceId:deviceId});
+            resolve('Action done.');
+          })
+          .catch((err) => { 
+            metaLog({type:LOG_TYPE.ERROR, content:'Error when processing the command : ' + err, deviceId:deviceId});
+              resolve(err);
+          });
         }
         else if (theButton.type == 'wol') {
           resolve("wol");

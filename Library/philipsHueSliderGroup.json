@@ -3,13 +3,13 @@
   "type":"AVRECEIVER",
   "version":20,
   "buttons":{
-    "__PREINIT": {"label":"", "type":"static", "command":"[$LocalDevices]", "queryresult":"$.*", "evalwrite":[{"variable":"RegistrationCode","value":"DYNAMIK JSON.parse(\"$Result\").find(elt => elt.name.startsWith(\"Philips Hue \")).addresses[0]"}]}
+    "__PREINIT": {"label":"", "type":"static", "command":"[$LocalDevices]", "queryresult":"$.*", "evalwrite":[{"variable":"HueBridgeIp","value":"DYNAMIK JSON.parse(\"$Result\").find(elt => elt.name.startsWith(\"Philips Hue \")).addresses[0]"}]}
   },
   "register":{
     "registertype": "SECURITY_CODE",
     "registerheadertext": "Philips Hue Bridge registration",
-    "registerdescription": "Please enter the IP address of your device, then press the button of your bridge and THEN enter.",
-    "registrationcommand":{"type":"http-rest", "command":"{\"verb\":\"post\",\"call\":\"http://$RegistrationCode/api\", \"message\":{\"devicetype\":\"meta\"}}", "queryresult":"$.success.username", "evalwrite":[{"variable":"HueBridgeIp","value":"$RegistrationCode"},{"variable":"HueUserName","value":"$Result"}, {"variable":"IsRegistered","value":"DYNAMIK ((\"$Result\" == \"undefined\") || (\"$Result\".startsWith(\"Command failed:\"))) ? false : true"}]}
+    "registerdescription": "Please write ok here, then press the button of your bridge and THEN enter.",
+    "registrationcommand":{"type":"http-rest", "command":"{\"verb\":\"post\",\"call\":\"http://$HueBridgeIp/api\", \"message\":{\"devicetype\":\"meta\"}}", "queryresult":"$[0].success.username", "evalwrite":[{"variable":"HueUserName","value":"$Result"}, {"variable":"IsRegistered","value":"DYNAMIK ((\"$Result\" == \"undefined\") || (\"$Result\".startsWith(\"Command failed:\"))) ? false : true"}]}
   },
   "persistedvariables":{
     "RegistrationCode":"",
@@ -18,7 +18,7 @@
     "HueUserName":""
   },
   "discover":{
-    "welcomeheadertext":"Hue Driver ==> If first usage, press the button on top of your HUE Bridge before clicking next !!!",
+    "welcomeheadertext":"Hue Driver",
     "welcomedescription":"powered by meta\nby JAC459",
     "command":{"type":"http-get", "command":"http://$HueBridgeIp/api/$HueUserName/groups/", "queryresult":["$.*~","$..name"]}
   },
