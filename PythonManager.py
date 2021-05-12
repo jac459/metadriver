@@ -7,13 +7,35 @@ from adb_shell.adb_device import AdbDeviceTcp, AdbDeviceUsb
 from adb_shell.auth.sign_pythonrsa import PythonRSASigner
 
 import logging
+import time
+
+#logger = logging.getLogger('websockets')
+#logging.basicConfig(level=logging.INFO)
+#logger = logging.getLogger(__name__)
+
 logger = logging.getLogger('websockets')
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
+# create console handler and set level to debug
+ch = logging.StreamHandler()
+ch.setLevel(logging.DEBUG)
+
+# create formatter
+formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+
+# add formatter to ch
+ch.setFormatter(formatter)
+
+# add ch to logger
+logger.addHandler(ch)
+
+
 ConnectedHosts = []
 ADBHostList = {}
 BroadlinkHostList = []
 # AdbDeviceTcp(1,555,default_transport_timeout_s=9.)
+def DateAndTime():
+    return time.strftime("%Y-%m-%d %H:%M:%S")
 
 def Connect_ADB(host):
     global ADBDevice
