@@ -43,7 +43,7 @@ function GetATimeStamp() {
        if (DiscoveryCache[loopvalue].timestamp < DiscoveryCache[Oldest].timestamp)
           Oldest = loopvalue;
     };
-    metaLog({deviceId: targetDeviceId, type:LOG_TYPE.VERBOSE, content: "Deleting oldest cache-entry"+  targetDeviceId});
+    metaLog({deviceId: targetDeviceId, type:LOG_TYPE.DEBUG, content: "Deleting oldest cache-entry"+  targetDeviceId});
     delete DiscoveryCache[Oldest];
   
   }
@@ -63,17 +63,17 @@ function GetATimeStamp() {
       metaLog({deviceId: targetDeviceId, type:LOG_TYPE.DEBUG, content:"==========" +i});      
       }
   }
-catch (err) {metaLog({type:LOG_TYPE.VERBOSE, content:"Error in DisplayCache "+ err});}
+catch (err) {metaLog({type:LOG_TYPE.ERROR, content:"Error in DisplayCache "+ err});}
 }
 
   function AddDiscoveryCache(targetDeviceId,NewoutputTable,status){
     try { 
-    metaLog({deviceId: targetDeviceId, type:LOG_TYPE.VERBOSE, content:"Adding "+status+" cache-entry for: " +  targetDeviceId});
+    metaLog({deviceId: targetDeviceId, type:LOG_TYPE.DEBUG, content:"Adding "+status+" cache-entry for: " +  targetDeviceId});
 
     if (Object.keys(DiscoveryCache).length >50&& DiscoveryCache[targetDeviceId] != undefined)
         DeleteOldestCacheEntry();
     DiscoveryCache[targetDeviceId] = {"timestamp":GetATimeStamp(),"outputTable":NewoutputTable,"state":status}
-    metaLog({deviceId: targetDeviceId, type:LOG_TYPE.VERBOSE, content:DiscoveryCache});
+    metaLog({deviceId: targetDeviceId, type:LOG_TYPE.DEBUG, content:DiscoveryCache});
     if (DiscoveryCache[targetDeviceId].state == "COMPLETED") 
       metaLog({deviceId: targetDeviceId, type:LOG_TYPE.INFO, content:DiscoveryCache[targetDeviceId]});
       
@@ -85,14 +85,14 @@ catch (err) {metaLog({type:LOG_TYPE.VERBOSE, content:"Error in DisplayCache "+ e
   
   function ValidateDiscoveryCache(targetDeviceId){
   try{
-    metaLog({deviceId: targetDeviceId, type:LOG_TYPE.VERBOSE, content:"Cache entry checking" });
+    metaLog({deviceId: targetDeviceId, type:LOG_TYPE.DEBUG, content:"Cache entry checking" });
     metaLog({deviceId: targetDeviceId, type:LOG_TYPE.DEBUG, content:DiscoveryCache});
     if (DiscoveryCache[targetDeviceId]) {
-        metaLog({deviceId: targetDeviceId, type:LOG_TYPE.VERBOSE, content:"Cache entry found"});
+        metaLog({deviceId: targetDeviceId, type:LOG_TYPE.DEBUG, content:"Cache entry found"});
         return DiscoveryCache[targetDeviceId];  
         }
         
-    metaLog({deviceId: targetDeviceId, type:LOG_TYPE.VERBOSE, content:"Cache entry not found"});
+    metaLog({deviceId: targetDeviceId, type:LOG_TYPE.DEBUG, content:"Cache entry not found"});
     
     return CacheEntryNotFound;
   }

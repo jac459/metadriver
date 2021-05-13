@@ -23,11 +23,10 @@ const CLI = 'cli';
 const REPL = 'repl';
 const WEBSOCKET = 'webSocket';
 const SOCKETIO = 'socketIO';
-const NETSOCKET = 'netSocket';
 const JSONTCP = 'jsontcp';
 const MQTT = 'mqtt';
 const WOL = 'wol';
-const { ProcessingManager, httpgetProcessor, httprestProcessor, httpgetSoapProcessor, httppostProcessor, cliProcessor, staticProcessor, webSocketProcessor, socketIOProcessor, NetSocketProcessor,jsontcpProcessor, mqttProcessor, replProcessor } = require('./ProcessingManager');
+const { ProcessingManager, httpgetProcessor, httprestProcessor, httpgetSoapProcessor, httppostProcessor, cliProcessor, staticProcessor, webSocketProcessor, socketIOProcessor,jsontcpProcessor, mqttProcessor, replProcessor } = require('./ProcessingManager');
 
 const { metaMessage, LOG_TYPE } = require("./metaMessage");
 
@@ -39,7 +38,6 @@ const myCliProcessor = new cliProcessor();
 const myStaticProcessor = new staticProcessor();
 const myWebSocketProcessor = new webSocketProcessor();
 const mySocketIOProcessor = new socketIOProcessor();
-const myNetSocketProcessor = new NetSocketProcessor();
 
 const myJsontcpProcessor = new jsontcpProcessor();
 const myMqttProcessor = new mqttProcessor();
@@ -324,9 +322,6 @@ module.exports = function controller(driver) {
     }
     else if (commandtype == SOCKETIO) {
       processingManager.processor = mySocketIOProcessor;
-    }
-    else if (commandtype == NETSOCKET) {
-      processingManager.processor = myNetSocketProcessor;
     }
     else if (commandtype == JSONTCP) {
       processingManager.processor = myJsontcpProcessor;

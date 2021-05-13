@@ -27,7 +27,7 @@ var brainDiscovered = false;
 var brainConsoleGivenIP = undefined;
 var driverTable = [];
 var localDevices = [];
-var localByMacDevices = ['kaasje'];
+var localByMacDevices = [];
 exports.localDevices = localDevices;
 exports.localByMacDevices = localByMacDevices;
 exports.neeoBrainIp = returnBrainIp;
@@ -440,7 +440,7 @@ function executeDriverCreation (driver, hubController, deviceId) {
 
       //GET ALL CONNECTIONS
       controller.addConnection({"name":"webSocket", "connections":[]})
-      controller.addConnection({"name":"netSocket", "connections":[]})
+      controller.addConnection({"name":"socketIO", "connections":[]})
       controller.addConnection({"name":"jsontcp", "descriptor":driver.jsontcp, "connector":""})
       if (settings.mqtt) {
         metaLog({deviceId: deviceId, type:LOG_TYPE.INFO, content:'Creating the connection MQTT'});
@@ -481,11 +481,13 @@ function executeDriverCreation (driver, hubController, deviceId) {
             (targetDeviceId) => {
               metaLog({deviceId: targetDeviceId, type:LOG_TYPE.INFO, content:"Discovery: NEEO requested for: " + targetDeviceId + " " + driver.name });
               if (targetDeviceId == undefined)  { //Original code
+                console.log("Native discovery now:")
                 metaLog({deviceId: targetDeviceId, type:LOG_TYPE.INFO, content:"Discovery: result# Bypassing cache (undefined targetid): " + driver.name });
                 return new Promise(function (resolve, reject) {
                 discoveryDriverPreparator(controller, driver, currentDeviceId, targetDeviceId).then((driverList) => {
                   const formatedTable = [];
                   discoveredDriverListBuilder(driverList, formatedTable, 0, controller, targetDeviceId).then((outputTable) => {
+                    console.log(outputTable);
                     resolve(outputTable); 
                   })
                 })
@@ -916,7 +918,8 @@ if (process.argv.length>2) {
 //Unleaching discovery
 //Mac addresses.
 find().then(devices => {
-  this.localByMacDevices = devices;
+  this.localByMacDevices = devices.sort();
+
   metaLog({type:LOG_TYPE.VERBOSE, content:'MAC discovery found: '});
   metaLog({type:LOG_TYPE.VERBOSE, content:this.localByMacDevices});
 });
