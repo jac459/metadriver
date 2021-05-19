@@ -1081,15 +1081,6 @@ function HandleMQTTIncoming(GetThisTopic,params,topic,message){
 class mqttProcessor {
   constructor() {
     this.MyUseCount = [];
-    this.MyMessageHandler = [];
-    this.msgcount = 0;
-    this.GetThisTopic = "";
-    this.CheckOnMessage = false;
-    this.connectionIndex = -1;
-    this.Timer;
-    this.promiseResolve;
-    this.promiseReject; 
-    console.log("Init of mqtt-class")
     for (var i=0;i<5;i++) {
       this.MyUseCount.push(0);
     }
@@ -1097,6 +1088,8 @@ class mqttProcessor {
   }
   initiate(connection) {
     return new Promise(function (resolve, reject) {
+
+
       resolve('');
       //nothing to do, it is done globally.
       //connection.connector = mqttClient;
@@ -1106,20 +1099,16 @@ class mqttProcessor {
   process (params) {
     var _this = this;
 
-    var OnMessageHandler0 = function OnMessageHandler0 (topic, message,packet) {
-          metaLog({type:LOG_TYPE.VERBOSE, content:"var OnMessageHandler0 Receiving message " + topic + ": "+message.toString()})
-          metaLog({type:LOG_TYPE.VERBOSE, content:"Looking for: " + _this.GetThisTopic})
+    var OnMessageHandler = function OnMessageHandler (topic, message,packet) {
           try {
-            let Matched = HandleMQTTIncoming(_this.GetThisTopic,params,topic,message);
+            let Matched = HandleMQTTIncoming(_this.GetThisTopic,params,topic,message,params.connection.connections[_this.connectionIndex].connector);
             if (Matched) {
-              metaLog({type:LOG_TYPE.VERBOSE, content:"We have a message " + topic.toString() + " "  + message.toString()});
+              metaLog({type:LOG_TYPE.VERBOSE, content:"We have a message with matchin topic in process " + topic.toString() + " "  + message.toString()});
               clearTimeout(_this.Timer);
               UnsubscribeMQTT(params,_this.GetThisTopic);
               _this.MyUseCount[_this.connectionIndex]--;
               if (!_this.MyUseCount[_this.connectionIndex] ) {
-                metaLog({type:LOG_TYPE.VERBOSE, content:"Usecount has become 0"}) 
-                params.connection.connections[_this.connectionIndex].connector.off('message', _this.MyMessageHandler[_this.connectionIndex]); // MyMessageHandler[_this.connectionIndex]);
-                metaLog({type:LOG_TYPE.VERBOSE, content:"Removed onmessage handler"}) 
+                params.connection.connections[_this.connectionIndex].connector.off('message',OnMessageHandler); 
               }
               _this.CheckOnMessage=false;
               _this.promiseResolve("{\"topic\": \""+ topic.toString()+ "\",\"message\" : " +message.toString()+"}");                          
@@ -1128,20 +1117,13 @@ class mqttProcessor {
           catch (err) {
             metaLog({type:LOG_TYPE.ERROR,content:"Error in ProcessingManager.js MQTT-process: "+err});
           }
-        }    
-    try {
-      this.MyMessageHandler.push(OnMessageHandler0)
-      this.MyMessageHandler.push(OnMessageHandler0)
-      this.MyMessageHandler.push(OnMessageHandler0)
-      this.MyMessageHandler.push(OnMessageHandler0)
-      this.MyMessageHandler.push(OnMessageHandler0)
-    }
-     catch (err) { console.log("error filling handler-list",err)}
+        }   
+        console.log("MQTT-Process 1") 
 
     return new Promise(function (resolve, reject) {
       _this.promiseResolve = resolve;
       _this.promiseReject  = reject;
-
+    try {
       metaLog({type:LOG_TYPE.VERBOSE, content:'MQTT Processing'});
       metaLog({type:LOG_TYPE.DEBUG, content:params.command});
       params.command = JSON.parse(params.command);
@@ -1149,6 +1131,8 @@ class mqttProcessor {
       _this.connectionIndex = params.connection.connections.findIndex((con) => {return con.descriptor == params.command.connection});
       metaLog({type:LOG_TYPE.VERBOSE, content:'Connection Index:' + _this.connectionIndex});
       metaLog({type:LOG_TYPE.DEBUG, content:params.connection.connections[_this.connectionIndex]});
+    } 
+    catch (err) {metaLog({type:LOG_TYPE.ERROR, content:'Error init MQTT-connection ' + err});}
       if  (_this.connectionIndex < 0) { //checking if connection exist
         try {
           let MQTT_IP = (params.command.connection)?'mqtt:'+params.command.connection:'mqtt://'+ settings.mqtt
@@ -1175,12 +1159,12 @@ class mqttProcessor {
           metaLog({type:LOG_TYPE.ERROR, content:'Timeout waiting for MQTT-topic ' + _this.GetThisTopic});
           _this.MyUseCount[_this.connectionIndex]--;
           if (!_this.MyUseCount[_this.connectionIndex]) {
-            metaLog({type:LOG_TYPE.DEBUG,content:"Messagehandler usecount has become 0"}) 
-            params.connection.connections[_this.connectionIndex].connector.off('message', _this.MyMessageHandler[_this.connectionIndex]);
-            metaLog({type:LOG_TYPE.VERBOSE,content:"Removed onmessage handler"}) 
+            metaLog({type:LOG_TYPE.DEBUG,content:"Messagehandler usecount has become 0, removing messagehandler"}) 
+            params.connection.connections[_this.connectionIndex].connector.off('message',OnMessageHandler);
+
           }
           _this.CheckOnMessage=false;
-          reject('');
+          reject('');return;
         }, (params.command.timeout ? params.command.timeout  : 10000));
 
         metaLog({type:LOG_TYPE.DEBUG, content:'Check if we need to setup a message handler'});  
@@ -1188,20 +1172,16 @@ class mqttProcessor {
 
         if (params.command.replytopic)
           _this.GetThisTopic = params.command.replytopic;   
-
         if (!_this.MyUseCount[_this.connectionIndex]) {  // Message handler not yet registered?
-          metaLog({type:LOG_TYPE.VERBOSE, content:'Add message handler ' +_this.connectionIndex });  
-          params.connection.connections[_this.connectionIndex].connector.on('message', _this.MyMessageHandler[_this.connectionIndex]);
-          metaLog({type:LOG_TYPE.DEBUG, content:'message handler set' });
+          params.connection.connections[_this.connectionIndex].connector.on('message', OnMessageHandler);
           }
         metaLog({type:LOG_TYPE.VERBOSE, content:"Subscribing to " + _this.GetThisTopic });     
         _this.MyUseCount[_this.connectionIndex]++;
         params.connection.connections[_this.connectionIndex].connector.subscribe(_this.GetThisTopic);
-        MQTTSubscribed = true;
   
         }
       }
-      catch (err) {console.log("error in message handler",err)}
+      catch (err) {metaLog({type:LOG_TYPE.ERROR, content:"error in message handler " +err})}
 
       try {
          // Next is a bit complex: if we have a message to send **OR** No listen action started and no message to send? Then send a message (though it will be empty)
@@ -1226,6 +1206,7 @@ class mqttProcessor {
     
   })
 }
+
   query(params) {
     return new Promise(function (resolve, reject) {
       if (params.query) {
@@ -1245,16 +1226,13 @@ class mqttProcessor {
     });
   }
   startListen(params, deviceId) {
-    var _this = this;
-    return new Promise(function (resolve, reject) {    
+
+    return new Promise(function (resolve, reject) {
       metaLog({type:LOG_TYPE.VERBOSE, content:'startlisten mqtt'  });
       // Here, we need top add handler for ip-address of mqtt-server, if provided; else 'mqtt://' + settings.mqtt
-      try {
       if (typeof (params.command) == 'string') { params.command = JSON.parse(params.command); }
-      }
-      catch (err){}
       if  (!params.connection.connections) { params.connection.connections = []};
-      let connectionIndex = params.connection.connections.findIndex((con) => {return con.descriptor == params.command.connection});
+      let connectionIndex = params.connection.connections.findIndex((con) => {return con.Listenerdescriptor == params.command.connection});
       metaLog({type:LOG_TYPE.VERBOSE, content:'Connection Index:' + connectionIndex});
       metaLog({type:LOG_TYPE.DEBUG, content:params.connection.connections[connectionIndex]});
       if  (connectionIndex < 0) { //checking if connection exist
@@ -1263,25 +1241,22 @@ class mqttProcessor {
                     mqttClient = mqtt.connect(MQTT_IP, {clientId:"processingCntroller"}); // Connect to the designated mqtt broker
           mqttClient.setMaxListeners(0); //CAREFULL OF MEMORY LEAKS HERE.
 //          let theConnector = new WebSocket(params.command.connection);
-          params.connection.connections.push({"descriptor": params.command.connection, "connector": mqttClient});
-
-          _this.connectionIndex = params.connection.connections.length - 1;
+          params.connection.connections.push({"Listenerdescriptor": params.command.connection, "connector": mqttClient});
+          connectionIndex = params.connection.connections.length - 1;
         }
-      catch (err){metaLog({type:LOG_TYPE.ERROR, content:'Error setting up listener for MQTT-connection ' + err});}
+        catch (err) {metaLog({type:LOG_TYPE.ERROR, content:'Error setting up MQTT-connection ' + err});}
       }
-
-      //params.connection.connections[_this.connectionIndex].connector.terminate()
-    params.connection.connections[connectionIndex].connector.subscribe(params.command, (result) => {metaLog({type:LOG_TYPE.VERBOSE, content:'Subscription MQTT : '+ result})});
-    params.connection.connections[connectionIndex].connector.on('message', function (topic, message,packet) {
+//      params.connection.connections[connectionIndex].connector.terminate()
+      params.connection.connections[connectionIndex].connector.subscribe(params.command, (result) => {metaLog({type:LOG_TYPE.VERBOSE, content:'Subscription MQTT : '+ result})});
+      params.connection.connections[connectionIndex].connector.on('message', function (topic, message,packet) {
       let  Matched = HandleMQTTIncoming(params.command,params,topic,message);
-      if (Matched) {  
-        params._listenCallback("{\"topic\": \""+ topic.toString()+ "\",\"message\" : " +message.toString()+"}", params.listener, deviceId);
-      }
+        if (Matched) {  
+          params._listenCallback("{\"topic\": \""+ topic.toString()+ "\",\"message\" : " +message.toString()+"}", params.listener, deviceId);
+        }
+      });
+      resolve('');
     });
-    resolve('');
-  });
-}
-
+  }
   stopListen(params) {
     metaLog({type:LOG_TYPE.INFO, content:'Stop listening to the MQTT device.'});
   };
