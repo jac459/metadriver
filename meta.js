@@ -441,6 +441,7 @@ function executeDriverCreation (driver, hubController, deviceId) {
       //GET ALL CONNECTIONS
       controller.addConnection({"name":"webSocket", "connections":[]})
       controller.addConnection({"name":"socketIO", "connections":[]})
+      controller.addConnection({"name":"telnet", "connections":[]})
       controller.addConnection({"name":"jsontcp", "descriptor":driver.jsontcp, "connector":""})
       if (settings.mqtt) {
         metaLog({deviceId: deviceId, type:LOG_TYPE.INFO, content:'Creating the connection MQTT'});

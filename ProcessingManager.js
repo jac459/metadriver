@@ -9,6 +9,7 @@ const lodash = require('lodash');
 const { parserXMLString, xmldom } = require("./metaController");
 const got = require('got');
 const Net = require('net');
+const Telnet = require('telnet-client'); 
 const Promise = require('bluebird');
 const mqtt = require('mqtt');
 
@@ -559,7 +560,147 @@ class socketIOProcessor {
   }
 }
 exports.socketIOProcessor = socketIOProcessor;
+class TelnetProcessor {
 
+  initiate(connection) {
+    return new Promise(function (resolve, reject) {
+      resolve();
+    });
+  }
+    
+
+
+process(params) {
+  var _this = this;
+  var theConnector
+  metaLog({type:LOG_TYPE.VERBOSE, content:'Process Telnet'});
+  if (typeof (params.command) == 'string') { params.command = JSON.parse(params.command); }
+
+  var connection = new Telnet()
+  var cmd = "ls -al"
+  // set some entries correct in input params. 
+  // 1: make a url lut of host and port parms, so it can be used in findindex in connection-stack
+  // 2: JSON does not support regexp's, so they need to be enclosed as strings. Here we make thenm regexp's again (unquoting)
+  params.command.connection=params.command.TelnetParms.host+":"+params.command.TelnetParms.port;
+  if (params.command.TelnetParms.loginPrompt) 
+    params.command.TelnetParms.loginPrompt    = RegExp(params.command.TelnetParms.loginPrompt.slice(1, -1),'i');
+  if (params.command.TelnetParms.passwordPrompt)
+    params.command.TelnetParms.passwordPrompt = RegExp(params.command.TelnetParms.passwordPrompt.slice(1, -1),'i');
+  if (params.command.TelnetParms.shellPrompt)
+    params.command.TelnetParms.shellPrompt    = RegExp(params.command.TelnetParms.shellPrompt.slice(1, -1),'i');
+  
+  return new Promise(function (resolve, reject) {
+
+    try {
+      if (typeof (params.command) == 'string') { params.command = JSON.parse(params.command); }
+      if  (!params.connection.connections) { params.connection.connections = []};
+      console.log("        connectionparms are now",params.command.connection);
+      let connectionIndex = params.connection.connections.findIndex((con) => {return con.descriptor == params.command.connection});
+      if  (connectionIndex < 0) { //checking if connection exist
+           theConnector =   new Telnet(); 
+           metaLog({type:LOG_TYPE.VERBOSE, content:"Adding Telnet connector" + params.command.connection})
+          params.connection.connections.push({"descriptor": params.command.connection, "connector": theConnector,"Connected":"init"});
+          connectionIndex = params.connection.connections.length - 1;
+      }
+
+      if (params.connection.connections[connectionIndex].Connected == "init") {
+        params.connection.connections[connectionIndex].connector.on('ready', function(prompt) {
+          metaLog({type:LOG_TYPE.VERBOSE, content:"We have a telnet prompt"})
+            params.connection.connections[connectionIndex].Connected = "connected"
+            if (params.command.message) {
+              metaLog({type:LOG_TYPE.VERBOSE, content:"Executing command" + params.command.message})
+              params.connection.connections[connectionIndex].connector.exec(params.command.message, function(err, response) {
+                resolve(response)
+                return
+              })
+            }
+            else
+              resolve('') 
+          })
+
+          params.connection.connections[connectionIndex].connector.on('timeout', function() {
+            metaLog({type:LOG_TYPE.WARNING, content:'Telnet socket timeout!'})
+            params.connection.connections[connectionIndex].connector.end()
+            params.connection.connections[connectionIndex].Connected = false;
+            params.connection.connections[connectionIndex].Connected = "closed"
+          })
+          
+          params.connection.connections[connectionIndex].connector.on('close', function() {
+            params.connection.connections[connectionIndex].Connected = false;
+            params.connection.connections[connectionIndex].Connected == "closed"
+            metaLog({type:LOG_TYPE.VERBOSE, content:'Telnet connection closed'})
+          })
+          
+          params.connection.connections[connectionIndex].connector.on('error', function(err) {
+            metaLog({type:LOG_TYPE.VERBOSE, content:'Telnet connection got error'+err})
+          })
+
+          params.connection.connections[connectionIndex].Connected = "setup"
+        }
+
+      if (params.connection.connections[connectionIndex].Connected == "setup" ||
+        params.connection.connections[connectionIndex].Connected == "closed" ) {
+        params.connection.connections[connectionIndex].connector.connect(params.command.TelnetParms);
+      }
+      if (params.command.message) {
+        metaLog({type:LOG_TYPE.VERBOSE, content:"Received request for message" +params.command.message + " to " +params.command.connection})
+        if (params.connection.connections[connectionIndex].Connected != "connected") {
+          metaLog({type:LOG_TYPE.ERROR, content:"Cannot send command, login is required"})
+          reject('Cannot send command, login is required')
+        }
+        params.connection.connections[connectionIndex].connector.exec(params.command.message,function(err, response) {
+          resolve(response);
+        })
+        }
+        else resolve('')      
+      }
+    catch (err) {console.log("Process error",err)
+                reject('Process error');}
+  })
+}
+
+query(params) {
+  try {
+
+    return new Promise(function (resolve, reject) {
+      if (params.query) {
+        try {
+          if (typeof (params.data) == 'string') { params.data = JSON.parse(params.data); };
+          resolve(JSONPath(params.query, params.data));
+        }
+        catch (err) {
+          metaLog({type:LOG_TYPE.ERROR, content:err});
+        }
+      }
+      else { resolve(params.data); }
+    });
+  }
+  catch (err) {
+    metaLog({type:LOG_TYPE.ERROR,content:"Error in ProcessingManager.js process: "+err});
+  }
+
+}
+startListen(params, deviceId) {
+  var _this = this;
+  var connectionIndex ;
+  return new Promise(function (resolve, reject) {
+    resolve('')
+  })
+  }
+  wrapUp(connection) { 
+        connection.connections.forEach(myCon => {
+          myCon.connector.terminate();
+          myCon.connector = null;
+        });
+        connection.connections = undefined;
+  }
+  
+    
+  stopListen(params) {
+      clearInterval(params.timer);
+  }
+}
+exports.TelnetProcessor = TelnetProcessor;
 class jsontcpProcessor {
   initiate(connection) {
     return new Promise(function (resolve, reject) {

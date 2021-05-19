@@ -23,10 +23,11 @@ const CLI = 'cli';
 const REPL = 'repl';
 const WEBSOCKET = 'webSocket';
 const SOCKETIO = 'socketIO';
+const TELNET = 'telnet';
 const JSONTCP = 'jsontcp';
 const MQTT = 'mqtt';
 const WOL = 'wol';
-const { ProcessingManager, httpgetProcessor, httprestProcessor, httpgetSoapProcessor, httppostProcessor, cliProcessor, staticProcessor, webSocketProcessor, socketIOProcessor,jsontcpProcessor, mqttProcessor, replProcessor } = require('./ProcessingManager');
+const { ProcessingManager, httpgetProcessor, httprestProcessor, httpgetSoapProcessor, httppostProcessor, cliProcessor, staticProcessor, webSocketProcessor, socketIOProcessor, TelnetProcessor,jsontcpProcessor, mqttProcessor, replProcessor } = require('./ProcessingManager');
 
 const { metaMessage, LOG_TYPE } = require("./metaMessage");
 
@@ -38,7 +39,7 @@ const myCliProcessor = new cliProcessor();
 const myStaticProcessor = new staticProcessor();
 const myWebSocketProcessor = new webSocketProcessor();
 const mySocketIOProcessor = new socketIOProcessor();
-
+const myTelnetProcessor = new TelnetProcessor();
 const myJsontcpProcessor = new jsontcpProcessor();
 const myMqttProcessor = new mqttProcessor();
 const myReplProcessor = new replProcessor();
@@ -322,6 +323,9 @@ module.exports = function controller(driver) {
     }
     else if (commandtype == SOCKETIO) {
       processingManager.processor = mySocketIOProcessor;
+    }
+    else if (commandtype == TELNET) {
+      processingManager.processor = myTelnetProcessor;
     }
     else if (commandtype == JSONTCP) {
       processingManager.processor = myJsontcpProcessor;
