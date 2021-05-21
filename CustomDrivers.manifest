@@ -27,6 +27,15 @@
       "FlowLocation": "https://raw.githubusercontent.com/jac459/meta-SamsungTV2012/main/node-red%20Flow/SamsungTV2012%20Flow.json",
       "OrgRepo": "https://github.com/jac459/meta-SamsungTV2012"
     },
+     {
+      "name": "Telnet",
+      "Author": "TonO",
+      "version": 1,
+      "DriverLocation": "https://raw.githubusercontent.com/Ton-O/Meta_Telnet/master/Telnet.json",
+      "IconLocation": "https://raw.githubusercontent.com/Ton-O/Meta_Telnet/master/Telnet.jsp",
+      "FlowLocation": "",
+      "OrgRepo": "https://github.com/Ton-O/Meta_Telnet"
+    },
     {
       "name": "UpdateMeta",
       "Author": "TonO",
