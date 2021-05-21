@@ -32,7 +32,7 @@
       "Author": "TonO",
       "version": 1,
       "DriverLocation": "https://raw.githubusercontent.com/Ton-O/Meta_Telnet/master/Telnet.json",
-      "IconLocation": "https://raw.githubusercontent.com/Ton-O/Meta_Telnet/master/Telnet.jsp",
+      "IconLocation": "https://raw.githubusercontent.com/Ton-O/Meta_Telnet/master/Telnet.jpg",
       "FlowLocation": "",
       "OrgRepo": "https://github.com/Ton-O/Meta_Telnet"
     },
