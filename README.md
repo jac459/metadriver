@@ -2,6 +2,10 @@ As I am working quite a lot on this driver nowadays, don't hesitate to supporte 
 
 https://www.paypal.me/jac459
 
+# IMPORTANT NOTICE, A V2 of this driver is being worked on in JAC459/meta. 
+
+
+
 You can join the community here:
 https://discord.gg/3nuUZwXVXA
 And here (backup):
