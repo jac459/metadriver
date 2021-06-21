@@ -2,7 +2,7 @@ As I am working quite a lot on this driver nowadays, don't hesitate to supporte 
 
 https://www.paypal.me/jac459
 
-# IMPORTANT NOTICE, A V2 of this driver is being worked on in JAC459/meta. 
+# IMPORTANT NOTICE, A V2 of this driver (improved :-D ) is available at JAC459/meta. 
 
 
 
