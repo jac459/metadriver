@@ -36,6 +36,15 @@
       "FlowLocation": "",
       "OrgRepo": "https://github.com/Ton-O/Meta_Telnet"
     },
+     {
+      "name": "ADB",
+      "Author": "TonO",
+      "version": 1,
+      "DriverLocation": "https://raw.githubusercontent.com/jac459/meta-ADBdroid/main/ADBDroid.json",
+      "IconLocation": "https://raw.githubusercontent.com/jac459/meta-ADBdroid/main/ADBDroid.jpg",
+      "FlowLocation": "",
+      "OrgRepo": "https://github.com/jac459/meta-ADBdroid"
+    },
     {
       "name": "UpdateMeta",
       "Author": "TonO",
