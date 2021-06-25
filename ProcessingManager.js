@@ -9,7 +9,7 @@ const lodash = require('lodash');
 const { parserXMLString, xmldom } = require("./metaController");
 const got = require('got');
 const Net = require('net');
-const Telnet = require('telnet-client'); 
+//const Telnet = require('telnet-client'); // Temporary removed because of unfulfilled dependency
 const Promise = require('bluebird');
 const mqtt = require('mqtt');
 
