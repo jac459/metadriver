@@ -4,10 +4,10 @@
       "name": "KODI",
       "Author": "TonO",
       "version": 2,
-      "DriverLocation": "https://raw.githubusercontent.com/Ton-O//meta-kodi/main/Meta%20custom%20driver/KODI.json",
-      "IconLocation":   "https://raw.githubusercontent.com/Ton-O//meta-kodi/main/Icons/KODI.jpg",
-      "FlowLocation": "https://raw.githubusercontent.com/Ton-O//meta-kodi/main/node-red%20Flow/Kodi-nodered.json",
-      "OrgRepo": "https://github.com/Ton-O//meta-kodi"
+      "DriverLocation": "https://raw.githubusercontent.com/Ton-O/meta-kodi/main/Meta%20custom%20driver/KODI.json",
+      "IconLocation":   "https://raw.githubusercontent.com/Ton-O/meta-kodi/main/Icons/KODI.jpg",
+      "FlowLocation": "https://raw.githubusercontent.com/Ton-O/meta-kodi/main/node-red%20Flow/Kodi-nodered.json",
+      "OrgRepo": "https://github.com/Ton-O/meta-kodi"
     },
     {
       "name": "DenonAVR",
@@ -40,10 +40,10 @@
       "name": "ADBdroid",
       "Author": "TonO",
       "version": 1,
-      "DriverLocation": "https://raw.githubusercontent.com/Ton-O//meta-ADBdroid/main/ADBDroid.json",
-      "IconLocation": "https://raw.githubusercontent.com/Ton-O//meta-ADBdroid/main/ADBDroid.jpg",
+      "DriverLocation": "https://raw.githubusercontent.com/Ton-O/meta-ADBdroid/main/ADBDroid.json",
+      "IconLocation": "https://raw.githubusercontent.com/Ton-O/meta-ADBdroid/main/ADBDroid.jpg",
       "FlowLocation": "",
-      "OrgRepo": "https://github.com/Ton-O//meta-ADBdroid"
+      "OrgRepo": "https://github.com/Ton-O/meta-ADBdroid"
     },
     {
       "name": "Telnet",
