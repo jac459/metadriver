@@ -10,6 +10,15 @@
       "OrgRepo": "https://github.com/Ton-O/meta-kodi"
     },
     {
+      "name": "KODI-meta2",
+      "Author": "TonO",
+      "version": 20,
+      "DriverLocation": "https://raw.githubusercontent.com/jac459/meta-kodi/main/Meta%20custom%20driver/KODI.json",
+      "IconLocation":   "https://raw.githubusercontent.com/jac459/meta-kodi/main/Icons/KODI.jpg",
+      "FlowLocation": "https://raw.githubusercontent.com/jac459/meta-kodi/main/node-red%20Flow/Kodi-nodered.json",
+      "OrgRepo": "https://github.com/jac459/meta-kodi"
+    },
+    {
       "name": "DenonAVR",
       "Author": "TonO",
       "version": 2,
