@@ -46,15 +46,6 @@
       "OrgRepo": "https://github.com/Ton-O/meta-ADBdroid"
     },
     {
-      "name": "Telnet",
-      "Author": "TonO",
-      "version": 1,
-      "DriverLocation": "https://raw.githubusercontent.com/Ton-O/Meta_Telnet/master/Telnet.json",
-      "IconLocation": "https://raw.githubusercontent.com/Ton-O/Meta_Telnet/master/telnet.jpg",
-      "FlowLocation": "",
-      "OrgRepo": "https://github.com/Ton-O/Meta_Telnet"
-    },
-    {
       "name": "UpdateMeta",
       "Author": "TonO",
       "version": 2,
